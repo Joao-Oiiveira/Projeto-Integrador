@@ -1,0 +1,33 @@
+Usuário
+-nome
+-email*
+-senha
+-data de nascimento
+
+matéria
+-nome*
+-total de perguntas
+-total de perguntas certas
+-total de perguntas erradas
+
+UNIDADE
+-id*
+-Capitulo
+
+questões
+-id*
+-Pergunta
+-respota certa
+
+FLashCards
+-id*
+-Pergunta
+-Resposta
+
+Agenda
+-id*
+-materia
+-Nome compromisso
+-Tipo do compromisso
+-Data
+-Observação
