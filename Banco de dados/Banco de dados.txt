@@ -1,0 +1,36 @@
+uniModelo conceitual TCC
+
+USUARIO
+-Id*
+-Nome
+-Data de nascimento
+-Email
+-Senha
+
+Materia
+-Id*
+-Nome da matéria
+-Rendimento
+-Total de questões
+-Questões feitas
+-Questões certas
+-Questões erradas
+
+FlashCard
+-Id*
+-Materia
+-Pergunta
+-Texto
+
+EXERCICIOS
+-Id*
+-N exercicio
+-Questao
+-Resposta certa
+-Resposta errada
+
+Unidade
+-Id*
+-Nome
+-N idade
+
