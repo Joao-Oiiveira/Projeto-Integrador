@@ -15,4 +15,29 @@ public class Flashcard {
     private String pergunta;
     @Column
     private String reposta;
+
+    //GET E SET
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getPergunta() {
+        return pergunta;
+    }
+
+    public void setPergunta(String pergunta) {
+        this.pergunta = pergunta;
+    }
+
+    public String getReposta() {
+        return reposta;
+    }
+
+    public void setReposta(String reposta) {
+        this.reposta = reposta;
+    }
 }
