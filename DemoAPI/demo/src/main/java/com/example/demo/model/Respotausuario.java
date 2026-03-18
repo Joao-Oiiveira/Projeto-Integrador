@@ -8,7 +8,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table
-public class Respota_usuario {
+public class Respotausuario {
     @Id
     private String id;
     @Column
