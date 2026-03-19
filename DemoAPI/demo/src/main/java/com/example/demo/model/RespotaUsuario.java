@@ -8,7 +8,7 @@ import jakarta.persistence.Table;
 
 @Entity
 @Table
-public class Respotausuario {
+public class RespotaUsuario {
     @Id
     private String id;
     @Column
@@ -60,4 +60,5 @@ public class Respotausuario {
     public void setDataResposta(String dataResposta) {
         this.dataResposta = dataResposta;
     }
+
 }

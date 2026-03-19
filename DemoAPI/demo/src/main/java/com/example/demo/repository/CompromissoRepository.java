@@ -1,4 +1,7 @@
 package com.example.demo.repository;
 
-public class CompromissoRepository {
+import com.example.demo.model.Compromisso;
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface CompromissoRepository extends JpaRepository<Compromisso, Integer> {
 }

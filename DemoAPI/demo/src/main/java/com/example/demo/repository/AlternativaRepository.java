@@ -1,5 +1,7 @@
 package com.example.demo.repository;
 
-public class AlternativaRepository {
+import com.example.demo.model.Alternativa;
+import org.springframework.data.jpa.repository.JpaRepository;
 
+public interface AlternativaRepository extends JpaRepository<Alternativa, Integer> {
 }
