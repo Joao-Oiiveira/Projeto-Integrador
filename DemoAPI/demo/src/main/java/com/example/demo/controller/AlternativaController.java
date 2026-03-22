@@ -16,7 +16,7 @@ import java.util.List;
 //responsável por receber
 //requisições e enviar respostas
 
-@RequestMapping(value="/apiBanco")
+@RequestMapping(value="/apiAlternativa")
 //Define a url que quando for
 //requisitada chamará os
 //métodos da classe: qualquer

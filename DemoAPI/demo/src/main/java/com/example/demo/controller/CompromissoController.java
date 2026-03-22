@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 //responsável por receber
 //requisições e enviar respostas
 
-@RequestMapping(value="/apiBanco")
+@RequestMapping(value="/apiCompromisso")
 //Define a url que quando for
 //requisitada chamará os
 //métodos da classe: qualquer
