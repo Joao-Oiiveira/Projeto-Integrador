@@ -2,6 +2,7 @@ package com.example.demo.model;
 
 
 import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 @Table
@@ -18,6 +19,8 @@ public class Unidade {
     private String questoes_erradas_unidade;
     @Column
     private String Questoes_certas_unidade;
+    @OneToMany(mappedBy = "unidade", cascade = CascadeType.ALL)
+    private List<Questao> questao;
 
     //GET E SET
     public Long getId() {

@@ -10,8 +10,9 @@ public class Alternativa {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column
-    private String questao_id;
+    @ManyToOne
+    @JoinColumn(name = "questao_id")
+    private Questao questao;
     @Column
     private String texto;
     @Column
@@ -28,12 +29,12 @@ public class Alternativa {
         this.id = id;
     }
 
-    public String getQuestao_id() {
-        return questao_id;
+    public Questao getQuestao_id() {
+        return questao;
     }
 
-    public void setQuestao_id(String questao_id) {
-        this.questao_id = questao_id;
+    public void setQuestao_id(Questao questao_id) {
+        this.questao = questao;
     }
 
     public String getTexto() {

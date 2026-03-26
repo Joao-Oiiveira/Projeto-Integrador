@@ -1,12 +1,14 @@
 package com.example.demo.controller;
 
 
+import com.example.demo.model.Alternativa;
 import com.example.demo.repository.AlternativaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.AbstractList;
 import java.util.List;
 
 
@@ -27,4 +29,10 @@ public class AlternativaController {
 
     @Autowired
     AlternativaRepository alternativaRepository;
+
+    @GetMapping(value = "/alternativas")
+    public List<Alternativa> listarAlternativa(){
+        return alternativaRepository.findAll();
+    }
+
 }

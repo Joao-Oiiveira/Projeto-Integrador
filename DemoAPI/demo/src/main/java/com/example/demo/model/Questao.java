@@ -1,6 +1,7 @@
 package com.example.demo.model;
 
 import jakarta.persistence.*;
+import java.util.List;
 
 @Entity
 @Table
@@ -9,12 +10,15 @@ public class Questao {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column
-    private String unidade_id;
+    @ManyToOne
+    @JoinColumn(name = "unidade_id")
+    private Unidade unidade;
     @Column
     private String pergunta;
     @Column
     private String dificuldade;
+    @OneToMany(mappedBy = "questao", cascade = CascadeType.ALL)
+    private List<Alternativa> alternativas;
 
     //GET E SET
     public Long getId() {
@@ -25,12 +29,12 @@ public class Questao {
         this.id = id;
     }
 
-    public String getUnidade_id() {
-        return unidade_id;
+    public Unidade getUnidade_id() {
+        return unidade;
     }
 
-    public void setUnidade_id(String unidade_id) {
-        this.unidade_id = unidade_id;
+    public void setUnidade_id(Unidade unidade) {
+        this.unidade = unidade;
     }
 
     public String getPergunta() {
