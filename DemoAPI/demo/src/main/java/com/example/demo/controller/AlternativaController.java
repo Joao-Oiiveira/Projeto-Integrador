@@ -4,9 +4,7 @@ package com.example.demo.controller;
 import com.example.demo.model.Alternativa;
 import com.example.demo.repository.AlternativaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.AbstractList;
 import java.util.List;
@@ -30,9 +28,23 @@ public class AlternativaController {
     @Autowired
     AlternativaRepository alternativaRepository;
 
+
+    //GET
     @GetMapping(value = "/alternativas")
     public List<Alternativa> listarAlternativa(){
         return alternativaRepository.findAll();
+    }
+
+
+    //POST
+    @PostMapping("/criarAlternativa")
+    public void criarAlternativa (@RequestBody Alternativa alternativa){
+        alternativaRepository.save(alternativa);
+    }
+
+    @PostMapping("/criarVarias")
+    public List<Alternativa> criarVarias(@RequestBody List<Alternativa> alternativas){
+        return alternativaRepository.saveAll(alternativas);
     }
 
 }

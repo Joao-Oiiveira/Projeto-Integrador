@@ -8,19 +8,21 @@ import java.util.List;
 @Table
 public class Unidade {
 
+    //ID(Chave primaria gerada automaticamente)
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column
     private String capitulo;
-    @Column
-    private String total_questoes_unidade;
-    @Column
-    private String questoes_erradas_unidade;
-    @Column
-    private String Questoes_certas_unidade;
+
+    //Uma unidade para muitas questões
     @OneToMany(mappedBy = "unidade", cascade = CascadeType.ALL)
-    private List<Questao> questao;
+    private List<Questao> questao;//Isso cria uma lista de alternativas dentro da questão.
+
+    @ManyToOne
+    @JoinColumn(name = "unidade_id")
+    private Materia materia;
+
 
     //GET E SET
     public Long getId() {
@@ -39,27 +41,19 @@ public class Unidade {
         this.capitulo = capitulo;
     }
 
-    public String getTotal_questoes_unidade() {
-        return total_questoes_unidade;
+    public List<Questao> getQuestao() {
+        return questao;
     }
 
-    public void setTotal_questoes_unidade(String total_questoes_unidade) {
-        this.total_questoes_unidade = total_questoes_unidade;
+    public void setQuestao(List<Questao> questao) {
+        this.questao = questao;
     }
 
-    public String getQuestoes_erradas_unidade() {
-        return questoes_erradas_unidade;
+    public Materia getMateria() {
+        return materia;
     }
 
-    public void setQuestoes_erradas_unidade(String questoes_erradas_unidade) {
-        this.questoes_erradas_unidade = questoes_erradas_unidade;
-    }
-
-    public String getQuestoes_certas_unidade() {
-        return Questoes_certas_unidade;
-    }
-
-    public void setQuestoes_certas_unidade(String questoes_certas_unidade) {
-        Questoes_certas_unidade = questoes_certas_unidade;
+    public void setMateria(Materia materia) {
+        this.materia = materia;
     }
 }

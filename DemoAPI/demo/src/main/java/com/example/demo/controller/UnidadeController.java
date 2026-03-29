@@ -1,14 +1,17 @@
 package com.example.demo.controller;
 
 
+import com.example.demo.model.Questao;
+import com.example.demo.model.Unidade;
 import com.example.demo.repository.UnidadeRepository;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 //Diz que nossa aplicação é um
@@ -26,4 +29,16 @@ public class UnidadeController {
 
     @Autowired
     UnidadeRepository unidadeRepository;
+
+    //GET
+    @GetMapping(value = "/todasUnidade")
+    public List<Unidade> listarUnidades(){
+        return unidadeRepository.findAll();
+    }
+
+    //POST
+    @PostMapping("/criarUnidade")
+    public void criarUnidade (@RequestBody Unidade unidade){
+        unidadeRepository.save(unidade);
+    }
 }

@@ -3,6 +3,8 @@ package com.example.demo.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table
 public class RespotaUsuario {
@@ -12,12 +14,15 @@ public class RespotaUsuario {
     private Long id;
     @Column
     private String usuario_Id;
-    @Column
-    private String atributoQuestao;
+
+    @ManyToOne
+    @JoinColumn(name = "questao_id")
+    private Questao questao;
+
     @Column
     private boolean acertou;
     @Column
-    private String dataResposta;
+    private LocalDateTime dataResposta;
 
     //GET E SET
     public Long getId() {
@@ -36,14 +41,6 @@ public class RespotaUsuario {
         this.usuario_Id = usuario_Id;
     }
 
-    public String getAtributoQuestao() {
-        return atributoQuestao;
-    }
-
-    public void setAtributoQuestao(String atributoQuestao) {
-        this.atributoQuestao = atributoQuestao;
-    }
-
     public boolean isAcertou() {
         return acertou;
     }
@@ -52,12 +49,19 @@ public class RespotaUsuario {
         this.acertou = acertou;
     }
 
-    public String getDataResposta() {
+    public LocalDateTime getDataResposta() {
         return dataResposta;
     }
 
-    public void setDataResposta(String dataResposta) {
+    public void setDataResposta(LocalDateTime dataResposta) {
         this.dataResposta = dataResposta;
     }
 
+    public Questao getQuestao() {
+        return questao;
+    }
+
+    public void setQuestao(Questao questao) {
+        this.questao = questao;
+    }
 }

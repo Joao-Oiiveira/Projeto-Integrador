@@ -10,15 +10,15 @@ public class Alternativa {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    //Muitas alternativas para uma questão
     @ManyToOne
-    @JoinColumn(name = "questao_id")
+    @JoinColumn(name = "questao_id")//Está criando um coluna chamada questao_id nessa tabela(Alternativa)
     private Questao questao;
     @Column
     private String texto;
     @Column
-    private String acertou;
-    @Column
-    private String correta;
+    private boolean correta;
 
     //GET E SET
     public Long getId() {
@@ -45,19 +45,19 @@ public class Alternativa {
         this.texto = texto;
     }
 
-    public String getAcertou() {
-        return acertou;
-    }
-
-    public void setAcertou(String acertou) {
-        this.acertou = acertou;
-    }
-
-    public String getCorreta() {
+    public boolean getCorreta() {
         return correta;
     }
 
-    public void setCorreta(String correta) {
+    public void setCorreta(boolean correta) {
         this.correta = correta;
+    }
+
+    public Questao getQuestao() {
+        return questao;
+    }
+
+    public void setQuestao(Questao questao) {
+        this.questao = questao;
     }
 }

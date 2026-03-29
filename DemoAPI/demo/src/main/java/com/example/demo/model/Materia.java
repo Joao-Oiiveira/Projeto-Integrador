@@ -3,6 +3,8 @@ package com.example.demo.model;
 
 import jakarta.persistence.*;
 
+import java.util.List;
+
 @Entity
 @Table
 public class Materia {
@@ -12,6 +14,9 @@ public class Materia {
     private Long id;
     @Column
     private String nome;
+    @OneToMany(mappedBy = "materia", cascade = CascadeType.ALL)
+    private List<Unidade> unidades;
+
 
     //GET E SET
     public Long getId() {
@@ -28,5 +33,13 @@ public class Materia {
 
     public void setNome(String nome) {
         this.nome = nome;
+    }
+
+    public List<Unidade> getUnidades() {
+        return unidades;
+    }
+
+    public void setUnidades(List<Unidade> unidades) {
+        this.unidades = unidades;
     }
 }
