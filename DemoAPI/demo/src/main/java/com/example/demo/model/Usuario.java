@@ -4,6 +4,9 @@ package com.example.demo.model;
 import jakarta.persistence.*;
 import tools.jackson.databind.node.StringNode;
 
+import java.time.LocalDate;
+import java.util.List;
+
 @Entity
 @Table
 public class Usuario {
@@ -16,7 +19,19 @@ public class Usuario {
     @Column
     private String senha;
     @Column
-    private String data_nascimento_;
+    private LocalDate data_nascimento_;
+
+    @ManyToMany//ver mais sobre isso
+    @JoinTable(
+            name = "usuario_materia",
+            joinColumns = @JoinColumn(name = "usuario_id"),
+            inverseJoinColumns = @JoinColumn(name = "materia_id")
+    )
+    private List<Materia> materias;
+
+    @OneToMany(mappedBy = "usuario")
+    private List<Compromisso> compromissos;
+
 
     //GET E SET
     public Long getId() {
@@ -43,11 +58,27 @@ public class Usuario {
         this.senha = senha;
     }
 
-    public String getData_nascimento_() {
+    public LocalDate getData_nascimento_() {
         return data_nascimento_;
     }
 
-    public void setData_nascimento_(String data_nascimento_) {
+    public void setData_nascimento_(LocalDate data_nascimento_) {
         this.data_nascimento_ = data_nascimento_;
+    }
+
+    public List<Materia> getMaterias() {
+        return materias;
+    }
+
+    public void setMaterias(List<Materia> materias) {
+        this.materias = materias;
+    }
+
+    public List<Compromisso> getCompromissos() {
+        return compromissos;
+    }
+
+    public void setCompromissos(List<Compromisso> compromissos) {
+        this.compromissos = compromissos;
     }
 }

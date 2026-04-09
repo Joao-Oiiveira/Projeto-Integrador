@@ -3,6 +3,8 @@ package com.example.demo.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDate;
+
 @Entity
 @Table
 public class Compromisso {
@@ -11,17 +13,21 @@ public class Compromisso {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column
-    private String usuario_id;
-    @Column
-    private String materia_id;
-    @Column
     private String titulo;
-    @Column
-    private String tipoCompromisso;
+    @Enumerated(EnumType.STRING)
+    private TipoCompromisso tipoCompromisso;
     @Column
     private String obs;
     @Column
-    private String data;
+    private LocalDate data;
+
+    @ManyToOne
+    @JoinColumn(name = "materia_id")
+    private Materia materia;
+
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
 
     //GET E SET
     public Long getId() {
@@ -32,22 +38,6 @@ public class Compromisso {
         this.id = id;
     }
 
-    public String getUsuario_id() {
-        return usuario_id;
-    }
-
-    public void setUsuario_id(String usuario_id) {
-        this.usuario_id = usuario_id;
-    }
-
-    public String getMateria_id() {
-        return materia_id;
-    }
-
-    public void setMateria_id(String materia_id) {
-        this.materia_id = materia_id;
-    }
-
     public String getTitulo() {
         return titulo;
     }
@@ -56,11 +46,11 @@ public class Compromisso {
         this.titulo = titulo;
     }
 
-    public String getTipoCompromisso() {
+    public TipoCompromisso getTipoCompromisso() {
         return tipoCompromisso;
     }
 
-    public void setTipoCompromisso(String tipoCompromisso) {
+    public void setTipoCompromisso(TipoCompromisso tipoCompromisso) {
         this.tipoCompromisso = tipoCompromisso;
     }
 
@@ -72,11 +62,27 @@ public class Compromisso {
         this.obs = obs;
     }
 
-    public String getData() {
+    public LocalDate getData() {
         return data;
     }
 
-    public void setData(String data) {
+    public void setData(LocalDate data) {
         this.data = data;
+    }
+
+    public Materia getMateria() {
+        return materia;
+    }
+
+    public void setMateria(Materia materia) {
+        this.materia = materia;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
     }
 }

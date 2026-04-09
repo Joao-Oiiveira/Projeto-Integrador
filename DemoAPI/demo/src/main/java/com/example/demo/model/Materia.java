@@ -16,7 +16,8 @@ public class Materia {
     private String nome;
     @OneToMany(mappedBy = "materia", cascade = CascadeType.ALL)
     private List<Unidade> unidades;
-
+    @ManyToMany(mappedBy = "materias")
+    private List<Usuario> usuarios;
 
     //GET E SET
     public Long getId() {

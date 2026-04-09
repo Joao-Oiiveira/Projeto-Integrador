@@ -10,6 +10,11 @@ public class Flashcard {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne
+    @JoinColumn(name = "unidade_id")//Está criando um coluna chamada unidade_id nessa tabela(FLASHCARD)
+    private Unidade unidade;//No postman colocar o nome da variavel(unidade)
+
     @Column
     private String pergunta;
     @Column
@@ -38,5 +43,13 @@ public class Flashcard {
 
     public void setReposta(String reposta) {
         this.reposta = reposta;
+    }
+
+    public Unidade getUnidade() {
+        return unidade;
+    }
+
+    public void setUnidade(Unidade unidade) {
+        this.unidade = unidade;
     }
 }

@@ -20,7 +20,7 @@ public class Unidade {
     private List<Questao> questao;//Isso cria uma lista de alternativas dentro da questão.
 
     @ManyToOne
-    @JoinColumn(name = "unidade_id")
+    @JoinColumn(name = "Materia_id")
     private Materia materia;
 
 

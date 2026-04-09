@@ -13,7 +13,7 @@ public class Questao {
 
     //Muitas questões para uma unidade
     @ManyToOne
-    @JoinColumn(name = "unidade_id")//Está criando um coluna chamada questao_id nessa tabela(Questao)
+    @JoinColumn(name = "unidade_id")//Está criando um coluna chamada unidade_id nessa tabela(Questao)
     private Unidade unidade;//No postman colocar o nome da variavel(unidade)
 
     @Column

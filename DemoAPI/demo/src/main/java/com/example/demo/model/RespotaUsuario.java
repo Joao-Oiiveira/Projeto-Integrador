@@ -12,12 +12,18 @@ public class RespotaUsuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column
-    private String usuario_Id;
+
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
 
     @ManyToOne
     @JoinColumn(name = "questao_id")
     private Questao questao;
+
+    @ManyToOne
+    @JoinColumn(name = "alternativa_id")
+    private Alternativa alternativa;
 
     @Column
     private boolean acertou;
@@ -33,12 +39,12 @@ public class RespotaUsuario {
         this.id = id;
     }
 
-    public String getUsuario_Id() {
-        return usuario_Id;
+    public Usuario getUsuario_Id() {
+        return usuario;
     }
 
-    public void setUsuario_Id(String usuario_Id) {
-        this.usuario_Id = usuario_Id;
+    public void setUsuario_Id(Usuario usuario_Id) {
+        this.usuario = usuario_Id;
     }
 
     public boolean isAcertou() {
@@ -63,5 +69,21 @@ public class RespotaUsuario {
 
     public void setQuestao(Questao questao) {
         this.questao = questao;
+    }
+
+    public Usuario getUsuario() {
+        return usuario;
+    }
+
+    public void setUsuario(Usuario usuario) {
+        this.usuario = usuario;
+    }
+
+    public Alternativa getAlternativa() {
+        return alternativa;
+    }
+
+    public void setAlternativa(Alternativa alternativa) {
+        this.alternativa = alternativa;
     }
 }

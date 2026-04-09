@@ -10,11 +10,15 @@ public class ProgressoUnidade {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column
-    private String usuario_id;
-    @Column
-    private String unidade_id;
-    @Column
+
+    @ManyToOne
+    @JoinColumn(name = "usuario_id")
+    private Usuario usuario;
+
+    @ManyToOne
+    @JoinColumn(name = "unidade_id")
+    private Unidade unidade;
+
     private float percentual;
     @Column
     private String ultimaAtividade;
@@ -28,20 +32,20 @@ public class ProgressoUnidade {
         this.id = id;
     }
 
-    public String getUsuario_id() {
-        return usuario_id;
+    public Usuario getUsuario_id() {
+        return usuario;
     }
 
-    public void setUsuario_id(String usuario_id) {
-        this.usuario_id = usuario_id;
+    public void setUsuario_id(Usuario usuario_id) {
+        this.usuario = usuario_id;
     }
 
-    public String getUnidade_id() {
-        return unidade_id;
+    public Unidade getUnidade_id() {
+        return unidade;
     }
 
-    public void setUnidade_id(String unidade_id) {
-        this.unidade_id = unidade_id;
+    public void setUnidade_id(Unidade unidade_id) {
+        this.unidade = unidade_id;
     }
 
     public float getPercentual() {
