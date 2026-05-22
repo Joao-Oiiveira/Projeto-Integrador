@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────
-// Modelo de dados de uma Matéria
-// 🔧 BACK-END: Essa classe virá do seu banco de dados/API
+// Modelos de dados
+// 🔧 BACK-END: Essas classes receberão dados da API via fromJson()
 // ─────────────────────────────────────────────
 class Materia {
   final String nome;
   final Color cor;
-  final int progresso;   // 0 a 100 — quanto o usuário já estudou
-  final int totalItens;  // total de flashcards/tarefas da matéria
+  final int progresso;
+  final int totalItens;
 
   const Materia({
     required this.nome,
@@ -18,10 +18,6 @@ class Materia {
   });
 }
 
-// ─────────────────────────────────────────────
-// Modelo de dados de um Flashcard resumido
-// 🔧 BACK-END: Virá da query de flashcards por matéria
-// ─────────────────────────────────────────────
 class FlashcardResumo {
   final String materia;
   final Color cor;
@@ -34,10 +30,6 @@ class FlashcardResumo {
   });
 }
 
-// ─────────────────────────────────────────────
-// Modelo de dados de um Evento do Calendário
-// 🔧 BACK-END: Virá da query de eventos/tarefas da semana
-// ─────────────────────────────────────────────
 class EventoDia {
   final String dia;
   final String diaSemana;
@@ -51,72 +43,48 @@ class EventoDia {
 }
 
 // ─────────────────────────────────────────────
-// Dashboard Screen
+// Menu Screen
 // ─────────────────────────────────────────────
-class Menu extends StatefulWidget {
-  const Menu({super.key});
+class MenuScreen extends StatefulWidget {
+  const MenuScreen({super.key});
 
   @override
-  State<Menu> createState() => _MenuState();
+  State<MenuScreen> createState() => _MenuScreenState();
 }
 
-class _MenuState extends State<Menu> {
+class _MenuScreenState extends State<MenuScreen> {
 
   // 🔧 BACK-END: Substituir pelo nome real do usuário logado
-  // Ex: final String nomeUsuario = AuthService.currentUser.nome;
   final String nomeUsuario = 'João';
 
-  // 🔧 BACK-END: Buscar eventos da semana do banco de dados
-  // Ex: final eventos = await AgendaService.getEventosDaSemana();
+  // Controla se os cards de matérias estão expandidos (abertos)
+  bool _materiasExpandidas = false;
+
+  // Controla se os cards de flashcards estão expandidos (abertos)
+  bool _flashcardsExpandidos = false;
+
+  // 🔧 BACK-END: Buscar eventos da semana da API
   final List<EventoDia> eventosDaSemana = const [
-    EventoDia(dia: '01/05', diaSemana: 'SEX', eventos: ['Prova Matem.']),
-    EventoDia(dia: '02/05', diaSemana: 'SAB', eventos: ['Prova Matem.']),
+    EventoDia(dia: '01/05', diaSemana: 'SEX', eventos: ['Prova Mat.']),
+    EventoDia(dia: '02/05', diaSemana: 'SAB', eventos: ['Prova Mat.']),
     EventoDia(dia: '03/05', diaSemana: 'DOM', eventos: ['Prova Port.']),
     EventoDia(dia: '04/05', diaSemana: 'SEG', eventos: ['Lista Mater.', 'Lista Port.']),
   ];
 
-  // 🔧 BACK-END: Buscar matérias do usuário no banco de dados
+  // 🔧 BACK-END: Buscar matérias do usuário na API
   // Essa lista é dinâmica — cada usuário tem as suas próprias matérias
-  // Ex: final materias = await DisciplinasService.getMateriasByUsuario(userId);
   final List<Materia> materias = const [
-    Materia(
-      nome: 'Matemática',
-      cor: Color(0xFF7EB8F7), // azul pastel
-      progresso: 10,
-      totalItens: 100,
-    ),
-    Materia(
-      nome: 'Português',
-      cor: Color(0xFFF7A8C4), // rosa pastel
-      progresso: 25,
-      totalItens: 100,
-    ),
-    // 🔧 BACK-END: Novas matérias adicionadas pelo usuário
-    // aparecem aqui automaticamente quando a lista for carregada da API
+    Materia(nome: 'Matemática', cor: Color(0xFF7EB8F7), progresso: 10, totalItens: 100),
+    Materia(nome: 'Português',  cor: Color(0xFFF7A8C4), progresso: 25, totalItens: 100),
+    // 🔧 BACK-END: Novas matérias adicionadas pelo usuário aparecem aqui automaticamente
   ];
 
-  // 🔧 BACK-END: Buscar resumo de flashcards do usuário
-  // Ex: final flashcards = await FlashcardsService.getResumoByUsuario(userId);
+  // 🔧 BACK-END: Buscar resumo de flashcards do usuário na API
   final List<FlashcardResumo> flashcards = const [
-    FlashcardResumo(
-      materia: 'Matemática',
-      cor: Color(0xFF7EB8F7),
-      quantidade: 8,
-    ),
-    FlashcardResumo(
-      materia: 'Português',
-      cor: Color(0xFFF7A8C4),
-      quantidade: 12,
-    ),
+    FlashcardResumo(materia: 'Matemática', cor: Color(0xFF7EB8F7), quantidade: 8),
+    FlashcardResumo(materia: 'Português',  cor: Color(0xFFF7A8C4), quantidade: 12),
     // 🔧 BACK-END: Novos flashcards aparecem aqui automaticamente
   ];
-
-  // Controla quais cards de matéria estão expandidos
-  // Chave = índice da matéria, Valor = true/false
-  final Map<int, bool> _materiasExpandidas = {};
-
-  // Controla quais cards de flashcard estão expandidos
-  final Map<int, bool> _flashcardsExpandidos = {};
 
   @override
   Widget build(BuildContext context) {
@@ -131,53 +99,235 @@ class _MenuState extends State<Menu> {
 
               // ── Header ───────────────────────────────
               _buildHeader(),
-
               const SizedBox(height: 24),
 
               // ── Calendário ───────────────────────────
               _buildCalendario(),
+              const SizedBox(height: 28),
 
-              const SizedBox(height: 24),
-
-              // ── Matérias ─────────────────────────────
-              const Text(
-                'Matérias',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+              // ── Matérias (cards empilhados) ──────────
+              const Text('Matérias',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
               ),
               const SizedBox(height: 12),
+              _buildCardsEmpilhados(
+                itens: materias.length,
+                expandido: _materiasExpandidas,
+                onTap: () => setState(() => _materiasExpandidas = !_materiasExpandidas),
+                buildCard: (index) => _buildMateriaCard(materias[index]),
+                buildCardFechado: (index) => _buildMateriaCardFechado(materias[index]),
+              ),
 
-              // Lista dinâmica de matérias
-              // 🔧 BACK-END: materias.length muda conforme o usuário adiciona/remove
-              ...List.generate(materias.length, (index) {
-                return _buildMateriaCard(index);
-              }),
+              const SizedBox(height: 28),
 
-              const SizedBox(height: 24),
-
-              // ── Flashcards ───────────────────────────
-              const Text(
-                'Flashcards',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+              // ── Flashcards (cards empilhados) ────────
+              const Text('Flashcards',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
               ),
               const SizedBox(height: 12),
+              _buildCardsEmpilhados(
+                itens: flashcards.length,
+                expandido: _flashcardsExpandidos,
+                onTap: () => setState(() => _flashcardsExpandidos = !_flashcardsExpandidos),
+                buildCard: (index) => _buildFlashcardCard(flashcards[index]),
+                buildCardFechado: (index) => _buildFlashcardCardFechado(flashcards[index]),
+              ),
 
-              // Lista dinâmica de flashcards
-              // 🔧 BACK-END: flashcards.length muda conforme o usuário cria novos
-              ...List.generate(flashcards.length, (index) {
-                return _buildFlashcardCard(index);
-              }),
-
-              const SizedBox(height: 24),
+              const SizedBox(height: 32),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  // ── Widget: Cards Empilhados ─────────────────
+  // Quando fechado: cards sobrepostos mostrando só as bordas
+  // Quando aberto: todos os cards aparecem separados
+  Widget _buildCardsEmpilhados({
+    required int itens,
+    required bool expandido,
+    required VoidCallback onTap,
+    required Widget Function(int) buildCard,
+    required Widget Function(int) buildCardFechado,
+  }) {
+    const double cardHeight = 72.0;   // altura do card fechado
+    const double offsetEmpilhado = 10.0; // quanto cada card fica visível embaixo
+
+    // Altura total quando fechado — mostra o primeiro card + bordas dos outros
+    final altureFechado = cardHeight + (offsetEmpilhado * (itens - 1));
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+        // Quando aberto: altura suficiente para todos os cards
+        // Quando fechado: altura do empilhamento
+        height: expandido ? (cardHeight + 12) * itens : altureFechado,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: List.generate(itens, (index) {
+            // Índice invertido — primeiro card fica na frente
+            final reverseIndex = itens - 1 - index;
+
+            return AnimatedPositioned(
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeInOut,
+              // Quando aberto: cada card na sua posição
+              // Quando fechado: cards empilhados com pequeno offset
+              top: expandido
+                  ? reverseIndex * (cardHeight + 12)
+                  : reverseIndex * offsetEmpilhado,
+              left: 0,
+              right: 0,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: 1.0,
+                child: expandido
+                    ? buildCard(reverseIndex)
+                    : buildCardFechado(reverseIndex),
+              ),
+            );
+          }),
+        ),
+      ),
+    );
+  }
+
+  // ── Widget: Card de Matéria FECHADO ──────────
+  // Aparece quando os cards estão empilhados
+  Widget _buildMateriaCardFechado(Materia materia) {
+    return Container(
+      height: 72,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: materia.cor.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            materia.nome,
+            style: const TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          _buildProgressoCircular(materia.progresso),
+        ],
+      ),
+    );
+  }
+
+  // ── Widget: Card de Matéria ABERTO ───────────
+  // Aparece quando os cards estão expandidos
+  Widget _buildMateriaCard(Materia materia) {
+    return Container(
+      height: 72,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: materia.cor.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                materia.nome,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              Text(
+                // 🔧 BACK-END: progresso e totalItens vêm da API
+                '${materia.progresso}/${materia.totalItens} concluídos',
+                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              ),
+            ],
+          ),
+          _buildProgressoCircular(materia.progresso),
+        ],
+      ),
+    );
+  }
+
+  // ── Widget: Card de Flashcard FECHADO ────────
+  Widget _buildFlashcardCardFechado(FlashcardResumo flash) {
+    return Container(
+      height: 72,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: flash.cor.withOpacity(0.9),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            flash.materia,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          Text(
+            // 🔧 BACK-END: quantidade vem da API
+            'Flashcards: ${flash.quantidade}',
+            style: const TextStyle(fontSize: 12, color: Colors.white70),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Widget: Card de Flashcard ABERTO ─────────
+  Widget _buildFlashcardCard(FlashcardResumo flash) {
+    return GestureDetector(
+      //onTap: () {
+        // 🔧 BACK-END: Navegar para sessão de flashcards da matéria
+        // context.go('/flashcards/${flash.materiaId}');
+      //},
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: flash.cor.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  flash.materia,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'Flashcards: ${flash.quantidade}',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ],
+            ),
+            const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+          ],
         ),
       ),
     );
@@ -197,7 +347,6 @@ class _MenuState extends State<Menu> {
             color: Colors.white,
           ),
         ),
-        // Ícone de perfil
         GestureDetector(
           onTap: () {
             // 🔧 BACK-END: Navegar para tela de perfil
@@ -211,11 +360,7 @@ class _MenuState extends State<Menu> {
               border: Border.all(color: Colors.white24),
               color: const Color(0xFF1E1E1E),
             ),
-            child: const Icon(
-              Icons.person_outline,
-              color: Colors.white70,
-              size: 24,
-            ),
+            child: const Icon(Icons.person_outline, color: Colors.white70, size: 24),
           ),
         ),
       ],
@@ -244,13 +389,52 @@ class _MenuState extends State<Menu> {
             ),
           ),
           const SizedBox(height: 12),
-          // Lista horizontal de dias
           // 🔧 BACK-END: eventosDaSemana vem da API de agenda
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: eventosDaSemana.map((evento) {
-                return _buildDiaCalendario(evento);
+                return Container(
+                  width: 90,
+                  margin: const EdgeInsets.only(right: 10),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2A2A2A),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${evento.dia} ${evento.diaSemana}',
+                        style: const TextStyle(fontSize: 10, color: Colors.white54),
+                      ),
+                      const SizedBox(height: 6),
+                      ...evento.eventos.map((e) => Padding(
+                        padding: const EdgeInsets.only(bottom: 3),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 6, height: 6,
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF7A8C4),
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(e,
+                                style: const TextStyle(fontSize: 9, color: Colors.white70),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                    ],
+                  ),
+                );
               }).toList(),
             ),
           ),
@@ -259,249 +443,25 @@ class _MenuState extends State<Menu> {
     );
   }
 
-  // ── Widget: Dia do Calendário ────────────────
-  Widget _buildDiaCalendario(EventoDia evento) {
-    return Container(
-      width: 80,
-      margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${evento.dia} ${evento.diaSemana}',
-            style: const TextStyle(
-              fontSize: 10,
-              color: Colors.white54,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(height: 6),
-          // 🔧 BACK-END: eventos da lista vêm da API de agenda do dia
-          ...evento.eventos.map((e) => Padding(
-            padding: const EdgeInsets.only(bottom: 3),
-            child: Row(
-              children: [
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFF7A8C4),
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Expanded(
-                  child: Text(
-                    e,
-                    style: const TextStyle(
-                      fontSize: 9,
-                      color: Colors.white70,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          )),
-        ],
-      ),
-    );
-  }
-
-  // ── Widget: Card de Matéria (com animação) ───
-  Widget _buildMateriaCard(int index) {
-    final materia = materias[index];
-    final expandido = _materiasExpandidas[index] ?? false;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _materiasExpandidas[index] = !expandido;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: materia.cor.withOpacity(0.85),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Linha principal — sempre visível
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        materia.nome,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      // Conteúdo expandido com animação
-                      AnimatedSize(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeInOut,
-                        child: expandido
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    '${materia.progresso}/${materia.totalItens} concluídos',
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      color: Colors.white70,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  // 🔧 BACK-END: Navegar para detalhes da matéria
-                                  // context.go('/disciplinas/${materia.id}')
-                                  const Text(
-                                    'Ver detalhes →',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white,
-                                      decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : const SizedBox.shrink(),
-                      ),
-                    ],
-                  ),
-                  // Gráfico circular de progresso
-                  // 🔧 BACK-END: materia.progresso vem do banco de dados
-                  _buildProgressoCircular(materia.progresso, materia.cor),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Widget: Card de Flashcard (com animação) ─
-  Widget _buildFlashcardCard(int index) {
-    final flash = flashcards[index];
-    final expandido = _flashcardsExpandidos[index] ?? false;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _flashcardsExpandidos[index] = !expandido;
-        });
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-        margin: const EdgeInsets.only(bottom: 10),
-        decoration: BoxDecoration(
-          color: flash.cor.withOpacity(0.85),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                flash.materia,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                // 🔧 BACK-END: flash.quantidade vem do banco de dados
-                'Flashcards: ${flash.quantidade}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.white70,
-                ),
-              ),
-              // Conteúdo expandido com animação
-              AnimatedSize(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-                child: expandido
-                    ? Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 8),
-                          const Divider(color: Colors.white24),
-                          const SizedBox(height: 4),
-                          // 🔧 BACK-END: Navegar para sessão de flashcards
-                          // context.go('/flashcards/${flash.materiaId}')
-                          const Text(
-                            'Iniciar revisão →',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'Ver todos →',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white70,
-                              decoration: TextDecoration.underline,
-                            ),
-                          ),
-                        ],
-                      )
-                    : const SizedBox.shrink(),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   // ── Widget: Gráfico circular de progresso ────
-  Widget _buildProgressoCircular(int progresso, Color cor) {
+  Widget _buildProgressoCircular(int progresso) {
     return SizedBox(
-      width: 60,
-      height: 60,
+      width: 48,
+      height: 48,
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // Círculo de fundo
           CircularProgressIndicator(
-            value: progresso / 100,
             // 🔧 BACK-END: progresso / 100 = valor entre 0.0 e 1.0
-            strokeWidth: 5,
+            value: progresso / 100,
+            strokeWidth: 4,
             backgroundColor: Colors.white24,
             valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
           ),
-          // Texto do percentual
           Text(
             '$progresso%',
             style: const TextStyle(
-              fontSize: 11,
+              fontSize: 10,
               fontWeight: FontWeight.bold,
               color: Colors.white,
             ),

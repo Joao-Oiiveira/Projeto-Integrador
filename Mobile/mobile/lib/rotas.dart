@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:mobile/telas/criarConta.dart';
+import 'package:mobile/telas/menu.dart';
 import 'telas/login.dart';
 
 final appRouter = GoRouter(
@@ -12,6 +13,10 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/cadastro',
       builder: (context, state) => const SignUpScreen(),
+    ),
+    GoRoute(
+      path: '/menu',
+      builder: (context, state) => const MenuScreen(),
     ),
   ],
 );

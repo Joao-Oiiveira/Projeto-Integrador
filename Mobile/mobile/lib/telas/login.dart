@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 label: 'Acessar',
                 onPressed: () {
                   // 🔧 BACK-END: Apenas navegação, sem lógica
-                  context.go('/home');
+                  context.go('/menu');
                 },
               ),
 
