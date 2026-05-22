@@ -1,0 +1,17 @@
+import 'package:go_router/go_router.dart';
+import 'package:mobile/telas/criarConta.dart';
+import 'telas/login.dart';
+
+final appRouter = GoRouter(
+  initialLocation: '/login',
+  routes: [
+    GoRoute(
+      path: '/login',
+      builder: (context, state) => const LoginScreen(),
+    ),
+    GoRoute(
+      path: '/cadastro',
+      builder: (context, state) => const SignUpScreen(),
+    ),
+  ],
+);
