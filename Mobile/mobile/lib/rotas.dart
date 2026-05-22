@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:mobile/telas/calendario.dart';
 import 'package:mobile/telas/criarConta.dart';
 import 'package:mobile/telas/menu.dart';
 import 'telas/login.dart';
@@ -18,5 +19,9 @@ final appRouter = GoRouter(
       path: '/menu',
       builder: (context, state) => const MenuScreen(),
     ),
+    GoRoute(
+      path: '/calendario',
+      builder: (context, state) => const CalendarioScreen(),
+    )
   ],
 );

@@ -178,7 +178,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Switch(
                     value: _acceptTerms,
                     onChanged: (v) => setState(() => _acceptTerms = v),
-                    activeColor: Colors.white,
+                    activeThumbColor: Colors.white,
                     activeTrackColor: Colors.white30,
                     inactiveThumbColor: Colors.white38,
                     inactiveTrackColor: Colors.white12,

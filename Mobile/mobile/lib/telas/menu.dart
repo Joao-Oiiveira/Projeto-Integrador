@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 // ─────────────────────────────────────────────
 // Modelos de dados
@@ -63,13 +64,10 @@ class _MenuScreenState extends State<MenuScreen> {
   // Controla se os cards de flashcards estão expandidos (abertos)
   bool _flashcardsExpandidos = false;
 
-  // 🔧 BACK-END: Buscar eventos da semana da API
-  final List<EventoDia> eventosDaSemana = const [
-    EventoDia(dia: '01/05', diaSemana: 'SEX', eventos: ['Prova Mat.']),
-    EventoDia(dia: '02/05', diaSemana: 'SAB', eventos: ['Prova Mat.']),
-    EventoDia(dia: '03/05', diaSemana: 'DOM', eventos: ['Prova Port.']),
-    EventoDia(dia: '04/05', diaSemana: 'SEG', eventos: ['Lista Mater.', 'Lista Port.']),
-  ];
+  // 
+  final DateTime hoje = DateTime.now();
+  final List<String> _nomesDias = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+  late List<Map<String, dynamic>> eventosDaSemana;
 
   // 🔧 BACK-END: Buscar matérias do usuário na API
   // Essa lista é dinâmica — cada usuário tem as suas próprias matérias
@@ -202,7 +200,7 @@ class _MenuScreenState extends State<MenuScreen> {
       height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: materia.cor.withOpacity(0.9),
+        color: materia.cor.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -229,7 +227,7 @@ class _MenuScreenState extends State<MenuScreen> {
       height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: materia.cor.withOpacity(0.9),
+        color: materia.cor.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Row(
@@ -266,7 +264,7 @@ class _MenuScreenState extends State<MenuScreen> {
       height: 72,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: flash.cor.withOpacity(0.9),
+        color: flash.cor.withValues(alpha: 0.9),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Column(
@@ -302,7 +300,7 @@ class _MenuScreenState extends State<MenuScreen> {
         height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: flash.cor.withOpacity(0.9),
+          color: flash.cor.withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Row(
@@ -369,9 +367,15 @@ class _MenuScreenState extends State<MenuScreen> {
 
   // ── Widget: Calendário ───────────────────────
   Widget _buildCalendario() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: () {
+        context.go('/calendario');
+        // 🔧 BACK-END: Navegar para tela de calendário completo
+        // context.go('/calendario');
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white12),
@@ -427,19 +431,20 @@ class _MenuScreenState extends State<MenuScreen> {
                               child: Text(e,
                                 style: const TextStyle(fontSize: 9, color: Colors.white70),
                                 overflow: TextOverflow.ellipsis,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      )),
-                    ],
-                  ),
-                );
-              }).toList(),
+                            ],
+                          ),
+                        )),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
+      )
     );
   }
 
