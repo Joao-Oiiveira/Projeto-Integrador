@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/tema/app_colors.dart';
 
 // ─────────────────────────────────────────────
 // Modelos de dados
@@ -64,23 +65,49 @@ class _MenuScreenState extends State<MenuScreen> {
   // Controla se os cards de flashcards estão expandidos (abertos)
   bool _flashcardsExpandidos = false;
 
-  // 
+  // Variaveis para buscar o dia de hoje
   final DateTime hoje = DateTime.now();
   final List<String> _nomesDias = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
   late List<Map<String, dynamic>> eventosDaSemana;
 
+ //initstate
+  @override
+void initState() {
+  super.initState();
+  _gerarDiasDaSemana();
+}
+
+void _gerarDiasDaSemana() {
+  int diaDaSemana = hoje.weekday % 7;
+  final inicioDaSemana = hoje.subtract(Duration(days: diaDaSemana));
+
+  eventosDaSemana = List.generate(7, (index) {
+    final dia = inicioDaSemana.add(Duration(days: index));
+    return {
+      'dia': dia.day.toString().padLeft(2, '0'),
+      'mes': dia.month.toString().padLeft(2, '0'),
+      'nomeDia': _nomesDias[dia.weekday % 7],
+      'isHoje': dia.day == hoje.day &&
+                dia.month == hoje.month &&
+                dia.year == hoje.year,
+      // 🔧 BACK-END: Buscar eventos do dia na API
+      'eventos': <String>[],
+    };
+  });
+}
+
   // 🔧 BACK-END: Buscar matérias do usuário na API
   // Essa lista é dinâmica — cada usuário tem as suas próprias matérias
   final List<Materia> materias = const [
-    Materia(nome: 'Matemática', cor: Color(0xFF7EB8F7), progresso: 10, totalItens: 100),
-    Materia(nome: 'Português',  cor: Color(0xFFF7A8C4), progresso: 25, totalItens: 100),
+    Materia(nome: 'Matemática', cor: AppColors.matematica, progresso: 10, totalItens: 100),
+    Materia(nome: 'Português',  cor: AppColors.portugues, progresso: 25, totalItens: 100),
     // 🔧 BACK-END: Novas matérias adicionadas pelo usuário aparecem aqui automaticamente
   ];
 
   // 🔧 BACK-END: Buscar resumo de flashcards do usuário na API
   final List<FlashcardResumo> flashcards = const [
-    FlashcardResumo(materia: 'Matemática', cor: Color(0xFF7EB8F7), quantidade: 8),
-    FlashcardResumo(materia: 'Português',  cor: Color(0xFFF7A8C4), quantidade: 12),
+    FlashcardResumo(materia: 'Matemática', cor: AppColors.matematica, quantidade: 8),
+    FlashcardResumo(materia: 'Português',  cor: AppColors.portugues, quantidade: 12),
     // 🔧 BACK-END: Novos flashcards aparecem aqui automaticamente
   ];
 
@@ -367,15 +394,11 @@ class _MenuScreenState extends State<MenuScreen> {
 
   // ── Widget: Calendário ───────────────────────
   Widget _buildCalendario() {
-    return GestureDetector(
-      onTap: () {
-        context.go('/calendario');
-        // 🔧 BACK-END: Navegar para tela de calendário completo
-        // context.go('/calendario');
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
+  return GestureDetector(
+    onTap: () => context.go('/calendario'),
+    child: Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.white12),
@@ -393,44 +416,58 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          // 🔧 BACK-END: eventosDaSemana vem da API de agenda
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
-              children: eventosDaSemana.map((evento) {
+              children: eventosDaSemana.map((diaInfo) {
+                final bool isHoje = diaInfo['isHoje'];
+                final List<String> eventos = List<String>.from(diaInfo['eventos']);
                 return Container(
-                  width: 90,
+                  width: isHoje ? 100 : 82,
                   margin: const EdgeInsets.only(right: 10),
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF2A2A2A),
+                    color: isHoje
+                        ? const Color(0xFF7EB8F7).withOpacity(0.2)
+                        : const Color(0xFF2A2A2A),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: Colors.white12),
+                    border: Border.all(
+                      color: isHoje ? const Color(0xFF7EB8F7) : Colors.white12,
+                      width: isHoje ? 1.5 : 1,
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${evento.dia} ${evento.diaSemana}',
-                        style: const TextStyle(fontSize: 10, color: Colors.white54),
+                        '${diaInfo['dia']}/${diaInfo['mes']} ${diaInfo['nomeDia']}',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: isHoje ? const Color(0xFF7EB8F7) : Colors.white54,
+                          fontWeight: isHoje ? FontWeight.w700 : FontWeight.w400,
+                        ),
                       ),
                       const SizedBox(height: 6),
-                      ...evento.eventos.map((e) => Padding(
-                        padding: const EdgeInsets.only(bottom: 3),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 6, height: 6,
-                              decoration: const BoxDecoration(
-                                color: Color(0xFFF7A8C4),
-                                shape: BoxShape.circle,
+                      // 🔧 BACK-END: eventos do dia virão da API
+                      if (eventos.isEmpty)
+                        const SizedBox(height: 20)
+                      else
+                        ...eventos.map((e) => Padding(
+                          padding: const EdgeInsets.only(bottom: 3),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 5, height: 5,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFFF7A8C4),
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
-                              child: Text(e,
-                                style: const TextStyle(fontSize: 9, color: Colors.white70),
-                                overflow: TextOverflow.ellipsis,
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(e,
+                                  style: const TextStyle(fontSize: 9, color: Colors.white70),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ),
                             ],
@@ -444,7 +481,7 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
           ],
         ),
-      )
+      ),
     );
   }
 

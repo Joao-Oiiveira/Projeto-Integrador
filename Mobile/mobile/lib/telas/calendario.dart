@@ -131,15 +131,33 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
 
   // Filtra tarefas de dias passados e ordena por data
   // 🔧 BACK-END: Essa lógica pode ser feita direto na query da API
-  List<Tarefa> get tarefasFiltradas {
-    final agora = DateTime.now();
-    return tarefas
-      .where((t) => t.data.isAfter(
-        DateTime(agora.year, agora.month, agora.day)
-            .subtract(const Duration(seconds: 1)),
-      ))
-      .toList()
-      ..sort((a, b) => a.data.compareTo(b.data));
+  // Tarefas de hoje
+  List<Tarefa> get tarefasHoje {
+    return tarefas.where((t) =>
+      t.data.day == hoje.day &&
+      t.data.month == hoje.month &&
+      t.data.year == hoje.year
+    ).toList()..sort((a, b) => a.data.compareTo(b.data));
+  }
+
+  // Tarefas dessa semana (exceto hoje)
+  List<Tarefa> get tarefasEstaSemana {
+    final fimDaSemana = hoje.add(Duration(days: 7 - hoje.weekday % 7));
+    return tarefas.where((t) =>
+      t.data.isAfter(DateTime(hoje.year, hoje.month, hoje.day)) &&
+      t.data.isBefore(fimDaSemana) &&
+      !(t.data.day == hoje.day && t.data.month == hoje.month)
+    ).toList()..sort((a, b) => a.data.compareTo(b.data));
+  }
+
+  // Tarefas da semana que vem
+  List<Tarefa> get tarefasProximaSemana {
+    final fimDaSemana = hoje.add(Duration(days: 7 - hoje.weekday % 7));
+    final fimProximaSemana = fimDaSemana.add(const Duration(days: 7));
+    return tarefas.where((t) =>
+      t.data.isAfter(fimDaSemana) &&
+      t.data.isBefore(fimProximaSemana)
+    ).toList()..sort((a, b) => a.data.compareTo(b.data));
   }
 
   @override
@@ -174,13 +192,33 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
               const SizedBox(height: 14),
 
               // 🔧 BACK-END: tarefasFiltradas vem da API filtrada e ordenada
-              tarefasFiltradas.isEmpty
-                  ? _buildListaVazia()
-                  : Column(
-                      children: tarefasFiltradas
-                          .map((t) => _buildTarefaCard(t))
-                          .toList(),
-                    ),
+              // ── Tarefas de Hoje ──────────────────────
+              if (tarefasHoje.isNotEmpty) ...[
+                _buildSecaoTarefa('Hoje'),
+                ...tarefasHoje.map((t) => _buildTarefaCard(t)),
+                const SizedBox(height: 16),
+              ],
+
+              // ── Tarefas desta Semana ─────────────────
+              if (tarefasEstaSemana.isNotEmpty) ...[
+                _buildSecaoTarefa('Esta semana'),
+                ...tarefasEstaSemana.map((t) => _buildTarefaCard(t)),
+                const SizedBox(height: 16),
+              ],
+
+              // ── Tarefas da Próxima Semana ────────────
+              if (tarefasProximaSemana.isNotEmpty) ...[
+                _buildSecaoTarefa('Próxima semana'),
+                ...tarefasProximaSemana.map((t) => _buildTarefaCard(t)),
+                const SizedBox(height: 16),
+              ],
+
+              // ── Nenhuma tarefa ───────────────────────
+              if (tarefasHoje.isEmpty &&
+                  tarefasEstaSemana.isEmpty &&
+                  tarefasProximaSemana.isEmpty
+                )
+              _buildListaVazia(),
             ],
           ),
         ),
@@ -476,4 +514,17 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
       ),
     );
   }
+  Widget _buildSecaoTarefa(String titulo) {
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 10),
+    child: Text(
+      titulo,
+      style: const TextStyle(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: Colors.white70,
+      ),
+    ),
+  );
+}
 }
