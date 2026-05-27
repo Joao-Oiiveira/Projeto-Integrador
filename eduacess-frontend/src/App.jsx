@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import Tarefas from './pages/Tarefas';
 import Disciplinas from './pages/Disciplinas';
 import Flashcards from './pages/Flashcards';
+import Agenda from './pages/Agenda';
 
 function App() {
   return (
@@ -23,6 +24,7 @@ function App() {
           <Route path="/tarefas" element={<Tarefas />} /> {/* <-- Nova Rota */}
           <Route path="/disciplinas" element={<Disciplinas />} />
           <Route path="/flashcards" element={<Flashcards />} />
+          <Route path="/calendario" element={<Agenda />} />
         </Route>
       </Routes>
     </BrowserRouter>
