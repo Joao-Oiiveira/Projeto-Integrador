@@ -1,5 +1,6 @@
 import 'package:go_router/go_router.dart';
 import 'package:mobile/telas/calendario.dart';
+import 'package:mobile/telas/calendarioMenu.dart';
 import 'package:mobile/telas/criarConta.dart';
 import 'package:mobile/telas/menu.dart';
 import 'telas/login.dart';
@@ -20,8 +21,12 @@ final appRouter = GoRouter(
       builder: (context, state) => const MenuScreen(),
     ),
     GoRoute(
+      path: '/calendarioMenu',
+      builder: (context, state) => const CalendarioMenuScreen(),
+    ),
+    GoRoute(
       path: '/calendario',
-      builder: (context, state) => const CalendarioScreen(),
+      builder: (context, state) => const CalendarioMensalScreen(),
     )
   ],
 );
