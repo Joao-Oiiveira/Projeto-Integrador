@@ -1,0 +1,299 @@
+import React, { useState, useEffect } from 'react';
+import Modal from '../components/Modal';
+import Button from '../components/Button';
+import Input from '../components/Input';
+import { obterTarefas, criarTarefa, atualizarStatusTarefa, atualizarTarefa, excluirTarefa } from '../services/tarefas';
+import { obterDisciplinas } from '../services/disciplinas'; // <-- NOVA IMPORTAÇÃO
+
+const Tarefas = () => {
+  const [tarefas, setTarefas] = useState([]);
+  const [disciplinas, setDisciplinas] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const[editandoId, setEditandoId] = useState(null);
+
+  // NOVO: Estado para os Filtros
+  const [filtroAtivo, setFiltroAtivo] = useState('todas'); // 'hoje', 'semana', 'mes', 'todas'
+
+  const [novaTarefa, setNovaTarefa] = useState({
+    titulo: '',
+    descricao: '',
+    data_entrega: '',
+    disciplina_id: ''
+  });
+
+  // Datas Base para cálculos e bloqueios
+  const hojeString = new Date().toISOString().split('T')[0];
+  const dataHojeObj = new Date();
+  dataHojeObj.setHours(0, 0, 0, 0);
+
+  const carregarDados = () => {
+    setTarefas(obterTarefas());
+    setDisciplinas(obterDisciplinas());
+  };
+
+  useEffect(() => {
+    carregarDados();
+  },[]);
+
+  const abrirModalNovo = () => {
+    setEditandoId(null);
+    setNovaTarefa({ titulo: '', descricao: '', data_entrega: '', disciplina_id: '' });
+    setIsModalOpen(true);
+  };
+
+  const abrirModalEdicao = (tarefa) => {
+    setEditandoId(tarefa.id);
+    setNovaTarefa({
+      titulo: tarefa.titulo,
+      descricao: tarefa.descricao,
+      data_entrega: tarefa.data_entrega,
+      disciplina_id: tarefa.disciplina_id
+    });
+    setIsModalOpen(true);
+  };
+
+  const handleSalvarTarefa = (e) => {
+    e.preventDefault();
+    if (!novaTarefa.titulo || !novaTarefa.disciplina_id || !novaTarefa.data_entrega) {
+      alert("Preencha os campos obrigatórios (Título, Disciplina e Data)");
+      return;
+    }
+
+    if (novaTarefa.data_entrega < hojeString) {
+      alert("Não é possível definir uma data de entrega no passado.");
+      return;
+    }
+
+    if (editandoId) {
+      atualizarTarefa(editandoId, novaTarefa);
+    } else {
+      criarTarefa(novaTarefa);
+    }
+    
+    carregarDados();
+    setIsModalOpen(false);
+  };
+
+  const handleExcluir = (id) => {
+    if (window.confirm("Tem certeza que deseja excluir esta tarefa?")) {
+      excluirTarefa(id);
+      carregarDados();
+    }
+  };
+
+  const moverTarefa = (id, novoStatus) => {
+    atualizarStatusTarefa(id, novoStatus);
+    carregarDados();
+  };
+
+  const formatarData = (dataIso) => {
+    if (!dataIso) return '';
+    const data = new Date(`${dataIso}T12:00:00`);
+    return data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  // NOVO: Função para verificar se está atrasada
+  const isAtrasada = (dataIso, status) => {
+    if (status === 'concluida') return false; // Concluída nunca é atrasada
+    const tDate = new Date(`${dataIso}T12:00:00`);
+    tDate.setHours(0, 0, 0, 0);
+    return tDate < dataHojeObj;
+  };
+
+  // NOVO: Aplicação de Filtros e Ordenação Temporal (mais próxima primeiro)
+  const tarefasFiltradasEOrdenadas = [...tarefas]
+    .filter(tarefa => {
+      const tDate = new Date(`${tarefa.data_entrega}T12:00:00`);
+      tDate.setHours(0, 0, 0, 0);
+      const atrasada = isAtrasada(tarefa.data_entrega, tarefa.status);
+
+      if (filtroAtivo === 'hoje') {
+        // Mostra as de hoje + as atrasadas para não serem esquecidas
+        return tDate.getTime() === dataHojeObj.getTime() || atrasada;
+      }
+      if (filtroAtivo === 'semana') {
+        const limite = new Date(dataHojeObj);
+        limite.setDate(limite.getDate() + 7);
+        return (tDate >= dataHojeObj && tDate <= limite) || atrasada;
+      }
+      if (filtroAtivo === 'mes') {
+        return (tDate.getMonth() === dataHojeObj.getMonth() && tDate.getFullYear() === dataHojeObj.getFullYear()) || atrasada;
+      }
+      return true; // 'todas'
+    })
+    .sort((a, b) => new Date(`${a.data_entrega}T12:00:00`) - new Date(`${b.data_entrega}T12:00:00`)); // Ordena pela data
+
+  // Distribuição nas colunas
+  const pendentes = tarefasFiltradasEOrdenadas.filter(t => t.status === 'pendente');
+  const emAndamento = tarefasFiltradasEOrdenadas.filter(t => t.status === 'em_andamento');
+  const concluidas = tarefasFiltradasEOrdenadas.filter(t => t.status === 'concluida');
+
+  // Componente da Coluna (Agora com altura fixa e Scroll interno)
+  const ColunaTarefas = ({ titulo, tarefasColuna, statusColor }) => (
+    // Ajustes de responsividade: w-full no mobile, altura máxima controlada com flex interno
+    <div className="flex flex-col gap-4 bg-gray-50/50 p-4 md:p-5 rounded-[2rem] border border-gray-100 w-full h-[500px] lg:h-[600px]">
+      
+      {/* Header da Coluna (Fixo) */}
+      <div className="flex items-center justify-between shrink-0">
+        <h3 className="font-bold text-gray-700 flex items-center gap-2">
+          <span className={`w-3 h-3 rounded-full ${statusColor}`}></span>
+          {titulo}
+        </h3>
+        <span className="bg-white text-gray-500 text-xs font-bold px-2.5 py-1 rounded-full shadow-sm border border-gray-100">
+          {tarefasColuna.length}
+        </span>
+      </div>
+
+      {/* Corpo da Coluna (Com Scroll Customizado) */}
+      <div className="flex flex-col gap-3 overflow-y-auto pr-1 pb-2 custom-scrollbar h-full">
+        {tarefasColuna.map(tarefa => {
+          // CORREÇÃO: Transformamos ambos em String para a verificação ser infalível
+          const disciplina = disciplinas.find(d => String(d.id) === String(tarefa.disciplina_id));
+          const atrasada = isAtrasada(tarefa.data_entrega, tarefa.status);
+
+          return (
+            <div key={tarefa.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 hover:shadow-md transition-all group shrink-0">
+              
+              <div className="flex justify-between items-center gap-2">
+                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg ${disciplina?.cor || 'bg-gray-100 text-gray-600'}`}>
+                  {disciplina?.nome || 'Geral'}
+                </span>
+                
+                {/* Botões visíveis ao passar o mouse */}
+                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <button onClick={() => abrirModalEdicao(tarefa)} className="p-1 text-gray-400 hover:text-blue-600 bg-gray-50 rounded-md">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                  </button>
+                  <button onClick={() => handleExcluir(tarefa.id)} className="p-1 text-gray-400 hover:text-red-600 bg-gray-50 rounded-md">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
+              </div>
+              
+              <h4 className="font-bold text-gray-900 leading-tight">{tarefa.titulo}</h4>
+              {tarefa.descricao && <p className="text-sm text-gray-500 line-clamp-2">{tarefa.descricao}</p>}
+              
+              <div className="flex flex-wrap items-center justify-between gap-2 mt-1 pt-2 border-t border-gray-50">
+                {/* Visual da Data com Alerta de Atraso */}
+                <div className={`flex items-center gap-1.5 text-xs font-medium ${atrasada ? 'text-red-500 font-bold bg-red-50 px-2 py-1 rounded-lg' : 'text-gray-400'}`}>
+                  {atrasada ? (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                  ) : (
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  )}
+                  {atrasada ? 'Atrasada' : formatarData(tarefa.data_entrega)}
+                </div>
+
+                <select 
+                  value={tarefa.status}
+                  onChange={(e) => moverTarefa(tarefa.id, e.target.value)}
+                  className="text-xs font-medium bg-gray-50 text-gray-600 border border-gray-200 rounded-lg px-2 py-1 outline-none cursor-pointer focus:ring-1 focus:ring-purple-500"
+                >
+                  <option value="pendente">Pendente</option>
+                  <option value="em_andamento">Em Andamento</option>
+                  <option value="concluida">Concluída</option>
+                </select>
+              </div>
+            </div>
+          );
+        })}
+
+        {tarefasColuna.length === 0 && (
+          <div className="text-center py-8 text-sm text-gray-400 font-medium border-2 border-dashed border-gray-200 rounded-2xl mt-4">
+            Nenhuma tarefa
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex flex-col gap-6 h-full pb-8">
+      
+      {/* Cabeçalho */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Minhas Tarefas</h1>
+          <p className="text-gray-500 text-sm mt-1">Organize seus estudos por prioridade.</p>
+        </div>
+        <Button 
+          text="+ Nova Tarefa" 
+          onClick={abrirModalNovo} 
+          className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-purple-200 whitespace-nowrap"
+        />
+      </div>
+
+      {/* NOVO: Filtros de Visualização */}
+      <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+        {[
+          { id: 'hoje', label: 'Hoje' },
+          { id: 'semana', label: 'Próximos 7 dias' },
+          { id: 'mes', label: 'Este mês' },
+          { id: 'todas', label: 'Todas as Tarefas' },
+        ].map(filtro => (
+          <button
+            key={filtro.id}
+            onClick={() => setFiltroAtivo(filtro.id)}
+            className={`px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap border ${
+              filtroAtivo === filtro.id 
+                ? 'bg-gray-900 text-white border-gray-900 shadow-md' 
+                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+            }`}
+          >
+            {filtro.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Kanban Board Responsivo */}
+      <div className="flex flex-col lg:flex-row gap-6 w-full h-full lg:overflow-hidden">
+        <ColunaTarefas titulo="Pendentes" tarefasColuna={pendentes} statusColor="bg-red-400" />
+        <ColunaTarefas titulo="Em Andamento" tarefasColuna={emAndamento} statusColor="bg-yellow-400" />
+        <ColunaTarefas titulo="Concluídas" tarefasColuna={concluidas} statusColor="bg-green-400" />
+      </div>
+
+      {/* Modal de Criação / Edição */}
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editandoId ? "Editar Tarefa" : "Criar Nova Tarefa"}>
+        <form onSubmit={handleSalvarTarefa} className="flex flex-col gap-4">
+          <Input 
+            id="titulo" label="Título da Tarefa *" placeholder="Ex: Resolver lista de exercícios" 
+            value={novaTarefa.titulo} onChange={e => setNovaTarefa({...novaTarefa, titulo: e.target.value})}
+          />
+          
+          <div className="flex flex-col gap-1.5 w-full">
+            <label className="text-sm font-medium text-gray-700">Descrição</label>
+            <textarea
+              className="w-full bg-gray-50 text-gray-900 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-200 transition-all resize-none h-24"
+              placeholder="Detalhes da tarefa..."
+              value={novaTarefa.descricao} onChange={e => setNovaTarefa({...novaTarefa, descricao: e.target.value})}
+            ></textarea>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5 w-full">
+              <label className="text-sm font-medium text-gray-700">Disciplina *</label>
+              <select 
+                className="w-full bg-gray-50 text-gray-900 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-200 transition-all"
+                value={novaTarefa.disciplina_id} onChange={e => setNovaTarefa({...novaTarefa, disciplina_id: e.target.value})}
+              >
+                <option value="">Selecione...</option>
+                {disciplinas.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
+              </select>
+            </div>
+
+            <div className="flex flex-col gap-1.5 w-full">
+              <Input 
+                id="data_entrega" label="Data de Entrega *" type="date" min={hojeString}
+                value={novaTarefa.data_entrega} onChange={e => setNovaTarefa({...novaTarefa, data_entrega: e.target.value})}
+              />
+            </div>
+          </div>
+
+          <Button type="submit" text={editandoId ? "Salvar Alterações" : "Criar Tarefa"} className="w-full mt-4 bg-purple-600 hover:bg-purple-700 border-none text-white" />
+        </form>
+      </Modal>
+    </div>
+  );
+};
+
+export default Tarefas;
