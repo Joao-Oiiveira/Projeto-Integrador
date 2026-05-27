@@ -1,0 +1,160 @@
+Ótima pergunta! Aqui estão as melhores práticas organizadas por categoria:
+
+📁 1. Estrutura de pastas
+lib/
+├── main.dart
+├── router.dart
+├── theme/
+│   ├── app_colors.dart      # cores
+│   ├── app_text_styles.dart # estilos de texto
+│   └── app_theme.dart       # tema geral
+├── models/                  # classes de dados
+│   ├── materia.dart
+│   ├── tarefa.dart
+│   └── evento.dart
+├── services/                # chamadas de API
+│   ├── auth_service.dart
+│   ├── agenda_service.dart
+│   └── disciplinas_service.dart
+├── screens/                 # telas
+│   ├── auth/
+│   │   ├── login_screen.dart
+│   │   └── signup_screen.dart
+│   ├── menu/
+│   │   └── menu_screen.dart
+│   └── calendario/
+│       ├── calendario_screen.dart
+│       └── calendario_mensal_screen.dart
+├── widgets/                 # widgets reutilizáveis
+│   ├── auth_widgets.dart
+│   └── calendario_widgets.dart
+└── utils/                   # funções auxiliares
+    └── date_utils.dart
+
+🎨 2. Tema centralizado
+Nunca coloca cor ou estilo fixo no código — sempre referencia o tema:
+dart// ❌ errado — espalhado pelo código
+color: Color(0xFF7EB8F7)
+fontSize: 20
+
+// ✅ certo — centralizado
+color: AppColors.matematica
+style: AppTextStyles.titulo
+
+📦 3. Modelos separados dos dados
+Cada modelo em seu próprio arquivo com fromJson e toJson:
+dart// models/materia.dart
+class Materia {
+  final String id;
+  final String nome;
+  final Color cor;
+  final int progresso;
+
+  // Converte JSON da API para objeto
+  factory Materia.fromJson(Map<String, dynamic> json) {
+    return Materia(
+      id: json['id'],
+      nome: json['nome'],
+      cor: Color(int.parse(json['cor'].replaceAll('#', '0xFF'))),
+      progresso: json['progresso'],
+    );
+  }
+
+  // Converte objeto para JSON para enviar à API
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nome': nome,
+      'progresso': progresso,
+    };
+  }
+}
+
+🔌 4. Services separados das telas
+A tela não chama a API diretamente — ela chama um service:
+dart// ❌ errado — lógica de API dentro da tela
+onPressed: () async {
+  final response = await http.get(Uri.parse('api.com/materias'));
+  // ...
+}
+
+// ✅ certo — tela chama o service
+onPressed: () async {
+  final materias = await DisciplinasService.getMaterias();
+}
+dart// services/disciplinas_service.dart
+class DisciplinasService {
+  static Future<List<Materia>> getMaterias() async {
+    final response = await http.get(Uri.parse('api.com/materias'));
+    final List json = jsonDecode(response.body);
+    return json.map((item) => Materia.fromJson(item)).toList();
+  }
+}
+
+🔄 5. Gerenciamento de estado
+Para projetos pequenos setState resolve, mas para projetos maiores use Provider ou Riverpod:
+dart// pubspec.yaml
+dependencies:
+  flutter_riverpod: ^2.5.0
+Evita ficar passando dados de tela em tela — o estado fica centralizado e qualquer tela acessa.
+
+⚠️ 6. Tratamento de erros
+Sempre trata erros nas chamadas de API:
+dart// ❌ errado — sem tratamento
+final materias = await DisciplinasService.getMaterias();
+
+// ✅ certo — com tratamento
+try {
+  final materias = await DisciplinasService.getMaterias();
+  setState(() => _materias = materias);
+} catch (e) {
+  // Mostra mensagem de erro para o usuário
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text('Erro ao carregar matérias')),
+  );
+}
+
+⏳ 7. Loading states
+Sempre mostra feedback visual enquanto carrega:
+dartbool _carregando = true;
+
+@override
+Widget build(BuildContext context) {
+  if (_carregando) {
+    return const Center(child: CircularProgressIndicator());
+  }
+  return // tela normal
+}
+
+🧹  8. Dispose de controllers
+Sempre libera controllers quando a tela fecha:
+dart@override
+void dispose() {
+  _nomeController.dispose();
+  _emailController.dispose();
+  _scrollController.dispose();
+  super.dispose();
+}
+
+📝 9. Constantes para strings e rotas
+dart// utils/app_routes.dart
+class AppRoutes {
+  static const login     = '/login';
+  static const cadastro  = '/cadastro';
+  static const menu      = '/menu';
+  static const calendario = '/calendario';
+}
+
+// uso
+context.go(AppRoutes.menu);
+
+🔒 10. Variáveis privadas
+Usa _ em variáveis que não devem ser acessadas fora da classe:
+dart// ❌ público — qualquer um acessa
+bool carregando = false;
+
+// ✅ privado — só a própria classe acessa
+bool _carregando = false;
+
+Resumo de prioridade para o seu projeto agora
+PrioridadeO que fazer🔴 AltaSeparar modelos em arquivos próprios🔴 AltaCriar services para chamadas de API🟡 MédiaCentralizar tema em app_colors.dart (já fez!)🟡 MédiaTratar erros nas chamadas de API🟡 MédiaAdicionar loading states🟢 BaixaMigrar para Riverpod quando o projeto crescer

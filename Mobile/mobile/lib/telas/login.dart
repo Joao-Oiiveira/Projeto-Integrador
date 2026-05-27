@@ -64,8 +64,8 @@ class _LoginScreenState extends State<LoginScreen> {
               PasswordField(
                 label: 'Senha',
                 obscure: _obscurePassword,
-                onToggle: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
+                onToggle:
+                    () => setState(() => _obscurePassword = !_obscurePassword),
               ),
 
               const SizedBox(height: 12),
@@ -114,7 +114,7 @@ class _LoginScreenState extends State<LoginScreen> {
               // Link cadastro
               GestureDetector(
                 onTap: () {
-                   context.go('/cadastro');
+                  context.go('/cadastro');
                 },
                 child: const Text(
                   'Não tem uma conta?',

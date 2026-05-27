@@ -2,475 +2,755 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 // ─────────────────────────────────────────────
-// Modelo de dados de uma Tarefa
+// Modelo de dados de um Evento
 // 🔧 BACK-END: Essa classe receberá dados da API via fromJson()
 // ─────────────────────────────────────────────
-class Tarefa {
+class Evento {
   final String id;
-  final String titulo;
-  final String? materia;
+  final String nome;
+  final String? descricao;
   final DateTime data;
-  bool concluida;
+  final TimeOfDay? horarioInicio;
+  final TimeOfDay? horarioFim;
+  final String? materia;
+  final Color cor;
 
-  Tarefa({
+  Evento({
     required this.id,
-    required this.titulo,
-    this.materia,
+    required this.nome,
+    this.descricao,
     required this.data,
-    this.concluida = false,
+    this.horarioInicio,
+    this.horarioFim,
+    this.materia,
+    required this.cor,
   });
 }
 
 // ─────────────────────────────────────────────
-// Calendario Screen
+// Calendario Mensal Screen
 // ─────────────────────────────────────────────
-class CalendarioScreen extends StatefulWidget {
-  const CalendarioScreen({super.key});
+class CalendarioMensalScreen extends StatefulWidget {
+  const CalendarioMensalScreen({super.key});
 
   @override
-  State<CalendarioScreen> createState() => _CalendarioScreenState();
+  State<CalendarioMensalScreen> createState() => _CalendarioMensalScreenState();
 }
 
-class _CalendarioScreenState extends State<CalendarioScreen> {
-
+class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
   final DateTime hoje = DateTime.now();
-  final ScrollController _calendarioScrollController = ScrollController();
-
-  // No Dart: 0=DOM, 1=SEG, 2=TER, 3=QUA, 4=QUI, 5=SEX, 6=SAB
-  final List<String> _nomesDias = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+  late int _anoAtual;
+  DateTime? _mesSelecionado; // null = visão anual, preenchido = visão mensal
+  DateTime? _diaSelecionado;
 
   final List<String> _nomesMeses = [
-    'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro',
   ];
 
-  late List<Map<String, dynamic>> diasDaSemana;
+  final List<String> _nomesMesesAbrev = [
+    'Jan',
+    'Fev',
+    'Mar',
+    'Abr',
+    'Mai',
+    'Jun',
+    'Jul',
+    'Ago',
+    'Set',
+    'Out',
+    'Nov',
+    'Dez',
+  ];
 
-  // 🔧 BACK-END: Buscar tarefas pendentes da API ordenadas por data
-  List<Tarefa> tarefas = [
-    Tarefa(
+  final List<String> _nomesDiasSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+  final List<String> _nomesDiasSemanaFull = [
+    'Dom',
+    'Seg',
+    'Ter',
+    'Qua',
+    'Qui',
+    'Sex',
+    'Sab',
+  ];
+
+  // 🔧 BACK-END: Matérias do usuário virão da API
+  final List<Map<String, dynamic>> materias = [
+    {'nome': 'Matemática', 'cor': const Color(0xFF7EB8F7)},
+    {'nome': 'Português', 'cor': const Color(0xFFF7A8C4)},
+  ];
+
+  // 🔧 BACK-END: Buscar eventos do usuário na API
+  final List<Evento> eventos = [
+    Evento(
       id: '1',
-      titulo: 'Estudar para prova de Matemática',
-      materia: 'Matemática',
+      nome: 'Prova de Matemática',
+      descricao: 'Capítulos 1 ao 5',
       data: DateTime.now(),
+      horarioInicio: const TimeOfDay(hour: 8, minute: 0),
+      horarioFim: const TimeOfDay(hour: 10, minute: 0),
+      materia: 'Matemática',
+      cor: const Color(0xFF7EB8F7),
     ),
-    Tarefa(
+    Evento(
       id: '2',
-      titulo: 'Fazer lista de exercícios',
-      materia: 'Português',
-      data: DateTime.now(),
-    ),
-    Tarefa(
-      id: '3',
-      titulo: 'Revisar flashcards',
-      materia: 'Matemática',
-      data: DateTime.now().add(const Duration(days: 1)),
-    ),
-    Tarefa(
-      id: '4',
-      titulo: 'Ler capítulo 3',
-      materia: 'Português',
+      nome: 'Lista de Português',
       data: DateTime.now().add(const Duration(days: 2)),
+      materia: 'Português',
+      cor: const Color(0xFFF7A8C4),
     ),
   ];
 
   @override
   void initState() {
     super.initState();
-    _gerarDiasDaSemana();
-
-  // Rola automaticamente até o dia de hoje
-  WidgetsBinding.instance.addPostFrameCallback((_) {
-    final indiceHoje = diasDaSemana.indexWhere((d) => d['isHoje'] == true);
-      if (indiceHoje > 0) {
-          _calendarioScrollController.animateTo(
-          indiceHoje * 92.0, // largura do card + margin
-          duration: const Duration(milliseconds: 400),
-          curve: Curves.easeInOut,
-        );
-      }
-    });
+    _anoAtual = hoje.year;
+    _diaSelecionado = hoje;
+    _mesSelecionado = DateTime(hoje.year, hoje.month, 1);
   }
 
-  @override                                        
-    void dispose() {
-      _calendarioScrollController.dispose();
-      super.dispose();
+  List<Evento> _eventosNoDia(DateTime dia) {
+    return eventos
+        .where(
+          (e) =>
+              e.data.day == dia.day &&
+              e.data.month == dia.month &&
+              e.data.year == dia.year,
+        )
+        .toList();
+  }
+
+  bool _mesTemEventos(int mes) {
+    return eventos.any((e) => e.data.month == mes && e.data.year == _anoAtual);
+  }
+
+  List<DateTime?> _gerarDiasDoMes(DateTime mes) {
+    final primeiroDia = DateTime(mes.year, mes.month, 1);
+    final ultimoDia = DateTime(mes.year, mes.month + 1, 0);
+    final offsetInicio = primeiroDia.weekday % 7;
+
+    List<DateTime?> dias = [];
+    for (int i = 0; i < offsetInicio; i++) dias.add(null);
+    for (int i = 1; i <= ultimoDia.day; i++) {
+      dias.add(DateTime(mes.year, mes.month, i));
     }
-
-  void _gerarDiasDaSemana() {
-    // No Dart weekday: 1=SEG ... 6=SAB, 7=DOM
-    // % 7 converte para: 0=DOM, 1=SEG ... 6=SAB
-    // Assim conseguimos voltar ao domingo correto da semana
-    int diaDaSemana = hoje.weekday % 7;
-    final inicioDaSemana = hoje.subtract(Duration(days: diaDaSemana));
-
-    diasDaSemana = List.generate(7, (index) {
-      final dia = inicioDaSemana.add(Duration(days: index));
-      return {
-        'data': dia,
-        'dia': dia.day.toString().padLeft(2, '0'),
-        'mes': dia.month.toString().padLeft(2, '0'),
-        'nomeDia': _nomesDias[dia.weekday % 7],
-        'isHoje': dia.day == hoje.day &&
-                  dia.month == hoje.month &&
-                  dia.year == hoje.year,
-        // 🔧 BACK-END: Substituir por chamada real à API de eventos por dia
-        'eventos': _getEventosDoDia(dia),
-      };
-    });
-  }
-
-  // 🔧 BACK-END: Substituir por chamada real à API
-  List<String> _getEventosDoDia(DateTime dia) {
-    if (dia.day == hoje.day) return ['Prova Matem.'];
-    if (dia.day == hoje.add(const Duration(days: 1)).day) return ['Prova Port.'];
-    if (dia.day == hoje.add(const Duration(days: 2)).day) return ['Lista Mater.', 'Lista Port.'];
-    return [];
-  }
-
-  // Filtra tarefas de dias passados e ordena por data
-  // 🔧 BACK-END: Essa lógica pode ser feita direto na query da API
-  // Tarefas de hoje
-  List<Tarefa> get tarefasHoje {
-    return tarefas.where((t) =>
-      t.data.day == hoje.day &&
-      t.data.month == hoje.month &&
-      t.data.year == hoje.year
-    ).toList()..sort((a, b) => a.data.compareTo(b.data));
-  }
-
-  // Tarefas dessa semana (exceto hoje)
-  List<Tarefa> get tarefasEstaSemana {
-    final fimDaSemana = hoje.add(Duration(days: 7 - hoje.weekday % 7));
-    return tarefas.where((t) =>
-      t.data.isAfter(DateTime(hoje.year, hoje.month, hoje.day)) &&
-      t.data.isBefore(fimDaSemana) &&
-      !(t.data.day == hoje.day && t.data.month == hoje.month)
-    ).toList()..sort((a, b) => a.data.compareTo(b.data));
-  }
-
-  // Tarefas da semana que vem
-  List<Tarefa> get tarefasProximaSemana {
-    final fimDaSemana = hoje.add(Duration(days: 7 - hoje.weekday % 7));
-    final fimProximaSemana = fimDaSemana.add(const Duration(days: 7));
-    return tarefas.where((t) =>
-      t.data.isAfter(fimDaSemana) &&
-      t.data.isBefore(fimProximaSemana)
-    ).toList()..sort((a, b) => a.data.compareTo(b.data));
+    while (dias.length % 7 != 0) dias.add(null);
+    return dias;
   }
 
   @override
   Widget build(BuildContext context) {
-    print('BUILD - Hoje: ${hoje.day}/${hoje.month} weekday: ${hoje.weekday}');
-    print('diasDaSemana: ${diasDaSemana.map((d) => '${d['dia']} isHoje:${d['isHoje']}').toList()}');
-
-
     return Scaffold(
       backgroundColor: const Color(0xFF121212),
+      floatingActionButton: FloatingActionButton(
+        onPressed:
+            () => _abrirFormularioEvento(context, _diaSelecionado ?? hoje),
+        backgroundColor: const Color(0xFF7EB8F7),
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-
-              _buildHeader(),
-              const SizedBox(height: 20),
-
-              _buildCalendario(),
-              const SizedBox(height: 28),
-
-              const Text(
-                'Tarefas pendentes',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // 🔧 BACK-END: tarefasFiltradas vem da API filtrada e ordenada
-              // ── Tarefas de Hoje ──────────────────────
-              if (tarefasHoje.isNotEmpty) ...[
-                _buildSecaoTarefa('Hoje'),
-                ...tarefasHoje.map((t) => _buildTarefaCard(t)),
-                const SizedBox(height: 16),
-              ],
-
-              // ── Tarefas desta Semana ─────────────────
-              if (tarefasEstaSemana.isNotEmpty) ...[
-                _buildSecaoTarefa('Esta semana'),
-                ...tarefasEstaSemana.map((t) => _buildTarefaCard(t)),
-                const SizedBox(height: 16),
-              ],
-
-              // ── Tarefas da Próxima Semana ────────────
-              if (tarefasProximaSemana.isNotEmpty) ...[
-                _buildSecaoTarefa('Próxima semana'),
-                ...tarefasProximaSemana.map((t) => _buildTarefaCard(t)),
-                const SizedBox(height: 16),
-              ],
-
-              // ── Nenhuma tarefa ───────────────────────
-              if (tarefasHoje.isEmpty &&
-                  tarefasEstaSemana.isEmpty &&
-                  tarefasProximaSemana.isEmpty
-                )
-              _buildListaVazia(),
-            ],
-          ),
-        ),
+        child:
+            _mesSelecionado == null ? _buildVisaoAnual() : _buildVisaoMensal(),
       ),
     );
   }
 
-  // ── Widget: Header ───────────────────────────
-  Widget _buildHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  // ════════════════════════════════════════════
+  // VISÃO ANUAL
+  // ════════════════════════════════════════════
+  Widget _buildVisaoAnual() {
+    return Column(
       children: [
-        Row(
-          children: [
-            GestureDetector(
-              onTap: () {
-                // 🔧 BACK-END: Apenas navegação
-                context.go('/menu');
-              },
-              child: const Icon(Icons.arrow_back, color: Colors.white, size: 22),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'CALENDÁRIO',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 1.2,
+        // Header ano
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  // 🔧 BACK-END: Apenas navegação
+                  // context.go('/calendario');
+                },
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 22,
+                ),
               ),
-            ),
-          ],
+              Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => setState(() => _anoAtual--),
+                    child: const Icon(
+                      Icons.chevron_left,
+                      color: Colors.white70,
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$_anoAtual',
+                    style: const TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: () => setState(() => _anoAtual++),
+                    child: const Icon(
+                      Icons.chevron_right,
+                      color: Colors.white70,
+                      size: 28,
+                    ),
+                  ),
+                ],
+              ),
+              // Botão hoje
+              GestureDetector(
+                onTap:
+                    () => setState(() {
+                      _anoAtual = hoje.year;
+                    }),
+                child: const Text(
+                  'Hoje',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF7EB8F7),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        GestureDetector(
-          onTap: () {
-            // 🔧 BACK-END: Navegar para tela de calendário mensal
-            // context.go('/calendario/mensal');
-          },
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white12),
+
+        // Grade de meses
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 3,
+              childAspectRatio: 0.85,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
             ),
-            child: const Icon(
-              Icons.calendar_month_outlined,
-              color: Colors.white70,
-              size: 22,
-            ),
+            itemCount: 12,
+            itemBuilder: (context, index) {
+              return _buildMiniMes(index + 1);
+            },
           ),
         ),
       ],
     );
   }
 
-  // ── Widget: Mini Calendário semanal ──────────
-  Widget _buildCalendario() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${_nomesMeses[hoje.month - 1]} ${hoje.year}',
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.white54,
-              fontWeight: FontWeight.w500,
-            ),
+  // ── Widget: Mini calendário de um mês ────────
+  Widget _buildMiniMes(int mes) {
+    final dataMes = DateTime(_anoAtual, mes, 1);
+    final diasDoMes = _gerarDiasDoMes(dataMes);
+    final bool isMesAtual = mes == hoje.month && _anoAtual == hoje.year;
+    final bool temEventos = _mesTemEventos(mes);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _mesSelecionado = dataMes;
+          _diaSelecionado = isMesAtual ? hoje : dataMes;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isMesAtual ? const Color(0xFF7EB8F7) : Colors.white12,
+            width: isMesAtual ? 1.5 : 1,
           ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            controller: _calendarioScrollController,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: diasDaSemana
-                  .map((d) => _buildDiaCalendario(d))
-                  .toList(),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Nome do mês
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _nomesMesesAbrev[mes - 1],
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color:
+                        isMesAtual ? const Color(0xFF7EB8F7) : Colors.white70,
+                  ),
+                ),
+                // Ponto indicando que tem eventos
+                if (temEventos)
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Color(0xFFF7A8C4),
+                    ),
+                  ),
+              ],
             ),
-          ),
-        ],
+            const SizedBox(height: 4),
+
+            // Dias da semana abreviados
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children:
+                  _nomesDiasSemana
+                      .map(
+                        (d) => Text(
+                          d,
+                          style: const TextStyle(
+                            fontSize: 7,
+                            color: Colors.white24,
+                          ),
+                        ),
+                      )
+                      .toList(),
+            ),
+            const SizedBox(height: 2),
+
+            // Grade mini dos dias
+            Expanded(
+              child: GridView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 7,
+                  childAspectRatio: 1,
+                ),
+                itemCount: diasDoMes.length > 35 ? 35 : diasDoMes.length,
+                itemBuilder: (context, index) {
+                  final dia =
+                      index < diasDoMes.length ? diasDoMes[index] : null;
+                  if (dia == null) return const SizedBox();
+
+                  final bool isHoje =
+                      dia.day == hoje.day &&
+                      dia.month == hoje.month &&
+                      dia.year == hoje.year;
+                  final temEventoNoDia = _eventosNoDia(dia).isNotEmpty;
+
+                  return Container(
+                    margin: const EdgeInsets.all(0.5),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color:
+                          isHoje ? const Color(0xFF7EB8F7) : Colors.transparent,
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '${dia.day}',
+                            style: TextStyle(
+                              fontSize: 7,
+                              color: isHoje ? Colors.white : Colors.white54,
+                              fontWeight:
+                                  isHoje ? FontWeight.bold : FontWeight.w400,
+                            ),
+                          ),
+                          if (temEventoNoDia && !isHoje)
+                            Container(
+                              width: 3,
+                              height: 3,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF7EB8F7),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ── Widget: Dia do Calendário ─────────────────
-  Widget _buildDiaCalendario(Map<String, dynamic> diaInfo) {
-    final bool isHoje = diaInfo['isHoje'];
-    final List<String> eventos = List<String>.from(diaInfo['eventos']);
+  // ════════════════════════════════════════════
+  // VISÃO MENSAL
+  // ════════════════════════════════════════════
+  Widget _buildVisaoMensal() {
+    final diasDoMes = _gerarDiasDoMes(_mesSelecionado!);
+    final eventosDoDia =
+        _diaSelecionado != null ? _eventosNoDia(_diaSelecionado!) : <Evento>[];
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-      width: isHoje ? 115 : 82,    // dia de hoje fica mais largo
-      margin: const EdgeInsets.only(right: 10),
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: isHoje
-            ? const Color(0xFF7EB8F7).withValues(alpha: 0.2)
-            : const Color(0xFF2A2A2A),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isHoje ? const Color(0xFF7EB8F7) : Colors.white12,
-          width: isHoje ? 1.5 : 1,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            '${diaInfo['dia']}/${diaInfo['mes']} ${diaInfo['nomeDia']}',
-            style: TextStyle(
-              fontSize: isHoje ? 11 : 10,
-              color: isHoje ? const Color(0xFF7EB8F7) : Colors.white54,
-              fontWeight: isHoje ? FontWeight.w700 : FontWeight.w400,
-            ),
-          ),
-          const SizedBox(height: 6),
-          // 🔧 BACK-END: eventos vêm da API por dia
-          if (eventos.isEmpty)
-            const SizedBox(height: 20)
-          else
-            ...eventos.map((e) => Padding(
-              padding: const EdgeInsets.only(bottom: 3),
-              child: Row(
+    return Column(
+      children: [
+        // Header mês
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Volta para visão anual
+              GestureDetector(
+                onTap: () {
+                  context.go('/calendarioMenu');
+                },
+                child: const Icon(
+                  Icons.arrow_back,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              Row(
                 children: [
-                  Container(
-                    width: 5,
-                    height: 5,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFFF7A8C4),
-                      shape: BoxShape.circle,
+                  GestureDetector(
+                    onTap:
+                        () => setState(() {
+                          _mesSelecionado = DateTime(
+                            _mesSelecionado!.month == 1
+                                ? _mesSelecionado!.year - 1
+                                : _mesSelecionado!.year,
+                            _mesSelecionado!.month == 1
+                                ? 12
+                                : _mesSelecionado!.month - 1,
+                            1,
+                          );
+                          _diaSelecionado = DateTime(
+                            _mesSelecionado!.year,
+                            _mesSelecionado!.month,
+                            1,
+                          );
+                        }),
+                    child: const Icon(
+                      Icons.chevron_left,
+                      color: Colors.white70,
+                      size: 28,
                     ),
                   ),
-                  const SizedBox(width: 3),
-                  Expanded(
-                    child: Text(
-                      e,
-                      style: const TextStyle(
-                        fontSize: 8,
-                        color: Colors.white70,
+                  const SizedBox(width: 8),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _mesSelecionado = null;
+                          });
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              _nomesMeses[_mesSelecionado!.month - 1],
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              '${_mesSelecionado!.year}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Colors.white38,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                      overflow: TextOverflow.ellipsis,
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap:
+                        () => setState(() {
+                          _mesSelecionado = DateTime(
+                            _mesSelecionado!.month == 12
+                                ? _mesSelecionado!.year + 1
+                                : _mesSelecionado!.year,
+                            _mesSelecionado!.month == 12
+                                ? 1
+                                : _mesSelecionado!.month + 1,
+                            1,
+                          );
+                        }),
+                    child: const Icon(
+                      Icons.chevron_right,
+                      color: Colors.white70,
+                      size: 28,
                     ),
                   ),
                 ],
               ),
-            )),
+              GestureDetector(
+                onTap:
+                    () => setState(() {
+                      _mesSelecionado = DateTime(hoje.year, hoje.month, 1);
+                      _diaSelecionado = hoje;
+                    }),
+                child: const Text(
+                  'Hoje',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF7EB8F7),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Nomes dos dias da semana
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children:
+                _nomesDiasSemanaFull
+                    .map(
+                      (d) => SizedBox(
+                        width: 36,
+                        child: Text(
+                          d,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white38,
+                          ),
+                        ),
+                      ),
+                    )
+                    .toList(),
+          ),
+        ),
+
+        // Grade do mês
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              childAspectRatio: 1,
+            ),
+            itemCount: diasDoMes.length,
+            itemBuilder: (context, index) {
+              final dia = diasDoMes[index];
+              if (dia == null) return const SizedBox();
+              return _buildDiaCell(dia);
+            },
+          ),
+        ),
+
+        const Divider(color: Colors.white12, height: 20),
+
+        // Eventos do dia selecionado
+        Expanded(child: _buildEventosDoDia(eventosDoDia)),
+      ],
+    );
+  }
+
+  // ── Widget: Célula de um dia ──────────────────
+  Widget _buildDiaCell(DateTime dia) {
+    final bool isHoje =
+        dia.day == hoje.day && dia.month == hoje.month && dia.year == hoje.year;
+    final bool isSelecionado =
+        _diaSelecionado != null &&
+        dia.day == _diaSelecionado!.day &&
+        dia.month == _diaSelecionado!.month &&
+        dia.year == _diaSelecionado!.year;
+    final eventosNoDia = _eventosNoDia(dia);
+
+    return GestureDetector(
+      onTap: () => setState(() => _diaSelecionado = dia),
+      child: Container(
+        margin: const EdgeInsets.all(2),
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color:
+              isSelecionado
+                  ? const Color(0xFF7EB8F7)
+                  : isHoje
+                  ? const Color(0xFF7EB8F7).withOpacity(0.2)
+                  : Colors.transparent,
+          border:
+              isHoje && !isSelecionado
+                  ? Border.all(color: const Color(0xFF7EB8F7), width: 1.5)
+                  : null,
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              '${dia.day}',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight:
+                    isHoje || isSelecionado ? FontWeight.bold : FontWeight.w400,
+                color:
+                    isSelecionado
+                        ? Colors.white
+                        : isHoje
+                        ? const Color(0xFF7EB8F7)
+                        : Colors.white70,
+              ),
+            ),
+            if (eventosNoDia.isNotEmpty)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children:
+                    eventosNoDia
+                        .take(3)
+                        .map(
+                          (e) => Container(
+                            width: 4,
+                            height: 4,
+                            margin: const EdgeInsets.only(
+                              top: 2,
+                              left: 1,
+                              right: 1,
+                            ),
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: isSelecionado ? Colors.white : e.cor,
+                            ),
+                          ),
+                        )
+                        .toList(),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Widget: Lista de eventos do dia ──────────
+  Widget _buildEventosDoDia(List<Evento> eventosDoDia) {
+    final tituloDia =
+        _diaSelecionado != null
+            ? _diaSelecionado!.day == hoje.day &&
+                    _diaSelecionado!.month == hoje.month
+                ? 'Hoje, ${hoje.day} de ${_nomesMeses[hoje.month - 1]}'
+                : '${_diaSelecionado!.day} de ${_nomesMeses[_diaSelecionado!.month - 1]}'
+            : 'Selecione um dia';
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tituloDia,
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Expanded(
+            child:
+                eventosDoDia.isEmpty
+                    ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(
+                            Icons.event_available,
+                            color: Colors.white12,
+                            size: 40,
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Nenhum evento neste dia',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white24,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                    : ListView.builder(
+                      itemCount: eventosDoDia.length,
+                      itemBuilder:
+                          (context, index) =>
+                              _buildEventoCard(eventosDoDia[index]),
+                    ),
+          ),
         ],
       ),
     );
   }
 
-  // ── Widget: Card de Tarefa ───────────────────
-  Widget _buildTarefaCard(Tarefa tarefa) {
-    final bool isHoje = tarefa.data.day == hoje.day &&
-                        tarefa.data.month == hoje.month &&
-                        tarefa.data.year == hoje.year;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+  // ── Widget: Card de evento ───────────────────
+  Widget _buildEventoCard(Evento evento) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: isHoje
-              ? const Color(0xFF7EB8F7).withValues(alpha: 0.5)
-              : Colors.white12,
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border(left: BorderSide(color: evento.cor, width: 4)),
       ),
       child: Row(
         children: [
-
-          // Checkbox customizado
-          GestureDetector(
-            onTap: () {
-              setState(() {
-                tarefa.concluida = !tarefa.concluida;
-                // 🔧 BACK-END: Atualizar status da tarefa na API
-                // Ex: AgendaService.updateTarefa(tarefa.id, concluida: true);
-              });
-            },
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: tarefa.concluida
-                    ? const Color(0xFF7EB8F7)
-                    : Colors.transparent,
-                border: Border.all(
-                  color: tarefa.concluida
-                      ? const Color(0xFF7EB8F7)
-                      : Colors.white38,
-                  width: 2,
-                ),
-              ),
-              child: tarefa.concluida
-                  ? const Icon(Icons.check, color: Colors.white, size: 14)
-                  : null,
-            ),
-          ),
-
-          const SizedBox(width: 14),
-
-          // Título e matéria
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  tarefa.titulo,
-                  style: TextStyle(
+                  evento.nome,
+                  style: const TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w500,
-                    color: tarefa.concluida ? Colors.white38 : Colors.white,
-                    // 🔧 BACK-END: risco some no próximo dia pois a tarefa
-                    // é filtrada pelo campo data na query da API
-                    decoration: tarefa.concluida
-                        ? TextDecoration.lineThrough
-                        : TextDecoration.none,
-                    decorationColor: Colors.white38,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
                   ),
                 ),
-                if (tarefa.materia != null) ...[
+                if (evento.descricao != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    evento.descricao!,
+                    style: const TextStyle(fontSize: 12, color: Colors.white38),
+                  ),
+                ],
+                if (evento.materia != null) ...[
                   const SizedBox(height: 4),
                   Row(
                     children: [
                       Container(
                         width: 6,
                         height: 6,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF7EB8F7),
+                        decoration: BoxDecoration(
                           shape: BoxShape.circle,
+                          color: evento.cor,
                         ),
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        // 🔧 BACK-END: materia vem do relacionamento com tabela disciplinas
-                        tarefa.materia!,
+                        evento.materia!,
                         style: const TextStyle(
-                          fontSize: 12,
+                          fontSize: 11,
                           color: Colors.white38,
                         ),
                       ),
@@ -480,51 +760,404 @@ class _CalendarioScreenState extends State<CalendarioScreen> {
               ],
             ),
           ),
-
-          // Data
-          Text(
-            isHoje
-                ? 'Hoje'
-                : '${tarefa.data.day.toString().padLeft(2, '0')}/${tarefa.data.month.toString().padLeft(2, '0')}',
-            style: TextStyle(
-              fontSize: 11,
-              color: isHoje ? const Color(0xFF7EB8F7) : Colors.white38,
-              fontWeight: isHoje ? FontWeight.w600 : FontWeight.w400,
+          if (evento.horarioInicio != null)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${evento.horarioInicio!.hour.toString().padLeft(2, '0')}:${evento.horarioInicio!.minute.toString().padLeft(2, '0')}',
+                  style: const TextStyle(fontSize: 12, color: Colors.white54),
+                ),
+                if (evento.horarioFim != null)
+                  Text(
+                    '${evento.horarioFim!.hour.toString().padLeft(2, '0')}:${evento.horarioFim!.minute.toString().padLeft(2, '0')}',
+                    style: const TextStyle(fontSize: 11, color: Colors.white24),
+                  ),
+              ],
             ),
-          ),
         ],
       ),
     );
   }
 
-  // ── Widget: Lista vazia ──────────────────────
-  Widget _buildListaVazia() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      alignment: Alignment.center,
-      child: const Column(
-        children: [
-          Icon(Icons.check_circle_outline, color: Colors.white24, size: 48),
-          SizedBox(height: 12),
-          Text(
-            'Nenhuma tarefa pendente!',
-            style: TextStyle(fontSize: 15, color: Colors.white38),
+  // ── Bottom Sheet: Formulário de novo evento ──
+  void _abrirFormularioEvento(BuildContext context, DateTime dataSelecionada) {
+    final nomeController = TextEditingController();
+    final descricaoController = TextEditingController();
+    DateTime dataCriacao = dataSelecionada;
+    TimeOfDay? horarioInicio;
+    TimeOfDay? horarioFim;
+    String? materiaSelecionada;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => StatefulBuilder(
+            builder:
+                (context, setModalState) => Container(
+                  padding: EdgeInsets.only(
+                    bottom: MediaQuery.of(context).viewInsets.bottom + 20,
+                    top: 20,
+                    left: 20,
+                    right: 20,
+                  ),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF1E1E1E),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(24),
+                    ),
+                  ),
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Barra de arrasto
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            margin: const EdgeInsets.only(bottom: 20),
+                            decoration: BoxDecoration(
+                              color: Colors.white24,
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+
+                        const Text(
+                          'Novo Evento',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Nome
+                        _buildCampoTexto(
+                          controller: nomeController,
+                          label: 'Nome do evento *',
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Descrição
+                        _buildCampoTexto(
+                          controller: descricaoController,
+                          label: 'Descrição (opcional)',
+                          maxLines: 3,
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Data
+                        GestureDetector(
+                          onTap: () async {
+                            final picked = await showDatePicker(
+                              context: context,
+                              initialDate: dataCriacao,
+                              firstDate: DateTime(2020),
+                              lastDate: DateTime(2030),
+                              builder:
+                                  (context, child) => Theme(
+                                    data: ThemeData.dark(),
+                                    child: child!,
+                                  ),
+                            );
+                            if (picked != null)
+                              setModalState(() => dataCriacao = picked);
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2A2A2A),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '${dataCriacao.day.toString().padLeft(2, '0')}/${dataCriacao.month.toString().padLeft(2, '0')}/${dataCriacao.year}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                const Icon(
+                                  Icons.calendar_today_outlined,
+                                  color: Colors.white38,
+                                  size: 18,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Horários opcionais
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildCampoHorario(
+                                label:
+                                    horarioInicio != null
+                                        ? '${horarioInicio!.hour.toString().padLeft(2, '0')}:${horarioInicio!.minute.toString().padLeft(2, '0')}'
+                                        : 'Início',
+                                preenchido: horarioInicio != null,
+                                onTap: () async {
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: TimeOfDay.now(),
+                                    builder:
+                                        (context, child) => Theme(
+                                          data: ThemeData.dark(),
+                                          child: child!,
+                                        ),
+                                  );
+                                  if (picked != null)
+                                    setModalState(() => horarioInicio = picked);
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildCampoHorario(
+                                label:
+                                    horarioFim != null
+                                        ? '${horarioFim!.hour.toString().padLeft(2, '0')}:${horarioFim!.minute.toString().padLeft(2, '0')}'
+                                        : 'Fim',
+                                preenchido: horarioFim != null,
+                                onTap: () async {
+                                  final picked = await showTimePicker(
+                                    context: context,
+                                    initialTime: TimeOfDay.now(),
+                                    builder:
+                                        (context, child) => Theme(
+                                          data: ThemeData.dark(),
+                                          child: child!,
+                                        ),
+                                  );
+                                  if (picked != null)
+                                    setModalState(() => horarioFim = picked);
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Matéria
+                        const Text(
+                          'Matéria (opcional)',
+                          style: TextStyle(fontSize: 13, color: Colors.white54),
+                        ),
+                        const SizedBox(height: 8),
+                        // 🔧 BACK-END: materias vem da API de disciplinas do usuário
+                        Wrap(
+                          spacing: 8,
+                          children:
+                              materias.map((m) {
+                                final bool sel =
+                                    materiaSelecionada == m['nome'];
+                                return GestureDetector(
+                                  onTap:
+                                      () => setModalState(
+                                        () =>
+                                            materiaSelecionada =
+                                                sel ? null : m['nome'],
+                                      ),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 8,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          sel
+                                              ? (m['cor'] as Color).withOpacity(
+                                                0.3,
+                                              )
+                                              : const Color(0xFF2A2A2A),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color:
+                                            sel
+                                                ? m['cor'] as Color
+                                                : Colors.white12,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: m['cor'] as Color,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          m['nome'],
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color:
+                                                sel
+                                                    ? Colors.white
+                                                    : Colors.white54,
+                                            fontWeight:
+                                                sel
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w400,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              }).toList(),
+                        ),
+
+                        const SizedBox(height: 24),
+
+                        // Botão criar
+                        SizedBox(
+                          width: double.infinity,
+                          height: 50,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (nomeController.text.isEmpty) return;
+                              // 🔧 BACK-END: Enviar evento para a API
+                              // Ex: AgendaService.criarEvento(...)
+                              setState(() {
+                                eventos.add(
+                                  Evento(
+                                    id:
+                                        DateTime.now().millisecondsSinceEpoch
+                                            .toString(),
+                                    nome: nomeController.text,
+                                    descricao:
+                                        descricaoController.text.isEmpty
+                                            ? null
+                                            : descricaoController.text,
+                                    data: dataCriacao,
+                                    horarioInicio: horarioInicio,
+                                    horarioFim: horarioFim,
+                                    materia: materiaSelecionada,
+                                    cor:
+                                        materiaSelecionada != null
+                                            ? (materias.firstWhere(
+                                                  (m) =>
+                                                      m['nome'] ==
+                                                      materiaSelecionada,
+                                                )['cor']
+                                                as Color)
+                                            : const Color(0xFF7EB8F7),
+                                  ),
+                                );
+                                _diaSelecionado = dataCriacao;
+                                if (_mesSelecionado != null) {
+                                  _mesSelecionado = DateTime(
+                                    dataCriacao.year,
+                                    dataCriacao.month,
+                                    1,
+                                  );
+                                }
+                              });
+                              Navigator.pop(context);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF7EB8F7),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: const Text(
+                              'Criar Evento',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
           ),
-        ],
+    );
+  }
+
+  Widget _buildCampoTexto({
+    required TextEditingController controller,
+    required String label,
+    int maxLines = 1,
+  }) {
+    return TextField(
+      controller: controller,
+      maxLines: maxLines,
+      style: const TextStyle(color: Colors.white, fontSize: 14),
+      cursorColor: const Color(0xFF7EB8F7),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Colors.white12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFF7EB8F7)),
+        ),
+        filled: true,
+        fillColor: const Color(0xFF2A2A2A),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
       ),
     );
   }
-  Widget _buildSecaoTarefa(String titulo) {
-  return Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Text(
-      titulo,
-      style: const TextStyle(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Colors.white70,
+
+  Widget _buildCampoHorario({
+    required String label,
+    required bool preenchido,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF2A2A2A),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                color: preenchido ? Colors.white : Colors.white38,
+                fontSize: 14,
+              ),
+            ),
+            const Icon(Icons.access_time, color: Colors.white38, size: 18),
+          ],
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

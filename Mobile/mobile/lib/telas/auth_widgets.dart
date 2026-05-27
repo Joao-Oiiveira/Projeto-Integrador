@@ -26,11 +26,7 @@ class GoogleButton extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: const [
-            FaIcon(
-              FontAwesomeIcons.google,
-              color: Color(0xFFEA4335),
-              size: 20,
-            ),
+            FaIcon(FontAwesomeIcons.google, color: Color(0xFFEA4335), size: 20),
             SizedBox(width: 10),
             Text(
               'Google',
@@ -97,8 +93,10 @@ class AuthTextField extends StatelessWidget {
         ),
         filled: true,
         fillColor: const Color(0xFF1A1A1A),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -135,8 +133,10 @@ class PasswordField extends StatelessWidget {
         ),
         filled: true,
         fillColor: const Color(0xFF1A1A1A),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 14,
+        ),
         suffixIcon: IconButton(
           icon: Icon(
             obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
@@ -188,4 +188,3 @@ class PrimaryButton extends StatelessWidget {
     );
   }
 }
-

@@ -55,7 +55,6 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-
   // 🔧 BACK-END: Substituir pelo nome real do usuário logado
   final String nomeUsuario = 'João';
 
@@ -67,47 +66,74 @@ class _MenuScreenState extends State<MenuScreen> {
 
   // Variaveis para buscar o dia de hoje
   final DateTime hoje = DateTime.now();
-  final List<String> _nomesDias = ['DOM', 'SEG', 'TER', 'QUA', 'QUI', 'SEX', 'SAB'];
+  final List<String> _nomesDias = [
+    'DOM',
+    'SEG',
+    'TER',
+    'QUA',
+    'QUI',
+    'SEX',
+    'SAB',
+  ];
   late List<Map<String, dynamic>> eventosDaSemana;
 
- //initstate
+  //initstate
   @override
-void initState() {
-  super.initState();
-  _gerarDiasDaSemana();
-}
+  void initState() {
+    super.initState();
+    _gerarDiasDaSemana();
+  }
 
-void _gerarDiasDaSemana() {
-  int diaDaSemana = hoje.weekday % 7;
-  final inicioDaSemana = hoje.subtract(Duration(days: diaDaSemana));
+  void _gerarDiasDaSemana() {
+    int diaDaSemana = hoje.weekday % 7;
+    final inicioDaSemana = hoje.subtract(Duration(days: diaDaSemana));
 
-  eventosDaSemana = List.generate(7, (index) {
-    final dia = inicioDaSemana.add(Duration(days: index));
-    return {
-      'dia': dia.day.toString().padLeft(2, '0'),
-      'mes': dia.month.toString().padLeft(2, '0'),
-      'nomeDia': _nomesDias[dia.weekday % 7],
-      'isHoje': dia.day == hoje.day &&
-                dia.month == hoje.month &&
-                dia.year == hoje.year,
-      // 🔧 BACK-END: Buscar eventos do dia na API
-      'eventos': <String>[],
-    };
-  });
-}
+    eventosDaSemana = List.generate(7, (index) {
+      final dia = inicioDaSemana.add(Duration(days: index));
+      return {
+        'dia': dia.day.toString().padLeft(2, '0'),
+        'mes': dia.month.toString().padLeft(2, '0'),
+        'nomeDia': _nomesDias[dia.weekday % 7],
+        'isHoje':
+            dia.day == hoje.day &&
+            dia.month == hoje.month &&
+            dia.year == hoje.year,
+        // 🔧 BACK-END: Buscar eventos do dia na API
+        'eventos': <String>[],
+      };
+    });
+  }
 
   // 🔧 BACK-END: Buscar matérias do usuário na API
   // Essa lista é dinâmica — cada usuário tem as suas próprias matérias
   final List<Materia> materias = const [
-    Materia(nome: 'Matemática', cor: AppColors.matematica, progresso: 10, totalItens: 100),
-    Materia(nome: 'Português',  cor: AppColors.portugues, progresso: 25, totalItens: 100),
+    Materia(
+      nome: 'Matemática',
+      cor: AppColors.matematica,
+      progresso: 10,
+      totalItens: 100,
+    ),
+    Materia(
+      nome: 'Português',
+      cor: AppColors.portugues,
+      progresso: 25,
+      totalItens: 100,
+    ),
     // 🔧 BACK-END: Novas matérias adicionadas pelo usuário aparecem aqui automaticamente
   ];
 
   // 🔧 BACK-END: Buscar resumo de flashcards do usuário na API
   final List<FlashcardResumo> flashcards = const [
-    FlashcardResumo(materia: 'Matemática', cor: AppColors.matematica, quantidade: 8),
-    FlashcardResumo(materia: 'Português',  cor: AppColors.portugues, quantidade: 12),
+    FlashcardResumo(
+      materia: 'Matemática',
+      cor: AppColors.matematica,
+      quantidade: 8,
+    ),
+    FlashcardResumo(
+      materia: 'Português',
+      cor: AppColors.portugues,
+      quantidade: 12,
+    ),
     // 🔧 BACK-END: Novos flashcards aparecem aqui automaticamente
   ];
 
@@ -121,7 +147,6 @@ void _gerarDiasDaSemana() {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-
               // ── Header ───────────────────────────────
               _buildHeader(),
               const SizedBox(height: 24),
@@ -131,31 +156,49 @@ void _gerarDiasDaSemana() {
               const SizedBox(height: 28),
 
               // ── Matérias (cards empilhados) ──────────
-              const Text('Matérias',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+              const Text(
+                'Matérias',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 12),
               _buildCardsEmpilhados(
                 itens: materias.length,
                 expandido: _materiasExpandidas,
-                onTap: () => setState(() => _materiasExpandidas = !_materiasExpandidas),
+                onTap:
+                    () => setState(
+                      () => _materiasExpandidas = !_materiasExpandidas,
+                    ),
                 buildCard: (index) => _buildMateriaCard(materias[index]),
-                buildCardFechado: (index) => _buildMateriaCardFechado(materias[index]),
+                buildCardFechado:
+                    (index) => _buildMateriaCardFechado(materias[index]),
               ),
 
               const SizedBox(height: 28),
 
               // ── Flashcards (cards empilhados) ────────
-              const Text('Flashcards',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+              const Text(
+                'Flashcards',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
               ),
               const SizedBox(height: 12),
               _buildCardsEmpilhados(
                 itens: flashcards.length,
                 expandido: _flashcardsExpandidos,
-                onTap: () => setState(() => _flashcardsExpandidos = !_flashcardsExpandidos),
+                onTap:
+                    () => setState(
+                      () => _flashcardsExpandidos = !_flashcardsExpandidos,
+                    ),
                 buildCard: (index) => _buildFlashcardCard(flashcards[index]),
-                buildCardFechado: (index) => _buildFlashcardCardFechado(flashcards[index]),
+                buildCardFechado:
+                    (index) => _buildFlashcardCardFechado(flashcards[index]),
               ),
 
               const SizedBox(height: 32),
@@ -176,7 +219,7 @@ void _gerarDiasDaSemana() {
     required Widget Function(int) buildCard,
     required Widget Function(int) buildCardFechado,
   }) {
-    const double cardHeight = 72.0;   // altura do card fechado
+    const double cardHeight = 72.0; // altura do card fechado
     const double offsetEmpilhado = 10.0; // quanto cada card fica visível embaixo
 
     // Altura total quando fechado — mostra o primeiro card + bordas dos outros
@@ -185,7 +228,7 @@ void _gerarDiasDaSemana() {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 400),
+        duration: const Duration(milliseconds: 1000),
         curve: Curves.easeInOut,
         // Quando aberto: altura suficiente para todos os cards
         // Quando fechado: altura do empilhamento
@@ -197,21 +240,23 @@ void _gerarDiasDaSemana() {
             final reverseIndex = itens - 1 - index;
 
             return AnimatedPositioned(
-              duration: const Duration(milliseconds: 400),
+              duration: const Duration(milliseconds: 1000),
               curve: Curves.easeInOut,
               // Quando aberto: cada card na sua posição
               // Quando fechado: cards empilhados com pequeno offset
-              top: expandido
-                  ? reverseIndex * (cardHeight + 12)
-                  : reverseIndex * offsetEmpilhado,
+              top:
+                  expandido
+                      ? reverseIndex * (cardHeight + 12)
+                      : reverseIndex * offsetEmpilhado,
               left: 0,
               right: 0,
               child: AnimatedOpacity(
                 duration: const Duration(milliseconds: 300),
                 opacity: 1.0,
-                child: expandido
-                    ? buildCard(reverseIndex)
-                    : buildCardFechado(reverseIndex),
+                child:
+                    expandido
+                        ? buildCard(reverseIndex)
+                        : buildCardFechado(reverseIndex),
               ),
             );
           }),
@@ -320,8 +365,8 @@ void _gerarDiasDaSemana() {
   Widget _buildFlashcardCard(FlashcardResumo flash) {
     return GestureDetector(
       //onTap: () {
-        // 🔧 BACK-END: Navegar para sessão de flashcards da matéria
-        // context.go('/flashcards/${flash.materiaId}');
+      // 🔧 BACK-END: Navegar para sessão de flashcards da matéria
+      // context.go('/flashcards/${flash.materiaId}');
       //},
       child: Container(
         height: 72,
@@ -351,7 +396,11 @@ void _gerarDiasDaSemana() {
                 ),
               ],
             ),
-            const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+            const Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.white70,
+              size: 16,
+            ),
           ],
         ),
       ),
@@ -385,7 +434,11 @@ void _gerarDiasDaSemana() {
               border: Border.all(color: Colors.white24),
               color: const Color(0xFF1E1E1E),
             ),
-            child: const Icon(Icons.person_outline, color: Colors.white70, size: 24),
+            child: const Icon(
+              Icons.person_outline,
+              color: Colors.white70,
+              size: 24,
+            ),
           ),
         ),
       ],
@@ -394,89 +447,107 @@ void _gerarDiasDaSemana() {
 
   // ── Widget: Calendário ───────────────────────
   Widget _buildCalendario() {
-  return GestureDetector(
-    onTap: () => context.go('/calendario'),
-    child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'CALENDÁRIO',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Colors.white54,
-              letterSpacing: 1.2,
+    return GestureDetector(
+      onTap: () => context.go('/calendarioMenu'),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'CALENDÁRIO',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: Colors.white54,
+                letterSpacing: 1.2,
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: eventosDaSemana.map((diaInfo) {
-                final bool isHoje = diaInfo['isHoje'];
-                final List<String> eventos = List<String>.from(diaInfo['eventos']);
-                return Container(
-                  width: isHoje ? 100 : 82,
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: isHoje
-                        ? const Color(0xFF7EB8F7).withOpacity(0.2)
-                        : const Color(0xFF2A2A2A),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: isHoje ? const Color(0xFF7EB8F7) : Colors.white12,
-                      width: isHoje ? 1.5 : 1,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        '${diaInfo['dia']}/${diaInfo['mes']} ${diaInfo['nomeDia']}',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: isHoje ? const Color(0xFF7EB8F7) : Colors.white54,
-                          fontWeight: isHoje ? FontWeight.w700 : FontWeight.w400,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      // 🔧 BACK-END: eventos do dia virão da API
-                      if (eventos.isEmpty)
-                        const SizedBox(height: 20)
-                      else
-                        ...eventos.map((e) => Padding(
-                          padding: const EdgeInsets.only(bottom: 3),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 5, height: 5,
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFFF7A8C4),
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              Expanded(
-                                child: Text(e,
-                                  style: const TextStyle(fontSize: 9, color: Colors.white70),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children:
+                    eventosDaSemana.map((diaInfo) {
+                      final bool isHoje = diaInfo['isHoje'];
+                      final List<String> eventos = List<String>.from(
+                        diaInfo['eventos'],
+                      );
+                      return Container(
+                        width: isHoje ? 100 : 82,
+                        margin: const EdgeInsets.only(right: 10),
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color:
+                              isHoje
+                                  ? const Color(0xFF7EB8F7).withOpacity(0.2)
+                                  : const Color(0xFF2A2A2A),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                            color:
+                                isHoje
+                                    ? const Color(0xFF7EB8F7)
+                                    : Colors.white12,
+                            width: isHoje ? 1.5 : 1,
                           ),
-                        )),
-                      ],
-                    ),
-                  );
-                }).toList(),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${diaInfo['dia']}/${diaInfo['mes']} ${diaInfo['nomeDia']}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color:
+                                    isHoje
+                                        ? const Color(0xFF7EB8F7)
+                                        : Colors.white54,
+                                fontWeight:
+                                    isHoje ? FontWeight.w700 : FontWeight.w400,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            // 🔧 BACK-END: eventos do dia virão da API
+                            if (eventos.isEmpty)
+                              const SizedBox(height: 20)
+                            else
+                              ...eventos.map(
+                                (e) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 3),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 5,
+                                        height: 5,
+                                        decoration: const BoxDecoration(
+                                          color: Color(0xFFF7A8C4),
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Expanded(
+                                        child: Text(
+                                          e,
+                                          style: const TextStyle(
+                                            fontSize: 9,
+                                            color: Colors.white70,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
               ),
             ),
           ],

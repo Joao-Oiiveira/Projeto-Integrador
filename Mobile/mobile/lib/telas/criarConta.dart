@@ -82,8 +82,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 cursorColor: Colors.white,
                 decoration: InputDecoration(
                   labelText: 'Nome completo',
-                  labelStyle:
-                      const TextStyle(color: Colors.white38, fontSize: 13),
+                  labelStyle: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 13,
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Colors.white24),
@@ -95,7 +97,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   filled: true,
                   fillColor: const Color(0xFF1A1A1A),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 14),
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
                 ),
               ),
 
@@ -110,8 +114,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 cursorColor: Colors.white,
                 decoration: InputDecoration(
                   labelText: 'E-mail',
-                  labelStyle:
-                      const TextStyle(color: Colors.white38, fontSize: 13),
+                  labelStyle: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 13,
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Colors.white24),
@@ -123,7 +129,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   filled: true,
                   fillColor: const Color(0xFF1A1A1A),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 14),
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
                 ),
               ),
 
@@ -139,8 +147,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 cursorColor: Colors.white,
                 decoration: InputDecoration(
                   labelText: 'Senha',
-                  labelStyle:
-                      const TextStyle(color: Colors.white38, fontSize: 13),
+                  labelStyle: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 13,
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: Colors.white24),
@@ -152,7 +162,9 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   filled: true,
                   fillColor: const Color(0xFF1A1A1A),
                   contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 14, vertical: 14),
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _obscurePassword
@@ -161,8 +173,10 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       color: Colors.white38,
                       size: 20,
                     ),
-                    onPressed: () => setState(
-                        () => _obscurePassword = !_obscurePassword),
+                    onPressed:
+                        () => setState(
+                          () => _obscurePassword = !_obscurePassword,
+                        ),
                   ),
                 ),
               ),
@@ -188,8 +202,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                   Expanded(
                     child: RichText(
                       text: const TextSpan(
-                        style:
-                            TextStyle(fontSize: 11, color: Colors.white54),
+                        style: TextStyle(fontSize: 11, color: Colors.white54),
                         children: [
                           TextSpan(text: 'Concordo em aceitar os '),
                           TextSpan(
