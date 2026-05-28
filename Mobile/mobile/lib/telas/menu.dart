@@ -220,7 +220,8 @@ class _MenuScreenState extends State<MenuScreen> {
     required Widget Function(int) buildCardFechado,
   }) {
     const double cardHeight = 72.0; // altura do card fechado
-    const double offsetEmpilhado = 10.0; // quanto cada card fica visível embaixo
+    const double offsetEmpilhado =
+        10.0; // quanto cada card fica visível embaixo
 
     // Altura total quando fechado — mostra o primeiro card + bordas dos outros
     final altureFechado = cardHeight + (offsetEmpilhado * (itens - 1));
@@ -268,26 +269,29 @@ class _MenuScreenState extends State<MenuScreen> {
   // ── Widget: Card de Matéria FECHADO ──────────
   // Aparece quando os cards estão empilhados
   Widget _buildMateriaCardFechado(Materia materia) {
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: materia.cor.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            materia.nome,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
+    return GestureDetector(
+      onTap: () => context.go('/materia/${materia.nome}'),
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: materia.cor.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              materia.nome,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
-          ),
-          _buildProgressoCircular(materia.progresso),
-        ],
+            _buildProgressoCircular(materia.progresso),
+          ],
+        ),
       ),
     );
   }
@@ -295,37 +299,40 @@ class _MenuScreenState extends State<MenuScreen> {
   // ── Widget: Card de Matéria ABERTO ───────────
   // Aparece quando os cards estão expandidos
   Widget _buildMateriaCard(Materia materia) {
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: materia.cor.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                materia.nome,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
+    return GestureDetector(
+      onTap: () => context.go('/materia/${materia.nome}'),
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: materia.cor.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  materia.nome,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
                 ),
-              ),
-              Text(
-                // 🔧 BACK-END: progresso e totalItens vêm da API
-                '${materia.progresso}/${materia.totalItens} concluídos',
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
-              ),
-            ],
-          ),
-          _buildProgressoCircular(materia.progresso),
-        ],
+                Text(
+                  // 🔧 BACK-END: progresso e totalItens vêm da API
+                  '${materia.progresso}/${materia.totalItens} concluídos',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+              ],
+            ),
+            _buildProgressoCircular(materia.progresso),
+          ],
+        ),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:mobile/rotas.dart';
+import 'package:mobile/servicos/accessibility_provider.dart';
 
 void main() {
   runApp(const MyApp());
@@ -10,14 +11,16 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp.router(
-      title: 'Meu App',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF121212),
+    return AccessibilityConsumer(
+      child: MaterialApp.router(
+        title: 'Meu App',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          scaffoldBackgroundColor: const Color(0xFF121212),
+        ),
+        routerConfig: appRouter,
       ),
-      routerConfig: appRouter,
     );
   }
 }
