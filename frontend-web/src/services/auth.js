@@ -1,80 +1,91 @@
 // services/auth.js
 
-const DB_USERS_KEY = '@EduAcess:users_db'; // "Tabela" de usuários
-const LOGGED_USER_KEY = '@EduAcess:loggedUser'; // Sessão atual
+const API_URL = 'http://127.0.0.1:8000/auth'; // URL do nosso backend FastAPI
+const TOKEN_KEY = '@EduAcess:token';
+const USER_KEY = '@EduAcess:loggedUser';
 
 // 1. Função de Cadastro (Registro)
-export const registerMock = (nome, email, senha) => {
+export const registerAPI = async (nome, email, senha) => {
   if (!nome || !email || !senha) throw new Error("Preencha todos os campos.");
-  
-  // Pega a lista de usuários ou cria um array vazio
-  let users = JSON.parse(localStorage.getItem(DB_USERS_KEY)) ||[];
-  
-  // Verifica se o email já existe
-  if (users.find(u => u.email === email)) {
-    throw new Error("Este e-mail já está cadastrado.");
+
+  const response = await fetch(`${API_URL}/registrar`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ nome, email, senha })
+  });
+
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Erro ao cadastrar usuário.");
   }
 
-  // Cria o usuário respeitando a tabela do banco
-  const newUser = {
-    id: users.length + 1, // Auto incremento simples
-    nome: nome,
-    email: email,
-    senha: senha, // Num sistema real seria criptografada (hash)
-    perfil_usuario: null,
-    configuracoes_usuario: null
-  };
-
-  // Salva no banco simulado e já faz o login automático
-  users.push(newUser);
-  localStorage.setItem(DB_USERS_KEY, JSON.stringify(users));
-  localStorage.setItem(LOGGED_USER_KEY, JSON.stringify(newUser)); 
+  // Salva o token e os dados na sessão
+  localStorage.setItem(TOKEN_KEY, data.access_token);
+  localStorage.setItem(USER_KEY, JSON.stringify(data.usuario));
   
-  return newUser;
+  return data.usuario;
 };
 
 // 2. Função de Autenticação (Login)
-export const loginMock = (email, senha) => {
+export const loginAPI = async (email, senha) => {
   if (!email || !senha) throw new Error("Preencha todos os campos.");
-  
-  let users = JSON.parse(localStorage.getItem(DB_USERS_KEY)) ||[];
-  
-  // Busca usuário que combine email e senha
-  const user = users.find(u => u.email === email && u.senha === senha);
 
-  if (!user) throw new Error("E-mail ou senha incorretos.");
+  const response = await fetch(`${API_URL}/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, senha })
+  });
 
-  // Salva na sessão
-  localStorage.setItem(LOGGED_USER_KEY, JSON.stringify(user));
-  return user;
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "E-mail ou senha incorretos.");
+  }
+
+  localStorage.setItem(TOKEN_KEY, data.access_token);
+  localStorage.setItem(USER_KEY, JSON.stringify(data.usuario));
+  
+  return data.usuario;
 };
 
-// 3. Pegar usuário logado
+// 3. Pegar usuário logado (Lê da memória local, continua síncrono)
 export const getLoggedUser = () => {
-  const user = localStorage.getItem(LOGGED_USER_KEY);
+  const user = localStorage.getItem(USER_KEY);
   return user ? JSON.parse(user) : null;
 };
 
 // 4. Salvar dados do Onboarding
-export const saveOnboardingData = (nomeAtualizado, perfil, configuracoes) => {
-  const loggedUser = getLoggedUser();
-  if (!loggedUser) throw new Error("Usuário não autenticado.");
+export const saveOnboardingDataAPI = async (nomeAtualizado, perfil, configuracoes) => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) throw new Error("Usuário não autenticado.");
 
-  let users = JSON.parse(localStorage.getItem(DB_USERS_KEY)) ||[];
-  
-  // Atualiza o objeto do usuário
-  const updatedUser = {
-    ...loggedUser,
-    nome: nomeAtualizado,
-    perfil_usuario: { id: 1, usuario_id: loggedUser.id, ...perfil },
-    configuracoes_usuario: { id: 1, usuario_id: loggedUser.id, ...configuracoes }
-  };
+  const response = await fetch(`${API_URL}/onboarding`, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}` // Envia o Token de segurança
+    },
+    body: JSON.stringify({ 
+      nome: nomeAtualizado, 
+      perfil: perfil, 
+      configuracoes: configuracoes 
+    })
+  });
 
-  // Atualiza no "banco de dados"
-  const updatedUsers = users.map(u => u.id === loggedUser.id ? updatedUser : u);
-  localStorage.setItem(DB_USERS_KEY, JSON.stringify(updatedUsers));
-  
-  // Atualiza na sessão
-  localStorage.setItem(LOGGED_USER_KEY, JSON.stringify(updatedUser));
-  return updatedUser;
+  const data = await response.json();
+
+  if (!response.ok) {
+    throw new Error(data.detail || "Erro ao salvar dados.");
+  }
+
+  // Atualiza a sessão com os dados retornados do banco
+  localStorage.setItem(USER_KEY, JSON.stringify(data));
+  return data;
+};
+
+// 5. Função de Logout
+export const logoutAPI = () => {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(USER_KEY);
 };

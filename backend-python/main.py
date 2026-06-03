@@ -5,11 +5,11 @@ from app.api import rotas_auth
 # Inicializa a API
 app = FastAPI(title="EduAcess API", description="API para a plataforma educacional EduAcess")
 
-# Configuração de CORS (Permite que o React/Flutter conversem com a API)
+# Configuração de CORS corrigida
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # Em produção, colocaríamos o domínio do frontend aqui
-    allow_credentials=True,
+    allow_origins=["*"], # Permite qualquer origem no ambiente de desenvolvimento
+    allow_credentials=False, # <-- CORRIGIDO AQUI
     allow_methods=["*"],
     allow_headers=["*"],
 )

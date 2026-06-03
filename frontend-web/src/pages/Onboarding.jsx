@@ -1,26 +1,23 @@
-// pages/Onboarding.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Checkbox from '../components/Checkbox';
-import { saveOnboardingData, getLoggedUser } from '../services/auth';
+import { saveOnboardingDataAPI, getLoggedUser } from '../services/auth'; // <-- Atualizado
 
 const Onboarding = () => {
   const navigate = useNavigate();
 
-  // Redireciona se não estiver logado
   useEffect(() => {
     const user = getLoggedUser();
     if (!user) navigate('/login');
-    if (user?.perfil_usuario) navigate('/dashboard'); // Já preencheu, vai pro app
+    if (user?.perfil) navigate('/dashboard'); // <-- Ajustado para 'perfil'
   }, [navigate]);
 
-  //Estado
-  const user = getLoggedUser(); // Pega o usuário da sessão
-  const [nome, setNome] = useState(user?.nome || ''); // Preenche com o nome, se existir
-  // Estado para a Tabela: perfil_usuario
-  const[perfil, setPerfil] = useState({
+  const user = getLoggedUser();
+  const [nome, setNome] = useState(user?.nome || '');
+  
+  const [perfil, setPerfil] = useState({
     dificuldade_leitura: false,
     tdah: false,
     autismo: false,
@@ -28,9 +25,8 @@ const Onboarding = () => {
     prefere_auditivo: false,
   });
 
-  // Estado para a Tabela: configuracoes_usuario
-  const[configuracoes, setConfiguracoes] = useState({
-    tamanho_fonte: 16, // Valor padrão em pixels
+  const [configuracoes, setConfiguracoes] = useState({
+    tamanho_fonte: 16,
     alto_contraste: false,
     leitura_texto: false,
   });
@@ -43,7 +39,8 @@ const Onboarding = () => {
     setConfiguracoes((prev) => ({ ...prev, [campo]: !prev[campo] }));
   };
 
-  const handleSubmit = (e) => {
+  // <-- Função agora é async
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!nome.trim()) {
       alert("Por favor, preencha seu nome.");
@@ -51,11 +48,11 @@ const Onboarding = () => {
     }
 
     try {
-      // Salva no mock usando a estrutura relacional do banco
-      saveOnboardingData(nome, perfil, configuracoes);
+      // <-- Adicionado o await
+      await saveOnboardingDataAPI(nome, perfil, configuracoes);
       navigate('/dashboard');
     } catch (error) {
-      alert("Erro ao salvar dados.");
+      alert(error.message || "Erro ao salvar dados.");
     }
   };
 
@@ -72,78 +69,27 @@ const Onboarding = () => {
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-10">
           
-          {/* SEÇÃO 1: Dados Básicos */}
           <section className="flex flex-col gap-4">
             <h2 className="text-xl font-semibold border-b border-gray-800 pb-2">1. Dados Básicos</h2>
-            <Input 
-              id="nome" 
-              label="Como gostaria de ser chamado?" 
-              placeholder="Digite seu nome ou apelido" 
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-            />
+            <Input id="nome" label="Como gostaria de ser chamado?" placeholder="Digite seu nome ou apelido" value={nome} onChange={(e) => setNome(e.target.value)} />
           </section>
 
-          {/* SEÇÃO 2: Perfil de Aprendizagem */}
           <section className="flex flex-col gap-4">
             <h2 className="text-xl font-semibold border-b border-gray-800 pb-2">2. Perfil de Aprendizagem</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Checkbox 
-                id="tdah" 
-                label="Tenho TDAH" 
-                description="Ajuda a reduzir distrações na interface"
-                checked={perfil.tdah}
-                onChange={() => handlePerfilChange('tdah')}
-              />
-              <Checkbox 
-                id="autismo" 
-                label="Estou no Espectro Autista" 
-                description="Interfaces mais previsíveis e sem poluição"
-                checked={perfil.autismo}
-                onChange={() => handlePerfilChange('autismo')}
-              />
-              <Checkbox 
-                id="dificuldade_leitura" 
-                label="Dificuldade de Leitura (ex: Dislexia)" 
-                description="Fontes específicas e maior espaçamento"
-                checked={perfil.dificuldade_leitura}
-                onChange={() => handlePerfilChange('dificuldade_leitura')}
-              />
-              <Checkbox 
-                id="prefere_visual" 
-                label="Aprendizado Visual" 
-                description="Prefiro imagens, mapas mentais e gráficos"
-                checked={perfil.prefere_visual}
-                onChange={() => handlePerfilChange('prefere_visual')}
-              />
-              <Checkbox 
-                id="prefere_auditivo" 
-                label="Aprendizado Auditivo" 
-                description="Prefiro explicações em áudio"
-                checked={perfil.prefere_auditivo}
-                onChange={() => handlePerfilChange('prefere_auditivo')}
-              />
+              <Checkbox id="tdah" label="Tenho TDAH" description="Ajuda a reduzir distrações na interface" checked={perfil.tdah} onChange={() => handlePerfilChange('tdah')} />
+              <Checkbox id="autismo" label="Estou no Espectro Autista" description="Interfaces mais previsíveis e sem poluição" checked={perfil.autismo} onChange={() => handlePerfilChange('autismo')} />
+              <Checkbox id="dificuldade_leitura" label="Dificuldade de Leitura (ex: Dislexia)" description="Fontes específicas e maior espaçamento" checked={perfil.dificuldade_leitura} onChange={() => handlePerfilChange('dificuldade_leitura')} />
+              <Checkbox id="prefere_visual" label="Aprendizado Visual" description="Prefiro imagens, mapas mentais e gráficos" checked={perfil.prefere_visual} onChange={() => handlePerfilChange('prefere_visual')} />
+              <Checkbox id="prefere_auditivo" label="Aprendizado Auditivo" description="Prefiro explicações em áudio" checked={perfil.prefere_auditivo} onChange={() => handlePerfilChange('prefere_auditivo')} />
             </div>
           </section>
 
-          {/* SEÇÃO 3: Configurações de Acessibilidade */}
           <section className="flex flex-col gap-4">
             <h2 className="text-xl font-semibold border-b border-gray-800 pb-2">3. Acessibilidade</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Checkbox 
-                id="alto_contraste" 
-                label="Modo de Alto Contraste" 
-                description="Aumenta o contraste das cores do sistema"
-                checked={configuracoes.alto_contraste}
-                onChange={() => handleConfiguracoesChange('alto_contraste')}
-              />
-              <Checkbox 
-                id="leitura_texto" 
-                label="Leitura de Texto (Text-to-Speech)" 
-                description="Ativa o botão de ler textos em voz alta"
-                checked={configuracoes.leitura_texto}
-                onChange={() => handleConfiguracoesChange('leitura_texto')}
-              />
+              <Checkbox id="alto_contraste" label="Modo de Alto Contraste" description="Aumenta o contraste das cores do sistema" checked={configuracoes.alto_contraste} onChange={() => handleConfiguracoesChange('alto_contraste')} />
+              <Checkbox id="leitura_texto" label="Leitura de Texto (Text-to-Speech)" description="Ativa o botão de ler textos em voz alta" checked={configuracoes.leitura_texto} onChange={() => handleConfiguracoesChange('leitura_texto')} />
               
               <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-gray-800 bg-gray-900/50">
                 <label className="text-sm font-medium text-white">Tamanho da Fonte (Base)</label>

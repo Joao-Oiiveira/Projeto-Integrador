@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/Button';
 import Input from '../components/Input';
-import { registerMock } from '../services/auth';
+import { registerAPI } from '../services/auth'; // <-- Importação atualizada
 
 const Register = () => {
   const [nome, setNome] = useState('');
@@ -11,14 +11,14 @@ const Register = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleRegister = (e) => {
+  // <-- Função agora é async
+  const handleRegister = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      // Registra o usuário (já faz o auto-login por baixo dos panos)
-      registerMock(nome, email, password);
-      // Vai direto pro Onboarding (já que acabou de criar e não tem perfil)
+      // <-- Adicionado o await
+      await registerAPI(nome, email, password);
       navigate('/onboarding');
     } catch (err) {
       setError(err.message);
@@ -29,7 +29,6 @@ const Register = () => {
     <div className="min-h-screen bg-black flex items-center justify-center p-4 sm:p-8">
       <div className="flex flex-col md:flex-row-reverse w-full max-w-[1000px] bg-gray-900 rounded-[2rem] p-3 shadow-2xl border border-gray-800">
         
-        {/* Lado Esquerdo: Formulário (Aqui invertemos md:flex-row-reverse para dar um charme visual diferente do Login) */}
         <div className="w-full md:w-1/2 flex flex-col justify-center px-6 py-12 md:px-12 lg:px-16">
           <div className="text-center mb-10">
             <h1 className="text-3xl font-bold text-white mb-2">Criar Conta</h1>
@@ -51,7 +50,6 @@ const Register = () => {
           </p>
         </div>
 
-        {/* Lado Direito: Imagem */}
         <div className="hidden md:flex w-1/2 relative rounded-[1.5rem] overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-tr from-gray-900 via-purple-900 to-black opacity-90"></div>
           <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?q=80&w=1000&auto=format&fit=crop" alt="Estudantes" className="absolute inset-0 w-full h-full object-cover mix-blend-overlay"/>

@@ -10,16 +10,20 @@ const DashboardLayout = () => {
   // NOVO: Controle de estado do menu no mobile
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
+  // ... (mantenha os imports iguais) ...
+
   useEffect(() => {
     const loggedUser = getLoggedUser();
     if (!loggedUser) {
       navigate('/login');
-    } else if (!loggedUser.perfil_usuario) {
+    } else if (!loggedUser.perfil) { // <-- AQUI FOI ALTERADO (removido o _usuario)
       navigate('/onboarding');
     } else {
       setUser(loggedUser);
     }
   }, [navigate]);
+
+// ... (o resto do arquivo continua EXATAMENTE igual) ...
 
   // NOVO: Fechar o menu mobile automaticamente ao trocar de página
   useEffect(() => {

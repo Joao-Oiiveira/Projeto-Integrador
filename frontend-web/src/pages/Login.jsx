@@ -2,23 +2,24 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/Button';
 import Input from '../components/Input';
-import { loginMock } from '../services/auth';
+import { loginAPI } from '../services/auth'; // <-- Importação atualizada
 
 const Login = () => {
-  const[email, setEmail] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const[error, setError] = useState('');
+  const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  // <-- Função agora é async
+  const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      // Usa a nova função de login restrita
-      const user = loginMock(email, password);
+      // <-- Adicionado o await
+      const user = await loginAPI(email, password);
       
-      if (!user.perfil_usuario) {
+      if (!user.perfil) { // <-- O banco retorna 'perfil', e não 'perfil_usuario'
         navigate('/onboarding');
       } else {
         navigate('/dashboard');
@@ -52,13 +53,11 @@ const Login = () => {
             <Button type="submit" text="Entrar" className="w-full" />
           </form>
 
-          {/* Alterado para Link apontando para /register */}
           <p className="text-center text-sm text-gray-400 mt-8">
             Não é membro? <Link to="/register" className="text-white font-semibold hover:text-purple-400 transition-colors">Criar uma conta</Link>
           </p>
         </div>
 
-        {/* Lado Direito Arte (Mantido) */}
         <div className="hidden md:flex w-1/2 relative rounded-[1.5rem] overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-800 via-pink-700 to-gray-900 opacity-90"></div>
           <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop" alt="Arte abstrata" className="absolute inset-0 w-full h-full object-cover mix-blend-overlay"/>
