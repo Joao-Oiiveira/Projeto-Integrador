@@ -3,16 +3,14 @@ import Modal from '../components/Modal';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { obterTarefas, criarTarefa, atualizarStatusTarefa, atualizarTarefa, excluirTarefa } from '../services/tarefas';
-import { obterDisciplinas } from '../services/disciplinas'; // <-- NOVA IMPORTAÇÃO
+import { obterDisciplinasAPI } from '../services/disciplinas';; // Certifique-se de que esta função também seja async no seu disciplinas.js
 
 const Tarefas = () => {
   const [tarefas, setTarefas] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const[editandoId, setEditandoId] = useState(null);
-
-  // NOVO: Estado para os Filtros
-  const [filtroAtivo, setFiltroAtivo] = useState('todas'); // 'hoje', 'semana', 'mes', 'todas'
+  const [editandoId, setEditandoId] = useState(null);
+  const [filtroAtivo, setFiltroAtivo] = useState('todas');
 
   const [novaTarefa, setNovaTarefa] = useState({
     titulo: '',
@@ -21,19 +19,27 @@ const Tarefas = () => {
     disciplina_id: ''
   });
 
-  // Datas Base para cálculos e bloqueios
   const hojeString = new Date().toISOString().split('T')[0];
   const dataHojeObj = new Date();
   dataHojeObj.setHours(0, 0, 0, 0);
 
-  const carregarDados = () => {
-    setTarefas(obterTarefas());
-    setDisciplinas(obterDisciplinas());
+  // Transformado em ASYNC
+  const carregarDados = async () => {
+    try {
+      const [tarefasData, disciplinasData] = await Promise.all([
+        obterTarefas(),
+        obterDisciplinasAPI() // <-- ADICIONE O "API" AQUI NO FINAL
+      ]);
+      setTarefas(tarefasData);
+      setDisciplinas(disciplinasData);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    }
   };
 
   useEffect(() => {
     carregarDados();
-  },[]);
+  }, []);
 
   const abrirModalNovo = () => {
     setEditandoId(null);
@@ -45,14 +51,16 @@ const Tarefas = () => {
     setEditandoId(tarefa.id);
     setNovaTarefa({
       titulo: tarefa.titulo,
-      descricao: tarefa.descricao,
-      data_entrega: tarefa.data_entrega,
-      disciplina_id: tarefa.disciplina_id
+      descricao: tarefa.descricao || '',
+      // Ajuste para o input date do HTML ler corretamente a data vinda do banco
+      data_entrega: tarefa.data_entrega ? tarefa.data_entrega.split('T')[0] : '',
+      disciplina_id: tarefa.disciplina_id || ''
     });
     setIsModalOpen(true);
   };
 
-  const handleSalvarTarefa = (e) => {
+  // Transformado em ASYNC
+  const handleSalvarTarefa = async (e) => {
     e.preventDefault();
     if (!novaTarefa.titulo || !novaTarefa.disciplina_id || !novaTarefa.data_entrega) {
       alert("Preencha os campos obrigatórios (Título, Disciplina e Data)");
@@ -64,51 +72,62 @@ const Tarefas = () => {
       return;
     }
 
-    if (editandoId) {
-      atualizarTarefa(editandoId, novaTarefa);
-    } else {
-      criarTarefa(novaTarefa);
+    try {
+      if (editandoId) {
+        await atualizarTarefa(editandoId, novaTarefa);
+      } else {
+        await criarTarefa(novaTarefa);
+      }
+      await carregarDados(); // Recarrega os dados do banco
+      setIsModalOpen(false);
+    } catch (error) {
+      alert(error.message);
     }
-    
-    carregarDados();
-    setIsModalOpen(false);
   };
 
-  const handleExcluir = (id) => {
+  // Transformado em ASYNC
+  const handleExcluir = async (id) => {
     if (window.confirm("Tem certeza que deseja excluir esta tarefa?")) {
-      excluirTarefa(id);
-      carregarDados();
+      try {
+        await excluirTarefa(id);
+        await carregarDados();
+      } catch (error) {
+        alert(error.message);
+      }
     }
   };
 
-  const moverTarefa = (id, novoStatus) => {
-    atualizarStatusTarefa(id, novoStatus);
-    carregarDados();
+  // Transformado em ASYNC
+  const moverTarefa = async (id, novoStatus) => {
+    try {
+      await atualizarStatusTarefa(id, novoStatus);
+      await carregarDados();
+    } catch (error) {
+      alert(error.message);
+    }
   };
 
   const formatarData = (dataIso) => {
     if (!dataIso) return '';
-    const data = new Date(`${dataIso}T12:00:00`);
+    const data = new Date(`${dataIso.split('T')[0]}T12:00:00`);
     return data.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  // NOVO: Função para verificar se está atrasada
   const isAtrasada = (dataIso, status) => {
-    if (status === 'concluida') return false; // Concluída nunca é atrasada
-    const tDate = new Date(`${dataIso}T12:00:00`);
+    if (status === 'concluida' || !dataIso) return false;
+    const tDate = new Date(`${dataIso.split('T')[0]}T12:00:00`);
     tDate.setHours(0, 0, 0, 0);
     return tDate < dataHojeObj;
   };
 
-  // NOVO: Aplicação de Filtros e Ordenação Temporal (mais próxima primeiro)
   const tarefasFiltradasEOrdenadas = [...tarefas]
     .filter(tarefa => {
-      const tDate = new Date(`${tarefa.data_entrega}T12:00:00`);
+      if (!tarefa.data_entrega) return true;
+      const tDate = new Date(`${tarefa.data_entrega.split('T')[0]}T12:00:00`);
       tDate.setHours(0, 0, 0, 0);
       const atrasada = isAtrasada(tarefa.data_entrega, tarefa.status);
 
       if (filtroAtivo === 'hoje') {
-        // Mostra as de hoje + as atrasadas para não serem esquecidas
         return tDate.getTime() === dataHojeObj.getTime() || atrasada;
       }
       if (filtroAtivo === 'semana') {
@@ -119,21 +138,19 @@ const Tarefas = () => {
       if (filtroAtivo === 'mes') {
         return (tDate.getMonth() === dataHojeObj.getMonth() && tDate.getFullYear() === dataHojeObj.getFullYear()) || atrasada;
       }
-      return true; // 'todas'
+      return true;
     })
-    .sort((a, b) => new Date(`${a.data_entrega}T12:00:00`) - new Date(`${b.data_entrega}T12:00:00`)); // Ordena pela data
+    .sort((a, b) => {
+      if (!a.data_entrega || !b.data_entrega) return 0;
+      return new Date(`${a.data_entrega.split('T')[0]}T12:00:00`) - new Date(`${b.data_entrega.split('T')[0]}T12:00:00`);
+    });
 
-  // Distribuição nas colunas
   const pendentes = tarefasFiltradasEOrdenadas.filter(t => t.status === 'pendente');
   const emAndamento = tarefasFiltradasEOrdenadas.filter(t => t.status === 'em_andamento');
   const concluidas = tarefasFiltradasEOrdenadas.filter(t => t.status === 'concluida');
 
-  // Componente da Coluna (Agora com altura fixa e Scroll interno)
   const ColunaTarefas = ({ titulo, tarefasColuna, statusColor }) => (
-    // Ajustes de responsividade: w-full no mobile, altura máxima controlada com flex interno
     <div className="flex flex-col gap-4 bg-gray-50/50 p-4 md:p-5 rounded-[2rem] border border-gray-100 w-full h-[500px] lg:h-[600px]">
-      
-      {/* Header da Coluna (Fixo) */}
       <div className="flex items-center justify-between shrink-0">
         <h3 className="font-bold text-gray-700 flex items-center gap-2">
           <span className={`w-3 h-3 rounded-full ${statusColor}`}></span>
@@ -144,22 +161,17 @@ const Tarefas = () => {
         </span>
       </div>
 
-      {/* Corpo da Coluna (Com Scroll Customizado) */}
       <div className="flex flex-col gap-3 overflow-y-auto pr-1 pb-2 custom-scrollbar h-full">
         {tarefasColuna.map(tarefa => {
-          // CORREÇÃO: Transformamos ambos em String para a verificação ser infalível
           const disciplina = disciplinas.find(d => String(d.id) === String(tarefa.disciplina_id));
           const atrasada = isAtrasada(tarefa.data_entrega, tarefa.status);
 
           return (
             <div key={tarefa.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col gap-3 hover:shadow-md transition-all group shrink-0">
-              
               <div className="flex justify-between items-center gap-2">
-                <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg ${disciplina?.cor || 'bg-gray-100 text-gray-600'}`}>
+                <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-lg bg-gray-100 text-gray-600">
                   {disciplina?.nome || 'Geral'}
                 </span>
-                
-                {/* Botões visíveis ao passar o mouse */}
                 <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={() => abrirModalEdicao(tarefa)} className="p-1 text-gray-400 hover:text-blue-600 bg-gray-50 rounded-md">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -174,13 +186,7 @@ const Tarefas = () => {
               {tarefa.descricao && <p className="text-sm text-gray-500 line-clamp-2">{tarefa.descricao}</p>}
               
               <div className="flex flex-wrap items-center justify-between gap-2 mt-1 pt-2 border-t border-gray-50">
-                {/* Visual da Data com Alerta de Atraso */}
                 <div className={`flex items-center gap-1.5 text-xs font-medium ${atrasada ? 'text-red-500 font-bold bg-red-50 px-2 py-1 rounded-lg' : 'text-gray-400'}`}>
-                  {atrasada ? (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  ) : (
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                  )}
                   {atrasada ? 'Atrasada' : formatarData(tarefa.data_entrega)}
                 </div>
 
@@ -197,33 +203,20 @@ const Tarefas = () => {
             </div>
           );
         })}
-
-        {tarefasColuna.length === 0 && (
-          <div className="text-center py-8 text-sm text-gray-400 font-medium border-2 border-dashed border-gray-200 rounded-2xl mt-4">
-            Nenhuma tarefa
-          </div>
-        )}
       </div>
     </div>
   );
 
   return (
     <div className="flex flex-col gap-6 h-full pb-8">
-      
-      {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Minhas Tarefas</h1>
           <p className="text-gray-500 text-sm mt-1">Organize seus estudos por prioridade.</p>
         </div>
-        <Button 
-          text="+ Nova Tarefa" 
-          onClick={abrirModalNovo} 
-          className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-purple-200 whitespace-nowrap"
-        />
+        <Button text="+ Nova Tarefa" onClick={abrirModalNovo} className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-purple-200 whitespace-nowrap" />
       </div>
 
-      {/* NOVO: Filtros de Visualização */}
       <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
         {[
           { id: 'hoje', label: 'Hoje' },
@@ -245,47 +238,32 @@ const Tarefas = () => {
         ))}
       </div>
 
-      {/* Kanban Board Responsivo */}
       <div className="flex flex-col lg:flex-row gap-6 w-full h-full lg:overflow-hidden">
         <ColunaTarefas titulo="Pendentes" tarefasColuna={pendentes} statusColor="bg-red-400" />
         <ColunaTarefas titulo="Em Andamento" tarefasColuna={emAndamento} statusColor="bg-yellow-400" />
         <ColunaTarefas titulo="Concluídas" tarefasColuna={concluidas} statusColor="bg-green-400" />
       </div>
 
-      {/* Modal de Criação / Edição */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editandoId ? "Editar Tarefa" : "Criar Nova Tarefa"}>
         <form onSubmit={handleSalvarTarefa} className="flex flex-col gap-4">
-          <Input 
-            id="titulo" label="Título da Tarefa *" placeholder="Ex: Resolver lista de exercícios" 
-            value={novaTarefa.titulo} onChange={e => setNovaTarefa({...novaTarefa, titulo: e.target.value})}
-          />
+          <Input id="titulo" label="Título da Tarefa *" placeholder="Ex: Resolver lista de exercícios" value={novaTarefa.titulo} onChange={e => setNovaTarefa({...novaTarefa, titulo: e.target.value})} />
           
           <div className="flex flex-col gap-1.5 w-full">
             <label className="text-sm font-medium text-gray-700">Descrição</label>
-            <textarea
-              className="w-full bg-gray-50 text-gray-900 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-200 transition-all resize-none h-24"
-              placeholder="Detalhes da tarefa..."
-              value={novaTarefa.descricao} onChange={e => setNovaTarefa({...novaTarefa, descricao: e.target.value})}
-            ></textarea>
+            <textarea className="w-full bg-gray-50 text-gray-900 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-200 transition-all resize-none h-24" placeholder="Detalhes da tarefa..." value={novaTarefa.descricao} onChange={e => setNovaTarefa({...novaTarefa, descricao: e.target.value})}></textarea>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5 w-full">
               <label className="text-sm font-medium text-gray-700">Disciplina *</label>
-              <select 
-                className="w-full bg-gray-50 text-gray-900 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-200 transition-all"
-                value={novaTarefa.disciplina_id} onChange={e => setNovaTarefa({...novaTarefa, disciplina_id: e.target.value})}
-              >
+              <select className="w-full bg-gray-50 text-gray-900 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-200 transition-all" value={novaTarefa.disciplina_id} onChange={e => setNovaTarefa({...novaTarefa, disciplina_id: e.target.value})}>
                 <option value="">Selecione...</option>
                 {disciplinas.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
               </select>
             </div>
 
             <div className="flex flex-col gap-1.5 w-full">
-              <Input 
-                id="data_entrega" label="Data de Entrega *" type="date" min={hojeString}
-                value={novaTarefa.data_entrega} onChange={e => setNovaTarefa({...novaTarefa, data_entrega: e.target.value})}
-              />
+              <Input id="data_entrega" label="Data de Entrega *" type="date" min={hojeString} value={novaTarefa.data_entrega} onChange={e => setNovaTarefa({...novaTarefa, data_entrega: e.target.value})} />
             </div>
           </div>
 

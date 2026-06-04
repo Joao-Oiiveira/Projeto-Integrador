@@ -1,59 +1,73 @@
-import { getLoggedUser } from './auth';
+// services/tarefas.js
 
-const DB_TAREFAS = '@EduAcess:tarefas';
+const API_URL = 'http://127.0.0.1:8000/tarefas';
+const TOKEN_KEY = '@EduAcess:token';
 
-
-export const obterTarefas = () => {
-  const user = getLoggedUser();
-  if (!user) return[];
-  const todasTarefas = JSON.parse(localStorage.getItem(DB_TAREFAS)) ||[];
-  return todasTarefas.filter(t => t.usuario_id === user.id);
-};
-
-export const criarTarefa = (dados) => {
-  const user = getLoggedUser();
-  if (!user) throw new Error("Usuário não autenticado");
-
-  const tarefas = JSON.parse(localStorage.getItem(DB_TAREFAS)) ||[];
-  const novaTarefa = {
-    id: tarefas.length > 0 ? Math.max(...tarefas.map(t => t.id)) + 1 : 1,
-    usuario_id: user.id,
-    // CORREÇÃO: Salva como Number para o .find() do React funcionar
-    disciplina_id: Number(dados.disciplina_id), 
-    titulo: dados.titulo,
-    descricao: dados.descricao || '',
-    data_entrega: dados.data_entrega,
-    status: 'pendente',
-    ativo: true,
-    data_atualizacao: new Date().toISOString()
+const getHeaders = () => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) throw new Error("Usuário não autenticado");
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   };
-
-  tarefas.push(novaTarefa);
-  localStorage.setItem(DB_TAREFAS, JSON.stringify(tarefas));
-  return novaTarefa;
 };
 
-export const atualizarTarefa = (id, dadosAtualizados) => {
-  const tarefas = JSON.parse(localStorage.getItem(DB_TAREFAS)) ||[];
-  const index = tarefas.findIndex(t => t.id === id);
-  
-  if (index !== -1) {
-    tarefas[index] = { ...tarefas[index], ...dadosAtualizados, data_atualizacao: new Date().toISOString() };
-    localStorage.setItem(DB_TAREFAS, JSON.stringify(tarefas));
-  }
+export const obterTarefas = async () => {
+  const response = await fetch(API_URL, { headers: getHeaders() });
+  if (!response.ok) throw new Error("Erro ao buscar tarefas");
+  return await response.json();
 };
 
-export const excluirTarefa = (id) => {
-  let tarefas = JSON.parse(localStorage.getItem(DB_TAREFAS)) ||[];
-  tarefas = tarefas.filter(t => t.id !== id);
-  localStorage.setItem(DB_TAREFAS, JSON.stringify(tarefas));
+export const criarTarefa = async (dados) => {
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      titulo: dados.titulo,
+      descricao: dados.descricao || '',
+      data_entrega: dados.data_entrega,
+      disciplina_id: dados.disciplina_id ? Number(dados.disciplina_id) : null
+    })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Erro ao criar tarefa");
+  return data;
 };
 
-export const atualizarStatusTarefa = (id, novoStatus) => {
-  const tarefas = JSON.parse(localStorage.getItem(DB_TAREFAS)) ||[];
-  const index = tarefas.findIndex(t => t.id === id);
-  if (index !== -1) {
-    tarefas[index].status = novoStatus;
-    localStorage.setItem(DB_TAREFAS, JSON.stringify(tarefas));
+export const atualizarTarefa = async (id, dadosAtualizados) => {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify({
+      titulo: dadosAtualizados.titulo,
+      descricao: dadosAtualizados.descricao || '',
+      data_entrega: dadosAtualizados.data_entrega,
+      disciplina_id: dadosAtualizados.disciplina_id ? Number(dadosAtualizados.disciplina_id) : null
+    })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Erro ao atualizar tarefa");
+  return data;
+};
+
+export const atualizarStatusTarefa = async (id, novoStatus) => {
+  const response = await fetch(`${API_URL}/${id}/status`, {
+    method: 'PATCH',
+    headers: getHeaders(),
+    body: JSON.stringify({ status: novoStatus })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Erro ao atualizar status");
+  return data;
+};
+
+export const excluirTarefa = async (id) => {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  });
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.detail || "Erro ao excluir tarefa");
   }
 };

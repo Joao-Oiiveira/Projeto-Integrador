@@ -1,73 +1,52 @@
-import { getLoggedUser } from './auth';
+const API_URL = 'http://127.0.0.1:8000/disciplinas';
+const TOKEN_KEY = '@EduAcess:token';
 
-const DB_DISCIPLINAS = '@EduAcess:disciplinas';
-const DB_TAREFAS = '@EduAcess:tarefas';
-
-// Array de cores para a interface ficar bonita e organizada
-const CORES_DISPONIVEIS =[
-  'bg-blue-100 text-blue-700', 'bg-orange-100 text-orange-700',
-  'bg-green-100 text-green-700', 'bg-purple-100 text-purple-700',
-  'bg-pink-100 text-pink-700', 'bg-teal-100 text-teal-700'
-];
-
-export const obterDisciplinas = () => {
-  const user = getLoggedUser();
-  if (!user) return[];
-
-  const disciplinas = JSON.parse(localStorage.getItem(DB_DISCIPLINAS)) ||[];
-  return disciplinas.filter(d => d.usuario_id === user.id && d.ativo === true);
-};
-
-export const criarDisciplina = (dados) => {
-  const user = getLoggedUser();
-  if (!user) throw new Error("Usuário não autenticado");
-
-  const disciplinas = JSON.parse(localStorage.getItem(DB_DISCIPLINAS)) ||[];
-  
-  // Sorteia uma cor baseada no tamanho do array
-  const corAtribuida = CORES_DISPONIVEIS[disciplinas.length % CORES_DISPONIVEIS.length];
-
-  const novaDisciplina = {
-    id: disciplinas.length > 0 ? Math.max(...disciplinas.map(d => d.id)) + 1 : 1,
-    usuario_id: user.id,
-    nome: dados.nome,
-    descricao: dados.descricao || '',
-    origem: 'manual',
-    ativo: true,
-    cor: corAtribuida, // Adicionado para manter a identidade visual do sistema
-    data_atualizacao: new Date().toISOString()
+// Função auxiliar para pegar o token e montar o cabeçalho
+const getHeaders = () => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) throw new Error("Usuário não autenticado");
+  return {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
   };
-
-  disciplinas.push(novaDisciplina);
-  localStorage.setItem(DB_DISCIPLINAS, JSON.stringify(disciplinas));
-  return novaDisciplina;
 };
 
-export const atualizarDisciplina = (id, dadosAtualizados) => {
-  const disciplinas = JSON.parse(localStorage.getItem(DB_DISCIPLINAS)) ||[];
-  const index = disciplinas.findIndex(d => d.id === id);
+export const obterDisciplinasAPI = async () => {
+  const response = await fetch(API_URL, { headers: getHeaders() });
+  if (!response.ok) throw new Error("Erro ao buscar disciplinas");
+  return await response.json();
+};
+
+export const criarDisciplinaAPI = async (dados) => {
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: getHeaders(),
+    body: JSON.stringify(dados)
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Erro ao criar disciplina");
+  return data;
+};
+
+export const atualizarDisciplinaAPI = async (id, dadosAtualizados) => {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: 'PUT',
+    headers: getHeaders(),
+    body: JSON.stringify(dadosAtualizados)
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Erro ao atualizar disciplina");
+  return data;
+};
+
+export const excluirDisciplinaAPI = async (id) => {
+  const response = await fetch(`${API_URL}/${id}`, {
+    method: 'DELETE',
+    headers: getHeaders()
+  });
   
-  if (index !== -1) {
-    disciplinas[index] = { 
-      ...disciplinas[index], 
-      nome: dadosAtualizados.nome,
-      descricao: dadosAtualizados.descricao,
-      data_atualizacao: new Date().toISOString() 
-    };
-    localStorage.setItem(DB_DISCIPLINAS, JSON.stringify(disciplinas));
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.detail || "Erro ao excluir disciplina");
   }
-};
-
-export const excluirDisciplina = (id) => {
-  // REGRA DE NEGÓCIO: Bloquear exclusão se houver tarefas atreladas
-  const tarefas = JSON.parse(localStorage.getItem(DB_TAREFAS)) ||[];
-  const possuiTarefas = tarefas.some(t => String(t.disciplina_id) === String(id));
-
-  if (possuiTarefas) {
-    throw new Error("Esta disciplina possui tarefas vinculadas. Conclua ou exclua as tarefas primeiro!");
-  }
-
-  let disciplinas = JSON.parse(localStorage.getItem(DB_DISCIPLINAS)) ||[];
-  disciplinas = disciplinas.filter(d => d.id !== id);
-  localStorage.setItem(DB_DISCIPLINAS, JSON.stringify(disciplinas));
 };

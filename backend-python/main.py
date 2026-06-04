@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api import rotas_auth
+from app.api import rotas_auth, rotas_disciplinas
+
 
 # Inicializa a API
 app = FastAPI(title="EduAcess API", description="API para a plataforma educacional EduAcess")
@@ -16,6 +18,7 @@ app.add_middleware(
 
 # Registra as rotas de autenticação
 app.include_router(rotas_auth.router, prefix="/auth", tags=["Autenticação"])
+app.include_router(rotas_disciplinas.router, prefix="/disciplinas", tags=["Disciplinas"])
 
 @app.get("/")
 def read_root():
