@@ -2,61 +2,69 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../components/Modal';
 import Button from '../components/Button';
 import Input from '../components/Input';
-import { obterDisciplinas } from '../services/disciplinas';
+import { obterDisciplinasAPI } from '../services/disciplinas'; // <-- IMPORTAÇÃO CORRIGIDA
 import { 
   obterBaralhos, criarBaralho, atualizarBaralho, excluirBaralho,
-  obterFlashcardsDoBaralho, obterTodosFlashcards, criarFlashcard, atualizarFlashcard, excluirFlashcard,
+  obterTodosFlashcards, criarFlashcard, atualizarFlashcard, excluirFlashcard,
   registrarResultadoEstudo
 } from '../services/flashcards';
 
 const Flashcards = () => {
-  const[disciplinas, setDisciplinas] = useState([]);
-  const[baralhos, setBaralhos] = useState([]);
+  const [disciplinas, setDisciplinas] = useState([]);
+  const [baralhos, setBaralhos] = useState([]);
   const [todosFlashcards, setTodosFlashcards] = useState([]);
   
-  const[baralhoSelecionado, setBaralhoSelecionado] = useState(null);
-  const[flashcardsAtuais, setFlashcardsAtuais] = useState([]);
+  const [baralhoSelecionado, setBaralhoSelecionado] = useState(null);
+  const [flashcardsAtuais, setFlashcardsAtuais] = useState([]);
 
-  // ESTADOS DO MODO DE ESTUDO
-  const[modoEstudo, setModoEstudo] = useState(false);
+  const [modoEstudo, setModoEstudo] = useState(false);
   const [cardsEmbaralhados, setCardsEmbaralhados] = useState([]);
-  const[indiceEstudo, setIndiceEstudo] = useState(0);
-  const[mostrarResposta, setMostrarResposta] = useState(false);
-  const[resultadoSessao, setResultadoSessao] = useState({ acertos: 0, erros: 0 });
-  const[sessaoFinalizada, setSessaoFinalizada] = useState(false);
+  const [indiceEstudo, setIndiceEstudo] = useState(0);
+  const [mostrarResposta, setMostrarResposta] = useState(false);
+  const [resultadoSessao, setResultadoSessao] = useState({ acertos: 0, erros: 0 });
+  const [sessaoFinalizada, setSessaoFinalizada] = useState(false);
 
-  // Modais de Criação
-  const[modalBaralhoOpen, setModalBaralhoOpen] = useState(false);
-  const[modalFlashcardOpen, setModalFlashcardOpen] = useState(false);
-  const[editandoId, setEditandoId] = useState(null);
+  const [modalBaralhoOpen, setModalBaralhoOpen] = useState(false);
+  const [modalFlashcardOpen, setModalFlashcardOpen] = useState(false);
+  const [editandoId, setEditandoId] = useState(null);
 
   const [formBaralho, setFormBaralho] = useState({ nome: '', disciplina_id: '' });
   const [formFlashcard, setFormFlashcard] = useState({ pergunta: '', resposta: '' });
 
-  const carregarDados = () => {
-    setDisciplinas(obterDisciplinas());
-    setBaralhos(obterBaralhos());
-    setTodosFlashcards(obterTodosFlashcards());
+  // Transformado em ASYNC
+  const carregarDados = async () => {
+    try {
+      const [discData, barData, flashData] = await Promise.all([
+        obterDisciplinasAPI(),
+        obterBaralhos(),
+        obterTodosFlashcards()
+      ]);
+      setDisciplinas(discData);
+      setBaralhos(barData);
+      setTodosFlashcards(flashData);
+    } catch (error) {
+      console.error("Erro ao carregar dados:", error);
+    }
   };
 
   useEffect(() => {
     carregarDados();
-  },[]);
+  }, []);
 
+  // Filtra as cartas do baralho selecionado localmente (síncrono)
   useEffect(() => {
     if (baralhoSelecionado && !modoEstudo) {
-      setFlashcardsAtuais(obterFlashcardsDoBaralho(baralhoSelecionado.id));
+      setFlashcardsAtuais(todosFlashcards.filter(f => f.baralho_id === baralhoSelecionado.id));
     }
-  },[baralhoSelecionado, todosFlashcards, modoEstudo]);
+  }, [baralhoSelecionado, todosFlashcards, modoEstudo]);
 
-  // LÓGICA DO MODO DE ESTUDO
   const iniciarEstudo = (baralhoTarget, flashcardsDoBaralho) => {
     if (flashcardsDoBaralho.length === 0) {
       alert("Adicione cartas a este baralho para começar a estudar!");
       return;
     }
     setBaralhoSelecionado(baralhoTarget);
-    const shuffled =[...flashcardsDoBaralho].sort(() => Math.random() - 0.5);
+    const shuffled = [...flashcardsDoBaralho].sort(() => Math.random() - 0.5);
     setCardsEmbaralhados(shuffled);
     setIndiceEstudo(0);
     setMostrarResposta(false);
@@ -65,18 +73,23 @@ const Flashcards = () => {
     setModoEstudo(true);
   };
 
-  const handleRespostaEstudo = (acertou) => {
+  // Transformado em ASYNC para salvar o progresso no banco
+  const handleRespostaEstudo = async (acertou) => {
     const cardAtual = cardsEmbaralhados[indiceEstudo];
-    registrarResultadoEstudo(cardAtual.id, acertou);
-    setResultadoSessao(prev => ({
-      acertos: prev.acertos + (acertou ? 1 : 0),
-      erros: prev.erros + (acertou ? 0 : 1)
-    }));
-    if (indiceEstudo + 1 < cardsEmbaralhados.length) {
-      setMostrarResposta(false);
-      setIndiceEstudo(prev => prev + 1);
-    } else {
-      setSessaoFinalizada(true);
+    try {
+      await registrarResultadoEstudo(cardAtual.id, acertou);
+      setResultadoSessao(prev => ({
+        acertos: prev.acertos + (acertou ? 1 : 0),
+        erros: prev.erros + (acertou ? 0 : 1)
+      }));
+      if (indiceEstudo + 1 < cardsEmbaralhados.length) {
+        setMostrarResposta(false);
+        setIndiceEstudo(prev => prev + 1);
+      } else {
+        setSessaoFinalizada(true);
+      }
+    } catch (error) {
+      alert("Erro ao salvar progresso.");
     }
   };
 
@@ -86,43 +99,58 @@ const Flashcards = () => {
     setBaralhoSelecionado(null);
   };
 
-  // FUNÇÕES CRUD
   const abrirModalNovoBaralho = () => {
     if (disciplinas.length === 0) { alert("Crie uma Disciplina primeiro!"); return; }
     setEditandoId(null); setFormBaralho({ nome: '', disciplina_id: '' }); setModalBaralhoOpen(true);
   };
+  
   const abrirModalEditarBaralho = (e, baralho) => {
-    e.stopPropagation(); setEditandoId(baralho.id); setFormBaralho({ nome: baralho.nome, disciplina_id: baralho.disciplina_id }); setModalBaralhoOpen(true);
+    e.stopPropagation(); setEditandoId(baralho.id); setFormBaralho({ nome: baralho.nome, disciplina_id: baralho.disciplina_id || '' }); setModalBaralhoOpen(true);
   };
-  const salvarBaralho = (e) => {
+  
+  const salvarBaralho = async (e) => {
     e.preventDefault();
     if (!formBaralho.nome || !formBaralho.disciplina_id) { alert("Preencha todos os campos."); return; }
-    if (editandoId) atualizarBaralho(editandoId, formBaralho); else criarBaralho(formBaralho);
-    carregarDados(); setModalBaralhoOpen(false);
+    try {
+      if (editandoId) await atualizarBaralho(editandoId, formBaralho); 
+      else await criarBaralho(formBaralho);
+      await carregarDados(); 
+      setModalBaralhoOpen(false);
+    } catch (error) { alert(error.message); }
   };
-  const apagarBaralho = (e, id) => {
-    e.stopPropagation(); if (window.confirm("Excluir este baralho apagará TODOS os flashcards dele. Tem certeza?")) { excluirBaralho(id); carregarDados(); }
+  
+  const apagarBaralho = async (e, id) => {
+    e.stopPropagation(); 
+    if (window.confirm("Excluir este baralho apagará TODOS os flashcards dele. Tem certeza?")) { 
+      try { await excluirBaralho(id); await carregarDados(); } catch (error) { alert(error.message); }
+    }
   };
+
   const abrirModalNovoFlashcard = () => { 
     setEditandoId(null); setFormFlashcard({ pergunta: '', resposta: '' }); setModalFlashcardOpen(true); 
   };
+  
   const abrirModalEditarFlashcard = (flashcard) => { 
     setEditandoId(flashcard.id); setFormFlashcard({ pergunta: flashcard.pergunta, resposta: flashcard.resposta }); setModalFlashcardOpen(true); 
   };
-  const salvarFlashcard = (e) => {
+  
+  const salvarFlashcard = async (e) => {
     e.preventDefault();
     if (!formFlashcard.pergunta || !formFlashcard.resposta) { alert("Preencha pergunta e resposta."); return; }
-    if (editandoId) atualizarFlashcard(editandoId, formFlashcard); else criarFlashcard({ ...formFlashcard, baralho_id: baralhoSelecionado.id });
-    carregarDados(); setModalFlashcardOpen(false);
+    try {
+      if (editandoId) await atualizarFlashcard(editandoId, formFlashcard); 
+      else await criarFlashcard({ ...formFlashcard, baralho_id: baralhoSelecionado.id });
+      await carregarDados(); 
+      setModalFlashcardOpen(false);
+    } catch (error) { alert(error.message); }
   };
-  const apagarFlashcard = (id) => { 
-    if (window.confirm("Deseja excluir este flashcard?")) { excluirFlashcard(id); carregarDados(); } 
+  
+  const apagarFlashcard = async (id) => { 
+    if (window.confirm("Deseja excluir este flashcard?")) { 
+      try { await excluirFlashcard(id); await carregarDados(); } catch (error) { alert(error.message); }
+    } 
   };
 
-
-  // ==========================================
-  // TELA 3: MODO DE ESTUDO
-  // ==========================================
   if (modoEstudo) {
     return (
       <div className="flex flex-col h-full animate-fade-in w-full max-w-3xl mx-auto py-4 sm:py-8">
@@ -199,15 +227,11 @@ const Flashcards = () => {
     );
   }
 
-  // ==========================================
-  // TELA 2: VISÃO DE CARTAS (GERENCIAMENTO)
-  // ==========================================
   if (baralhoSelecionado && !modoEstudo) {
     const disciplinaDoBaralho = disciplinas.find(d => String(d.id) === String(baralhoSelecionado.disciplina_id));
     
     return (
       <>
-        {/* CONTEÚDO COM ANIMAÇÃO */}
         <div className="flex flex-col gap-6 h-full pb-8 animate-fade-in w-full">
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
             <div className="flex flex-col gap-1">
@@ -254,7 +278,6 @@ const Flashcards = () => {
           )}
         </div>
 
-        {/* MODAL ISOLADO (Evita ser quebrado pela animação pai) */}
         <Modal isOpen={modalFlashcardOpen} onClose={() => setModalFlashcardOpen(false)} title={editandoId ? "Editar Carta" : "Nova Carta"}>
           <form onSubmit={salvarFlashcard} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5 w-full">
@@ -272,9 +295,6 @@ const Flashcards = () => {
     );
   }
 
-  // ==========================================
-  // TELA 1: VISÃO DE BARALHOS (MASTER)
-  // ==========================================
   return (
     <>
       <div className="flex flex-col gap-6 h-full pb-8 animate-fade-in w-full">
@@ -333,7 +353,6 @@ const Flashcards = () => {
         )}
       </div>
 
-      {/* MODAL ISOLADO */}
       <Modal isOpen={modalBaralhoOpen} onClose={() => setModalBaralhoOpen(false)} title={editandoId ? "Editar Baralho" : "Novo Baralho"}>
         <form onSubmit={salvarBaralho} className="flex flex-col gap-4">
           <Input id="nome" label="Nome do Baralho *" placeholder="Ex: Fórmulas de Física" value={formBaralho.nome} onChange={e => setFormBaralho({...formBaralho, nome: e.target.value})} />

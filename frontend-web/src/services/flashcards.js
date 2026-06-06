@@ -1,117 +1,77 @@
-import { getLoggedUser } from './auth';
+const API_URL = 'http://127.0.0.1:8000/estudos';
+const TOKEN_KEY = '@EduAcess:token';
 
-const DB_BARALHOS = '@EduAcess:baralhos';
-const DB_FLASHCARDS = '@EduAcess:flashcards';
-const DB_PROGRESSO = '@EduAcess:progresso_flashcards';
-
-// ==========================================
-// BARALHOS E FLASHCARDS (CRUD)
-// ==========================================
-export const obterBaralhos = () => {
-  const user = getLoggedUser();
-  if (!user) return[];
-  const baralhos = JSON.parse(localStorage.getItem(DB_BARALHOS)) ||[];
-  return baralhos.filter(b => b.usuario_id === user.id);
+const getHeaders = () => {
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (!token) throw new Error("Usuário não autenticado");
+  return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 };
 
-export const criarBaralho = (dados) => {
-  const user = getLoggedUser();
-  if (!user) throw new Error("Usuário não autenticado");
-  const baralhos = JSON.parse(localStorage.getItem(DB_BARALHOS)) ||[];
-  const novoBaralho = {
-    id: baralhos.length > 0 ? Math.max(...baralhos.map(b => b.id)) + 1 : 1,
-    usuario_id: user.id,
-    disciplina_id: Number(dados.disciplina_id),
-    nome: dados.nome
-  };
-  baralhos.push(novoBaralho);
-  localStorage.setItem(DB_BARALHOS, JSON.stringify(baralhos));
-  return novoBaralho;
+// --- BARALHOS ---
+export const obterBaralhos = async () => {
+  const response = await fetch(`${API_URL}/baralhos`, { headers: getHeaders() });
+  if (!response.ok) throw new Error("Erro ao buscar baralhos");
+  return await response.json();
 };
 
-export const atualizarBaralho = (id, dadosAtualizados) => {
-  const baralhos = JSON.parse(localStorage.getItem(DB_BARALHOS)) ||[];
-  const index = baralhos.findIndex(b => b.id === id);
-  if (index !== -1) {
-    baralhos[index] = { ...baralhos[index], ...dadosAtualizados };
-    localStorage.setItem(DB_BARALHOS, JSON.stringify(baralhos));
-  }
+export const criarBaralho = async (dados) => {
+  const response = await fetch(`${API_URL}/baralhos`, {
+    method: 'POST', headers: getHeaders(),
+    body: JSON.stringify({ nome: dados.nome, disciplina_id: dados.disciplina_id ? Number(dados.disciplina_id) : null })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Erro ao criar baralho");
+  return data;
 };
 
-export const excluirBaralho = (id) => {
-  let baralhos = JSON.parse(localStorage.getItem(DB_BARALHOS)) ||[];
-  baralhos = baralhos.filter(b => b.id !== id);
-  localStorage.setItem(DB_BARALHOS, JSON.stringify(baralhos));
-
-  let flashcards = JSON.parse(localStorage.getItem(DB_FLASHCARDS)) ||[];
-  flashcards = flashcards.filter(f => f.baralho_id !== id);
-  localStorage.setItem(DB_FLASHCARDS, JSON.stringify(flashcards));
+export const atualizarBaralho = async (id, dadosAtualizados) => {
+  const response = await fetch(`${API_URL}/baralhos/${id}`, {
+    method: 'PUT', headers: getHeaders(),
+    body: JSON.stringify({ nome: dadosAtualizados.nome, disciplina_id: dadosAtualizados.disciplina_id ? Number(dadosAtualizados.disciplina_id) : null })
+  });
+  if (!response.ok) throw new Error("Erro ao atualizar baralho");
 };
 
-export const obterTodosFlashcards = () => {
-  return JSON.parse(localStorage.getItem(DB_FLASHCARDS)) ||[];
+export const excluirBaralho = async (id) => {
+  const response = await fetch(`${API_URL}/baralhos/${id}`, { method: 'DELETE', headers: getHeaders() });
+  if (!response.ok) throw new Error("Erro ao excluir baralho");
 };
 
-export const obterFlashcardsDoBaralho = (baralhoId) => {
-  const flashcards = obterTodosFlashcards();
-  return flashcards.filter(f => f.baralho_id === baralhoId);
+// --- FLASHCARDS ---
+export const obterTodosFlashcards = async () => {
+  const response = await fetch(`${API_URL}/flashcards`, { headers: getHeaders() });
+  if (!response.ok) throw new Error("Erro ao buscar flashcards");
+  return await response.json();
 };
 
-export const criarFlashcard = (dados) => {
-  const flashcards = JSON.parse(localStorage.getItem(DB_FLASHCARDS)) ||[];
-  const novoFlashcard = {
-    id: flashcards.length > 0 ? Math.max(...flashcards.map(f => f.id)) + 1 : 1,
-    baralho_id: Number(dados.baralho_id),
-    pergunta: dados.pergunta,
-    resposta: dados.resposta,
-    data_atualizacao: new Date().toISOString()
-  };
-  flashcards.push(novoFlashcard);
-  localStorage.setItem(DB_FLASHCARDS, JSON.stringify(flashcards));
-  return novoFlashcard;
+export const criarFlashcard = async (dados) => {
+  const response = await fetch(`${API_URL}/flashcards`, {
+    method: 'POST', headers: getHeaders(),
+    body: JSON.stringify({ baralho_id: Number(dados.baralho_id), pergunta: dados.pergunta, resposta: dados.resposta })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.detail || "Erro ao criar carta");
+  return data;
 };
 
-export const atualizarFlashcard = (id, dadosAtualizados) => {
-  const flashcards = JSON.parse(localStorage.getItem(DB_FLASHCARDS)) ||[];
-  const index = flashcards.findIndex(f => f.id === id);
-  if (index !== -1) {
-    flashcards[index] = { ...flashcards[index], ...dadosAtualizados, data_atualizacao: new Date().toISOString() };
-    localStorage.setItem(DB_FLASHCARDS, JSON.stringify(flashcards));
-  }
+export const atualizarFlashcard = async (id, dadosAtualizados) => {
+  const response = await fetch(`${API_URL}/flashcards/${id}`, {
+    method: 'PUT', headers: getHeaders(),
+    body: JSON.stringify({ pergunta: dadosAtualizados.pergunta, resposta: dadosAtualizados.resposta })
+  });
+  if (!response.ok) throw new Error("Erro ao atualizar carta");
 };
 
-export const excluirFlashcard = (id) => {
-  let flashcards = JSON.parse(localStorage.getItem(DB_FLASHCARDS)) ||[];
-  flashcards = flashcards.filter(f => f.id !== id);
-  localStorage.setItem(DB_FLASHCARDS, JSON.stringify(flashcards));
+export const excluirFlashcard = async (id) => {
+  const response = await fetch(`${API_URL}/flashcards/${id}`, { method: 'DELETE', headers: getHeaders() });
+  if (!response.ok) throw new Error("Erro ao excluir carta");
 };
 
-// ==========================================
-// REGISTRO DE ESTUDO (MOCK BASE PARA O FUTURO)
-// ==========================================
-export const registrarResultadoEstudo = (flashcardId, acertou) => {
-  const user = getLoggedUser();
-  if (!user) return;
-
-  const progresso = JSON.parse(localStorage.getItem(DB_PROGRESSO)) ||[];
-  let registro = progresso.find(p => p.flashcard_id === flashcardId && p.usuario_id === user.id);
-
-  if (registro) {
-    registro.acertos += acertou ? 1 : 0;
-    registro.erros += acertou ? 0 : 1;
-    registro.ultima_revisao = new Date().toISOString();
-  } else {
-    registro = {
-      id: progresso.length > 0 ? Math.max(...progresso.map(p => p.id)) + 1 : 1,
-      usuario_id: user.id,
-      flashcard_id: flashcardId,
-      acertos: acertou ? 1 : 0,
-      erros: acertou ? 0 : 1,
-      ultima_revisao: new Date().toISOString(),
-      proxima_revisao: null // Lógica de repetição espaçada será aqui no futuro
-    };
-    progresso.push(registro);
-  }
-
-  localStorage.setItem(DB_PROGRESSO, JSON.stringify(progresso));
+// --- ESTUDO ---
+export const registrarResultadoEstudo = async (flashcardId, acertou) => {
+  const response = await fetch(`${API_URL}/flashcards/${flashcardId}/estudo`, {
+    method: 'POST', headers: getHeaders(),
+    body: JSON.stringify({ acertou })
+  });
+  if (!response.ok) throw new Error("Erro ao registrar estudo");
 };
