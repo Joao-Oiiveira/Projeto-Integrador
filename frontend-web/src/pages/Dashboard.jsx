@@ -1,21 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { obterTarefas } from '../services/tarefas'; // Ainda é mock (por enquanto)
-import { obterDisciplinasAPI } from '../services/disciplinas'; // <-- AGORA É API
+import { obterTarefas } from '../services/tarefas'; // <-- Agora é API real!
+import { obterDisciplinasAPI } from '../services/disciplinas';
 
 const Dashboard = () => {
   const [tarefas, setTarefas] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
 
-  // Toda vez que a Dashboard for acessada, ela busca os dados
   useEffect(() => {
     const carregarDados = async () => {
       try {
-        // Tarefas ainda vem do mock local (síncrono)
-        const tarefasData = obterTarefas();
+        // CORREÇÃO 1: Agora ambas as chamadas têm 'await' usando Promise.all para ficarem rápidas
+        const [tarefasData, disciplinasData] = await Promise.all([
+          obterTarefas(),
+          obterDisciplinasAPI()
+        ]);
+        
         setTarefas(tarefasData);
-
-        // Disciplinas agora vem do Banco de Dados (assíncrono)
-        const disciplinasData = await obterDisciplinasAPI();
         setDisciplinas(disciplinasData);
       } catch (error) {
         console.error("Erro ao carregar dados do dashboard:", error);
@@ -46,17 +46,15 @@ const Dashboard = () => {
   const dataHojeObj = new Date();
   dataHojeObj.setHours(0, 0, 0, 0);
 
-  // Pega apenas as que ainda precisam ser feitas e ordena
+  // CORREÇÃO 2: Adicionado o .split('T')[0] para limpar a data vinda do MySQL
   const tarefasNaoConcluidas = tarefas
-    .filter(t => t.status !== 'concluida')
-    .sort((a, b) => new Date(`${a.data_entrega}T12:00:00`) - new Date(`${b.data_entrega}T12:00:00`));
+    .filter(t => t.status !== 'concluida' && t.data_entrega)
+    .sort((a, b) => new Date(`${a.data_entrega.split('T')[0]}T12:00:00`) - new Date(`${b.data_entrega.split('T')[0]}T12:00:00`));
 
-  // Seleciona as 4 primeiras para exibir na Agenda
   const agendaDinamica = tarefasNaoConcluidas.slice(0, 4).map(tarefa => {
-    const tDate = new Date(`${tarefa.data_entrega}T12:00:00`);
+    const tDate = new Date(`${tarefa.data_entrega.split('T')[0]}T12:00:00`);
     tDate.setHours(0, 0, 0, 0);
 
-    // Relaciona a tarefa com a disciplina vinda do banco de dados
     const disciplina = disciplinas.find(d => String(d.id) === String(tarefa.disciplina_id));
     const dataFormatada = tDate.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
 
@@ -85,7 +83,7 @@ const Dashboard = () => {
   });
 
   const tarefasAtrasadasCount = tarefasNaoConcluidas.filter(t => {
-    const d = new Date(`${t.data_entrega}T12:00:00`);
+    const d = new Date(`${t.data_entrega.split('T')[0]}T12:00:00`);
     d.setHours(0,0,0,0);
     return d < dataHojeObj;
   }).length;

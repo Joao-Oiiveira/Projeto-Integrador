@@ -5,36 +5,42 @@ import Modal from '../components/Modal';
 import { getDaysInMonth, formatToDateString, isSameDay } from '../utils/calendarUtils';
 
 // Services
-import { obterTarefas } from '../services/tarefas';
+import { obterTarefas } from '../services/tarefas'; // Certifique-se de que no tarefas.js essa função já é async
 import { obterEventos, criarEvento, excluirEvento } from '../services/eventosService';
-import { obterDisciplinas } from '../services/disciplinas';
+import { obterDisciplinasAPI } from '../services/disciplinas'; // Usando a versão API
 
 const Agenda = () => {
-  // Dados do BD (Mocks)
   const [tarefas, setTarefas] = useState([]);
   const [eventos, setEventos] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
 
-  // Controles do Calendário
-  const [currentDate, setCurrentDate] = useState(new Date()); // Mês/Ano visível
-  const [selectedDate, setSelectedDate] = useState(new Date()); // Dia clicado
-  const [viewType, setViewType] = useState('month'); // 'month' ou 'week'
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [viewType, setViewType] = useState('month');
 
-  // Modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [novoEvento, setNovoEvento] = useState({ titulo: '', descricao: '', data_inicio: '', data_fim: '', disciplina_id: '' });
 
-  const carregarDados = () => {
-    setTarefas(obterTarefas());
-    setEventos(obterEventos());
-    setDisciplinas(obterDisciplinas());
+  // Transformado em ASYNC
+  const carregarDados = async () => {
+    try {
+      const [tarefasData, eventosData, disciplinasData] = await Promise.all([
+        obterTarefas(),
+        obterEventos(),
+        obterDisciplinasAPI()
+      ]);
+      setTarefas(tarefasData);
+      setEventos(eventosData);
+      setDisciplinas(disciplinasData);
+    } catch (error) {
+      console.error("Erro ao carregar dados da agenda:", error);
+    }
   };
 
   useEffect(() => {
     carregarDados();
   }, []);
 
-  // Navegação do Calendário
   const nextPeriod = () => {
     const newDate = new Date(currentDate);
     if (viewType === 'month') newDate.setMonth(newDate.getMonth() + 1);
@@ -54,36 +60,45 @@ const Agenda = () => {
     setSelectedDate(new Date());
   };
 
-  // Lógica de Criação de Evento
-  const handleCriarEvento = (e) => {
+  // Transformado em ASYNC
+  const handleCriarEvento = async (e) => {
     e.preventDefault();
     if (!novoEvento.titulo || !novoEvento.data_inicio) {
       alert("Preencha os campos obrigatórios (Título e Data de Início).");
       return;
     }
-    criarEvento(novoEvento);
-    carregarDados();
-    setIsModalOpen(false);
-    setNovoEvento({ titulo: '', descricao: '', data_inicio: '', data_fim: '', disciplina_id: '' });
-  };
-
-  const handleExcluirEvento = (id) => {
-    if (window.confirm("Deseja realmente excluir este evento?")) {
-      excluirEvento(id);
-      carregarDados();
+    
+    try {
+      await criarEvento(novoEvento);
+      await carregarDados();
+      setIsModalOpen(false);
+      setNovoEvento({ titulo: '', descricao: '', data_inicio: '', data_fim: '', disciplina_id: '' });
+    } catch (error) {
+      alert(error.message);
     }
   };
 
-  // Filtragem de itens para o dia selecionado
-  const selectedDateStr = formatToDateString(selectedDate);
-  const tarefasDoDia = tarefas.filter(t => t.data_entrega && t.data_entrega.startsWith(selectedDateStr));
-  const eventosDoDia = eventos.filter(e => e.data_inicio && e.data_inicio.startsWith(selectedDateStr));
+  // Transformado em ASYNC
+  const handleExcluirEvento = async (id) => {
+    if (window.confirm("Deseja realmente excluir este evento?")) {
+      try {
+        await excluirEvento(id);
+        await carregarDados();
+      } catch (error) {
+        alert(error.message);
+      }
+    }
+  };
 
-  // Geração do Grid do Calendário
+  const selectedDateStr = formatToDateString(selectedDate);
+  
+  // Ajuste para lidar com a data vinda do banco (que pode ter o 'T' no meio)
+  const tarefasDoDia = tarefas.filter(t => t.data_entrega && t.data_entrega.split('T')[0] === selectedDateStr);
+  const eventosDoDia = eventos.filter(e => e.data_inicio && e.data_inicio.split('T')[0] === selectedDateStr);
+
   let daysInGrid = getDaysInMonth(currentDate.getFullYear(), currentDate.getMonth());
   
   if (viewType === 'week') {
-    // Filtra apenas a semana atual focada
     const target = selectedDate.getMonth() === currentDate.getMonth() ? selectedDate : currentDate;
     const startOfWeek = new Date(target);
     startOfWeek.setDate(target.getDate() - target.getDay());
@@ -100,7 +115,6 @@ const Agenda = () => {
   return (
     <div className="flex flex-col h-full gap-6 pb-8 w-full animate-fade-in">
       
-      {/* 1. HEADER DA PÁGINA */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Agenda & Planejamento</h1>
@@ -111,10 +125,8 @@ const Agenda = () => {
 
       <div className="flex flex-col lg:flex-row gap-6 h-full items-start">
         
-        {/* 2. ÁREA DO CALENDÁRIO (Esquerda/Topo) */}
         <div className="w-full lg:w-2/3 bg-white rounded-[2rem] p-6 shadow-sm border border-gray-100 flex flex-col">
           
-          {/* Controles do Calendário */}
           <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
             <div className="flex items-center gap-4">
               <h2 className="text-xl font-bold text-gray-900 capitalize">{mesFormatado}</h2>
@@ -125,14 +137,12 @@ const Agenda = () => {
               </div>
             </div>
 
-            {/* Alternância Mês/Semana */}
             <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100">
               <button onClick={() => setViewType('month')} className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${viewType === 'month' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Mês</button>
               <button onClick={() => setViewType('week')} className={`px-4 py-1.5 text-sm font-bold rounded-lg transition-colors ${viewType === 'week' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-500'}`}>Semana</button>
             </div>
           </div>
 
-          {/* Grid do Calendário */}
           <div className="grid grid-cols-7 gap-2 mb-2">
             {diasSemana.map(dia => (
               <div key={dia} className="text-center text-xs font-bold text-gray-400 uppercase tracking-wider">{dia}</div>
@@ -147,9 +157,8 @@ const Agenda = () => {
               const isSelected = isSameDay(dateStr, formatToDateString(selectedDate));
               const isToday = isSameDay(dateStr, formatToDateString(new Date()));
               
-              // Verifica se há itens neste dia para gerar os "pontinhos" indicadores
-              const dayTasks = tarefas.filter(t => t.data_entrega && t.data_entrega.startsWith(dateStr));
-              const dayEvents = eventos.filter(e => e.data_inicio && e.data_inicio.startsWith(dateStr));
+              const dayTasks = tarefas.filter(t => t.data_entrega && t.data_entrega.split('T')[0] === dateStr);
+              const dayEvents = eventos.filter(e => e.data_inicio && e.data_inicio.split('T')[0] === dateStr);
 
               return (
                 <button
@@ -163,7 +172,6 @@ const Agenda = () => {
                     {dayObj.getDate()}
                   </span>
                   
-                  {/* Indicadores Visuais (Bolinhas) */}
                   <div className="flex gap-1 mt-auto pb-1">
                     {dayEvents.length > 0 && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-blue-400' : 'bg-blue-500'}`}></span>}
                     {dayTasks.filter(t => t.status !== 'concluida').length > 0 && <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-purple-400' : 'bg-purple-500'}`}></span>}
@@ -175,7 +183,6 @@ const Agenda = () => {
           </div>
         </div>
 
-        {/* 3. ÁREA DE DETALHES DO DIA (Direita) */}
         <div className="w-full lg:w-1/3 bg-gray-50 p-6 rounded-[2rem] border border-gray-200 flex flex-col h-full min-h-[500px]">
           <h3 className="text-lg font-bold text-gray-900 mb-1">
             {new Intl.DateTimeFormat('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' }).format(selectedDate)}
@@ -188,7 +195,6 @@ const Agenda = () => {
               <div className="text-center py-10 text-gray-400 font-medium">Nenhum compromisso para este dia.</div>
             )}
 
-            {/* Renderizar Eventos (Azul) */}
             {eventosDoDia.map(evento => {
               const disc = disciplinas.find(d => d.id === evento.disciplina_id);
               const hora = new Date(evento.data_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -202,7 +208,6 @@ const Agenda = () => {
               );
             })}
 
-            {/* Renderizar Tarefas (Roxo/Verde) */}
             {tarefasDoDia.map(tarefa => {
               const isConcluida = tarefa.status === 'concluida';
               const disc = disciplinas.find(d => d.id === tarefa.disciplina_id);
@@ -221,7 +226,6 @@ const Agenda = () => {
         </div>
       </div>
 
-      {/* 4. MODAL DE CRIAÇÃO DE EVENTO */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title="Agendar Novo Evento">
         <form onSubmit={handleCriarEvento} className="flex flex-col gap-4">
           <Input id="titulo" label="Título do Evento *" placeholder="Ex: Feira de Ciências" value={novoEvento.titulo} onChange={e => setNovoEvento({...novoEvento, titulo: e.target.value})} />
