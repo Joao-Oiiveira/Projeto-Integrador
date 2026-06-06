@@ -51,17 +51,33 @@ def listar_todos_flashcards(db: Session = Depends(get_db), usuario: Usuario = De
     # Busca todos os flashcards que pertencem aos baralhos do usuário
     return db.query(Flashcard).join(Baralho).filter(Baralho.usuario_id == usuario.id).all()
 
-@router.post("/flashcards", response_model=FlashcardResponse, status_code=status.HTTP_201_CREATED)
-def criar_flashcard(flashcard_in: FlashcardCreate, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
-    # Verifica se o baralho pertence ao usuário antes de adicionar a carta
-    baralho = db.query(Baralho).filter(Baralho.id == flashcard_in.baralho_id, Baralho.usuario_id == usuario.id).first()
-    if not baralho: raise HTTPException(status_code=403, detail="Baralho inválido.")
+# ==========================================
+# ROTA DE ESTUDO (PROGRESSO)
+# ==========================================
+@router.post("/flashcards/{flashcard_id}/estudo")
+def registrar_estudo(flashcard_id: int, resultado: ResultadoEstudo, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
+    from sqlalchemy.sql import func
     
-    novo_flashcard = Flashcard(**flashcard_in.dict())
-    db.add(novo_flashcard)
+    progresso = db.query(ProgressoFlashcard).filter(ProgressoFlashcard.usuario_id == usuario.id, ProgressoFlashcard.flashcard_id == flashcard_id).first()
+    
+    if not progresso:
+        # CORREÇÃO AQUI: Adicionado acertos=0 e erros=0 explicitamente
+        progresso = ProgressoFlashcard(
+            usuario_id=usuario.id, 
+            flashcard_id=flashcard_id, 
+            acertos=0, 
+            erros=0
+        )
+        db.add(progresso)
+        
+    if resultado.acertou:
+        progresso.acertos += 1
+    else:
+        progresso.erros += 1
+        
+    progresso.ultima_revisao = func.now()
     db.commit()
-    db.refresh(novo_flashcard)
-    return novo_flashcard
+    return {"status": "ok"}
 
 @router.put("/flashcards/{flashcard_id}", response_model=FlashcardResponse)
 def atualizar_flashcard(flashcard_id: int, flashcard_in: FlashcardUpdate, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
