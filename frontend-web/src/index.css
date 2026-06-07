@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================
+   ACESSIBILIDADE
+   ========================================== */
+/* Importação da fonte para dislexia via CDN */
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+/* Garante transições suaves ao mudar o tema ou tamanho da fonte */
+html {
+  transition: background-color 0.3s ease, color 0.3s ease, font-size 0.3s ease;
+}
+
+
+/* ==========================================
+   ANIMAÇÕES DO SISTEMA (FLASHCARDS, ETC)
+   ========================================== */
 /* Animação para revelar a resposta e trocar o card */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(15px); }

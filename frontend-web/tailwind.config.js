@@ -2,10 +2,16 @@
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,jsx,ts,tsx}",
+    "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class', // <--- ISSO É OBRIGATÓRIO PARA O TEMA ESCURO FUNCIONAR
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        // Define a classe font-opendyslexic
+        opendyslexic: ['OpenDyslexic', 'sans-serif'], 
+      }
+    },
   },
   plugins: [],
 }
