@@ -14,14 +14,20 @@ public class Usuario {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column
+
+    @Column(nullable = false)
+    private String nome;
+
+    @Column(nullable = false, unique = true)
     private String email;
-    @Column
+
+    @Column(nullable = false)
     private String senha;
+
     @Column
     private LocalDate data_nascimento_;
 
-    @ManyToMany//ver mais sobre isso
+    @ManyToMany
     @JoinTable(
             name = "usuario_materia",
             joinColumns = @JoinColumn(name = "usuario_id"),
@@ -40,6 +46,14 @@ public class Usuario {
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public void setNome(String nome) {
+        this.nome = nome;
     }
 
     public String getEmail() {
