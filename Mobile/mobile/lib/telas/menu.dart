@@ -428,25 +428,108 @@ class _MenuScreenState extends State<MenuScreen> {
             color: Colors.white,
           ),
         ),
-        GestureDetector(
-          onTap: () {
-            // 🔧 BACK-END: Navegar para tela de perfil
-            // context.go('/perfil');
-          },
-          child: Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white24),
+        Row(
+          children: [
+            // Botão de Acessibilidade
+            GestureDetector(
+              onTap: () => context.go('/acessibilidade'),
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24),
+                  color: const Color(0xFF1E1E1E),
+                ),
+                child: const Icon(
+                  Icons.accessibility_outlined,
+                  color: Colors.white70,
+                  size: 24,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Botão de Perfil com Menu
+            PopupMenuButton(
+              position: PopupMenuPosition.under,
               color: const Color(0xFF1E1E1E),
+              itemBuilder: (BuildContext context) => [
+                PopupMenuItem(
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.person_outline,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Meu Perfil',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    // 🔧 BACK-END: Navegar para tela de perfil
+                    // context.go('/perfil');
+                  },
+                ),
+                PopupMenuItem(
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.accessibility_outlined,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Acessibilidade',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    context.go('/acessibilidade');
+                  },
+                ),
+                PopupMenuItem(
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.settings_outlined,
+                        color: Colors.white70,
+                        size: 20,
+                      ),
+                      SizedBox(width: 12),
+                      Text(
+                        'Configurações',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ],
+                  ),
+                  onTap: () {
+                    // 🔧 BACK-END: Navegar para tela de configurações
+                    // context.go('/configuracoes');
+                  },
+                ),
+              ],
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white24),
+                  color: const Color(0xFF1E1E1E),
+                ),
+                child: const Icon(
+                  Icons.person_outline,
+                  color: Colors.white70,
+                  size: 24,
+                ),
+              ),
             ),
-            child: const Icon(
-              Icons.person_outline,
-              color: Colors.white70,
-              size: 24,
-            ),
-          ),
+          ],
         ),
       ],
     );

@@ -1,62 +1,56 @@
 package com.example.demo.controller;
 
-
-import com.example.demo.model.Alternativa;
-import com.example.demo.model.Unidade;
-import com.example.demo.model.Usuario;
-import com.example.demo.repository.UsuarioRepository;
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import com.example.demo.dto.LoginDTO;
+import com.example.demo.dto.LoginResponseDTO;
+import com.example.demo.dto.UsuarioCadastroDTO;
+import com.example.demo.dto.UsuarioResponseDTO;
+import com.example.demo.service.UsuarioService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-
-@CrossOrigin(origins = "*")
 @RestController
-//Diz que nossa aplicação é um
-//serviço/API REST, ou seja,
-//responsável por receber
-//requisições e enviar respostas
-
-@RequestMapping(value="/apiUsuario")
-//Define a url que quando for
-//requisitada chamará os
-//métodos da classe: qualquer
-//ação desse controller deve vir
-//depois de /apiAluno
+@RequestMapping("/usuarios")
 public class UsuarioController {
 
     @Autowired
-    UsuarioRepository usuarioRepository;
+    private UsuarioService usuarioService;
 
-
-    //GET
-    @GetMapping(value = "/usuarios")
-    public List<Usuario> listarUsuario(){
-        return usuarioRepository.findAll();
+    /**
+     * Cadastrar novo usuário
+     * POST /api/usuarios/cadastro
+     */
+    @PostMapping("/cadastro")
+    public ResponseEntity<UsuarioResponseDTO> cadastro(@Valid @RequestBody UsuarioCadastroDTO dto) {
+        UsuarioResponseDTO usuarioCriado = usuarioService.cadastrar(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioCriado);
     }
 
-    //POST
-    @PostMapping("/criarUsuario")
-    public void criarUsuario (@RequestBody Usuario usuario){
-        usuarioRepository.save(usuario);
+    /**
+     * Login - gera JWT token
+     * POST /api/usuarios/login
+     */
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponseDTO> login(@Valid @RequestBody LoginDTO dto) {
+        LoginResponseDTO response = usuarioService.login(dto);
+        return ResponseEntity.ok(response);
     }
 
-    //Atualizar
-    @PutMapping("/atualizar/{id}")
-    public Usuario atualizar(@PathVariable Long id, @RequestBody Usuario usuario){
-        usuario.setId(id);
-        return usuarioRepository.save(usuario);
-    }
+    /**
+     * Obter perfil do usuário autenticado
+     * GET /api/usuarios/perfil
+     * Requer: Authorization: Bearer <token>
+     */
+    @GetMapping("/perfil")
+    public ResponseEntity<UsuarioResponseDTO> obterPerfil(Authentication authentication) {
+        // Pega o ID do usuário autenticado do JWT
+        Long usuarioId = (Long) authentication.getPrincipal();
 
-    //Excluir
-    @DeleteMapping("/deletar/{id}")
-    public void deletar(@PathVariable int id){
-        usuarioRepository.deleteById(id);
+        UsuarioResponseDTO perfil = usuarioService.obterPorId(usuarioId, usuarioId);
+        return ResponseEntity.ok(perfil);
     }
-
 }
+
