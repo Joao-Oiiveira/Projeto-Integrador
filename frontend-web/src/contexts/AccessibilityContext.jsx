@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { getLoggedUser, saveOnboardingData } from '../services/auth'; 
+import { getLoggedUser, saveOnboardingDataAPI } from '../services/auth'; 
 
 const AccessibilityContext = createContext();
 
@@ -45,7 +45,7 @@ export const AccessibilityProvider = ({ children }) => {
       setConfiguracoes(updatedConfigs);
 
       // Depois salva na API em background
-      await saveOnboardingData(user.nome, user.perfil || user.perfil_usuario, updatedConfigs);
+      await saveOnboardingDataAPI(user.nome, user.perfil || user.perfil_usuario, updatedConfigs);
     } catch (error) {
       console.error("Erro ao atualizar acessibilidade:", error);
     }

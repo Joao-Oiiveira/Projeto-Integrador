@@ -9,6 +9,7 @@ import Tarefas from './pages/Tarefas';
 import Disciplinas from './pages/Disciplinas';
 import Flashcards from './pages/Flashcards';
 import Agenda from './pages/Agenda';
+import Exercicios from './pages/Exercicios';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
             <Route path="/disciplinas" element={<Disciplinas />} />
             <Route path="/flashcards" element={<Flashcards />} />
             <Route path="/calendario" element={<Agenda />} />
+            <Route path="/exercicios" element={<Exercicios />} />
           </Route>
         </Routes>
       </BrowserRouter>
