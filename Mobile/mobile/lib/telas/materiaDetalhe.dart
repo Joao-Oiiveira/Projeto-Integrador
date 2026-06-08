@@ -155,7 +155,9 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                 child: Row(
                   children: [
                     GestureDetector(
-                      onTap: () => context.pop(),
+                      onTap: () {
+                        context.go('/menu');
+                      },
                       child: const Icon(
                         Icons.arrow_back_ios,
                         color: Colors.white,
@@ -165,7 +167,7 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        'Materiais',
+                        widget.materiaNome,
                         style: _getTextStyle(18, fontWeight: FontWeight.w600),
                       ),
                     ),

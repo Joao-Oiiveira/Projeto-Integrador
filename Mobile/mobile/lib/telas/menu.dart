@@ -270,7 +270,13 @@ class _MenuScreenState extends State<MenuScreen> {
   // Aparece quando os cards estão empilhados
   Widget _buildMateriaCardFechado(Materia materia) {
     return GestureDetector(
-      onTap: () => context.go('/materia/${materia.nome}'),
+      onTap: () async {
+        // 1️⃣ Abre a animação primeiro
+        setState(() => _materiasExpandidas = true);
+
+        // 2️⃣ Espera a animação terminar (igual ao duration do AnimatedContainer)
+        await Future.delayed(const Duration(milliseconds: 1000));
+      },
       child: Container(
         height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -296,11 +302,16 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
+
   // ── Widget: Card de Matéria ABERTO ───────────
   // Aparece quando os cards estão expandidos
   Widget _buildMateriaCard(Materia materia) {
     return GestureDetector(
-      onTap: () => context.go('/materia/${materia.nome}'),
+      onTap: () async {
+        // Já está aberto — só aguarda um pequeno delay para feedback visual
+        await Future.delayed(const Duration(milliseconds: 150));
+        if (mounted) context.go('/materia/${materia.nome}');
+      },
       child: Container(
         height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -324,7 +335,6 @@ class _MenuScreenState extends State<MenuScreen> {
                   ),
                 ),
                 Text(
-                  // 🔧 BACK-END: progresso e totalItens vêm da API
                   '${materia.progresso}/${materia.totalItens} concluídos',
                   style: const TextStyle(fontSize: 12, color: Colors.white70),
                 ),

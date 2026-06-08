@@ -10,20 +10,29 @@ import 'telas/login.dart';
 final appRouter = GoRouter(
   initialLocation: '/login',
   routes: [
-    GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
+    GoRoute(
+      path: '/login', builder: (context, state) => const LoginScreen()
+    ),
+    
     GoRoute(
       path: '/cadastro',
       builder: (context, state) => const SignUpScreen(),
     ),
-    GoRoute(path: '/menu', builder: (context, state) => const MenuScreen()),
+
+    GoRoute(
+      path: '/menu', builder: (context, state) => const MenuScreen()
+    ),
+
     GoRoute(
       path: '/calendarioMenu',
       builder: (context, state) => const CalendarioMenuScreen(),
     ),
+
     GoRoute(
       path: '/calendario',
       builder: (context, state) => const CalendarioMensalScreen(),
     ),
+
     GoRoute(
       path: '/materia/:nome',
       builder: (context, state) {
@@ -31,9 +40,11 @@ final appRouter = GoRouter(
         return MateriaDetalheScreen(materiaNome: nome);
       },
     ),
+
     GoRoute(
       path: '/acessibilidade',
       builder: (context, state) => const AccessibilitySettingsScreen(),
     ),
+    
   ],
 );

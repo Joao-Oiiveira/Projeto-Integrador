@@ -1,42 +1,85 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AccessibilityPreferences extends ChangeNotifier {
-  // Tamanho de fonte base (multiplicador)
+  // ── Valores padrão ───────────────────────────
   double _fontSizeMultiplier = 1.0;
-
-  // Alto contraste
   bool _highContrast = false;
-
-  // Text-to-speech ativado
   bool _textToSpeechEnabled = false;
+  bool _temaClaro = false;
+  double _espacamentoLinhas = 1.5;
+  bool _fonteDislexia = false;
 
-  // Getters
+  // ── Getters ──────────────────────────────────
   double get fontSizeMultiplier => _fontSizeMultiplier;
   bool get highContrast => _highContrast;
   bool get textToSpeechEnabled => _textToSpeechEnabled;
+  bool get temaClaro => _temaClaro;
+  double get espacamentoLinhas => _espacamentoLinhas;
+  bool get fonteDislexia => _fonteDislexia;
 
-  // Setters com notificação
-  void setFontSizeMultiplier(double value) {
+  // ── Carrega configurações salvas ─────────────
+  // Chamado no main() antes de abrir o app
+  Future<void> carregarConfiguracoes() async {
+    final prefs = await SharedPreferences.getInstance();
+    _fontSizeMultiplier = prefs.getDouble('fontSizeMultiplier') ?? 1.0;
+    _highContrast = prefs.getBool('highContrast') ?? false;
+    _textToSpeechEnabled = prefs.getBool('textToSpeechEnabled') ?? false;
+    _temaClaro = prefs.getBool('temaClaro') ?? false;
+    _espacamentoLinhas = prefs.getDouble('espacamentoLinhas') ?? 1.5;
+    _fonteDislexia = prefs.getBool('fonteDislexia') ?? false;
+    notifyListeners();
+  }
+
+  // ── Setters com salvamento automático ────────
+
+  void setFontSizeMultiplier(double value) async {
     if (value >= 0.8 && value <= 1.5) {
       _fontSizeMultiplier = value;
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setDouble('fontSizeMultiplier', value);
       notifyListeners();
     }
   }
 
-  void setHighContrast(bool value) {
+  void setHighContrast(bool value) async {
     _highContrast = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('highContrast', value);
     notifyListeners();
   }
 
-  void setTextToSpeechEnabled(bool value) {
+  void setTextToSpeechEnabled(bool value) async {
     _textToSpeechEnabled = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('textToSpeechEnabled', value);
     notifyListeners();
   }
 
-  // Helper para obter cor com alto contraste se ativado
+  void setTemaClaro(bool value) async {
+    _temaClaro = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('temaClaro', value);
+    notifyListeners();
+  }
+
+  void setEspacamentoLinhas(double value) async {
+    _espacamentoLinhas = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('espacamentoLinhas', value);
+    notifyListeners();
+  }
+
+  void setFonteDislexia(bool value) async {
+    _fonteDislexia = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('fonteDislexia', value);
+    notifyListeners();
+  }
+
+  // ── Helper de cor com alto contraste ─────────
   Color getContrastColor(Color original) {
     if (!_highContrast) return original;
-    // Aumenta saturação e brilho em modo alto contraste
     return original.withValues(alpha: 1.0);
   }
 }
