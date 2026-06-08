@@ -5,35 +5,49 @@ const TTSReader = () => {
   const { configuracoes } = useAccessibility();
   const [isReading, setIsReading] = useState(false);
 
-  // Se a configuração de leitura estiver desligada, o botão nem aparece
+  // Limpa a voz se o componente for desmontado (Evita a tela branca)
+  useEffect(() => {
+    return () => {
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+    };
+  }, []);
+
   if (!configuracoes.leitura_texto) return null;
 
   const toggleReading = () => {
     if (isReading) {
-      window.speechSynthesis.cancel(); // Para a leitura
+      window.speechSynthesis.cancel();
       setIsReading(false);
     } else {
-      // Pega todo o texto visível dentro da tag <main> (onde fica o conteúdo da página)
       const mainContent = document.querySelector('main');
-      const textToRead = mainContent ? mainContent.innerText : document.body.innerText;
+      if (!mainContent) return;
 
-      if (!textToRead) return;
+      // INTELIGÊNCIA: Pega apenas títulos (h1 a h4) e parágrafos (p)
+      const elementos = mainContent.querySelectorAll('h1, h2, h3, h4, p');
+      
+      // Junta o texto separando por ponto para o robô respirar
+      let textToRead = Array.from(elementos)
+        .map(el => el.innerText.trim())
+        .filter(text => text.length > 0)
+        .join('. ');
+
+      if (!textToRead) {
+        textToRead = "Não encontrei textos principais para ler nesta tela.";
+      }
 
       const utterance = new SpeechSynthesisUtterance(textToRead);
-      utterance.lang = 'pt-BR'; // Define o idioma para Português do Brasil
-      utterance.rate = 1.0; // Velocidade normal
-
-      utterance.onend = () => setIsReading(false); // Quando terminar de ler, reseta o botão
+      utterance.lang = 'pt-BR';
+      
+      // Eventos de segurança
+      utterance.onend = () => setIsReading(false);
+      utterance.onerror = () => setIsReading(false);
 
       window.speechSynthesis.speak(utterance);
       setIsReading(true);
     }
   };
-
-  // Para a leitura automaticamente se o usuário mudar de página
-  useEffect(() => {
-    return () => window.speechSynthesis.cancel();
-  }, []);
 
   return (
     <button
