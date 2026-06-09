@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 # 1. Importa todas as rotas
-from app.api import rotas_auth, rotas_disciplinas, rotas_tarefas, rotas_flashcards, rotas_eventos, rotas_exercicios
+from app.api import rotas_auth, rotas_disciplinas, rotas_tarefas, rotas_flashcards, rotas_eventos, rotas_exercicios, rotas_notificacoes
 
 # 2. Inicializa a API (O 'app' nasce aqui)
 app = FastAPI(title="EduAcess API", description="API para a plataforma educacional EduAcess")
@@ -23,6 +23,7 @@ app.include_router(rotas_tarefas.router, prefix="/tarefas", tags=["Tarefas"])
 app.include_router(rotas_flashcards.router, prefix="/estudos", tags=["Flashcards"])
 app.include_router(rotas_eventos.router, prefix="/eventos", tags=["Eventos"])
 app.include_router(rotas_exercicios.router, prefix="/exercicios", tags=["Exercícios"])
+app.include_router(rotas_notificacoes.router, prefix="/notificacoes", tags=["Notificações"])
 
 # 5. Rota raiz de teste
 @app.get("/")

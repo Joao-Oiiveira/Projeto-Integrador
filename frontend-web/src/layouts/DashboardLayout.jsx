@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import { getLoggedUser } from '../services/auth';
-import { useAccessibility } from '../contexts/AccessibilityContext'; // NOVO
-import Modal from '../components/Modal'; // NOVO
-import Checkbox from '../components/Checkbox'; // NOVO
-import TTSReader from '../components/TTSReader'; // NOVO
+import { useAccessibility } from '../contexts/AccessibilityContext';
+import Modal from '../components/Modal';
+import Checkbox from '../components/Checkbox';
+import TTSReader from '../components/TTSReader';
+import { obterNotificacoes, marcarComoLida, marcarTodasComoLidas } from '../services/notificacoes'; // NOVO
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -12,9 +13,21 @@ const DashboardLayout = () => {
   const [user, setUser] = useState(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   
-  // NOVO: Estados para o Modal de Acessibilidade
   const { configuracoes, updateAccessibility } = useAccessibility();
   const [isAcessibilidadeOpen, setIsAcessibilidadeOpen] = useState(false);
+
+  // NOVO: Estados de Notificações
+  const [notificacoes, setNotificacoes] = useState([]);
+  const [isNotificacoesOpen, setIsNotificacoesOpen] = useState(false);
+
+  const carregarNotificacoes = async () => {
+    try {
+      const data = await obterNotificacoes();
+      setNotificacoes(data || []);
+    } catch (error) {
+      console.error("Erro ao buscar notificações", error);
+    }
+  };
 
   useEffect(() => {
     const loggedUser = getLoggedUser();
@@ -24,14 +37,33 @@ const DashboardLayout = () => {
       navigate('/onboarding');
     } else {
       setUser(loggedUser);
+      carregarNotificacoes(); // Carrega as notificações ao entrar
     }
   }, [navigate]);
 
   useEffect(() => {
     setIsSidebarOpen(false);
+    setIsNotificacoesOpen(false); // Fecha o dropdown ao mudar de tela
   }, [location.pathname]);
 
   if (!user) return null;
+
+  const handleConfigChange = (campo, valor) => {
+    updateAccessibility({ [campo]: valor });
+  };
+
+  const handleMarcarLida = async (id) => {
+    await marcarComoLida(id);
+    carregarNotificacoes();
+  };
+
+  const handleLimparTodas = async () => {
+    await marcarTodasComoLidas();
+    carregarNotificacoes();
+    setIsNotificacoesOpen(false);
+  };
+
+  const notificacoesNaoLidas = notificacoes.filter(n => !n.lida);
 
   const menuItems = [
     { path: '/dashboard', label: 'Dashboard', icon: 'M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z' },
@@ -44,26 +76,14 @@ const DashboardLayout = () => {
 
   const dataAtual = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', weekday: 'long' }).format(new Date());
 
-  // NOVO: Função para alterar configurações instantaneamente
-  const handleConfigChange = (campo, valor) => {
-    updateAccessibility({ [campo]: valor });
-  };
-
   return (
     <div className="flex h-screen bg-[#F4F7FE] text-gray-800 font-sans overflow-hidden dark:bg-gray-900 dark:text-white transition-colors">
       
-      {/* Leitor de Tela Flutuante */}
       <TTSReader />
 
-      {isSidebarOpen && (
-        <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)}></div>
-      )}
+      {isSidebarOpen && <div className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40 lg:hidden" onClick={() => setIsSidebarOpen(false)}></div>}
 
-      <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 bg-[#F4F7FE] dark:bg-gray-900 flex flex-col justify-between py-6 px-4 shrink-0 
-        transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 border-r border-gray-200 dark:border-gray-800
-        ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
-      `}>
+      <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-[#F4F7FE] dark:bg-gray-900 flex flex-col justify-between py-6 px-4 shrink-0 transform transition-transform duration-300 ease-in-out lg:relative lg:translate-x-0 border-r border-gray-200 dark:border-gray-800 ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}`}>
         <div>
           <div className="flex items-center justify-between px-4 mb-10">
             <div className="flex items-center gap-3">
@@ -79,18 +99,8 @@ const DashboardLayout = () => {
             {menuItems.map((item) => {
               const isActive = location.pathname === item.path;
               return (
-                <button
-                  key={item.label}
-                  onClick={() => item.path.startsWith('/') && navigate(item.path)}
-                  className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all ${
-                    isActive 
-                      ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-md' 
-                      : 'text-gray-500 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'
-                  }`}
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d={item.icon} />
-                  </svg>
+                <button key={item.label} onClick={() => navigate(item.path)} className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all ${isActive ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-md' : 'text-gray-500 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'}`}>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d={item.icon} /></svg>
                   {item.label}
                 </button>
               );
@@ -99,16 +109,13 @@ const DashboardLayout = () => {
         </div>
 
         <div className="flex flex-col gap-2 mt-4">
-          {/* NOVO: Botão de Acessibilidade no Menu */}
-          <button 
-            onClick={() => setIsAcessibilidadeOpen(true)}
-            className="flex items-center gap-3 px-4 py-3 rounded-2xl font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 transition-all"
-          >
+          <button onClick={() => setIsAcessibilidadeOpen(true)} className="flex items-center gap-3 px-4 py-3 rounded-2xl font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 transition-all">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
             Acessibilidade
           </button>
 
-          <button className="flex items-center gap-3 px-4 py-3 rounded-2xl font-medium text-gray-500 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white transition-all">
+          {/* NOVO: Rota para Configurações */}
+          <button onClick={() => navigate('/configuracoes')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all ${location.pathname === '/configuracoes' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-md' : 'text-gray-500 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             Configurações
           </button>
@@ -127,7 +134,52 @@ const DashboardLayout = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-4">
+          <div className="flex items-center gap-4 relative">
+            
+            {/* NOVO: SINO DE NOTIFICAÇÕES */}
+            <div className="relative">
+              <button 
+                onClick={() => setIsNotificacoesOpen(!isNotificacoesOpen)}
+                className="bg-white dark:bg-gray-800 p-2.5 rounded-full text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 shadow-sm border border-gray-100 dark:border-gray-700 transition-colors relative"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                {notificacoesNaoLidas.length > 0 && (
+                  <span className="absolute top-0 right-0 w-3 h-3 bg-red-500 border-2 border-white dark:border-gray-800 rounded-full animate-pulse"></span>
+                )}
+              </button>
+
+              {/* DROPDOWN DE NOTIFICAÇÕES */}
+              {isNotificacoesOpen && (
+                <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-fade-in">
+                  <div className="p-4 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-800/50">
+                    <h3 className="font-bold text-gray-900 dark:text-white">Notificações</h3>
+                    {notificacoesNaoLidas.length > 0 && (
+                      <button onClick={handleLimparTodas} className="text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400">Marcar todas como lidas</button>
+                    )}
+                  </div>
+                  <div className="max-h-80 overflow-y-auto custom-scrollbar">
+                    {notificacoes.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-gray-500 dark:text-gray-400">Nenhuma notificação.</div>
+                    ) : (
+                      notificacoes.map(notif => (
+                        <div 
+                          key={notif.id} 
+                          onClick={() => !notif.lida && handleMarcarLida(notif.id)}
+                          className={`p-4 border-b border-gray-50 dark:border-gray-700/50 transition-colors ${!notif.lida ? 'bg-purple-50/50 dark:bg-purple-900/10 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-900/20' : 'bg-white dark:bg-gray-800 opacity-70'}`}
+                        >
+                          <div className="flex justify-between items-start gap-2">
+                            <h4 className={`text-sm font-bold ${!notif.lida ? 'text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'}`}>{notif.titulo}</h4>
+                            {!notif.lida && <span className="w-2 h-2 bg-purple-500 rounded-full mt-1 shrink-0"></span>}
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{notif.descricao}</p>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+            
             <div className="flex items-center gap-3 bg-white dark:bg-gray-800 p-1 sm:px-2 sm:py-1.5 sm:pr-4 rounded-full shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer">
               <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-sm">
                 {user.nome ? user.nome.charAt(0).toUpperCase() : 'U'}
@@ -145,43 +197,16 @@ const DashboardLayout = () => {
         </div>
       </main>
 
-      {/* NOVO: Modal de Acessibilidade Rápida */}
       <Modal isOpen={isAcessibilidadeOpen} onClose={() => setIsAcessibilidadeOpen(false)} title="Ajustes de Acessibilidade">
         <div className="flex flex-col gap-6">
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            As alterações feitas aqui são salvas automaticamente e aplicadas em todo o sistema.
-          </p>
-
+          <p className="text-sm text-gray-500 dark:text-gray-400">As alterações feitas aqui são salvas automaticamente e aplicadas em todo o sistema.</p>
           <div className="flex flex-col gap-4">
-            <Checkbox 
-              id="menu_tema_escuro" 
-              label="Tema Escuro (Dark Mode)" 
-              description="Reduz o brilho da tela"
-              checked={configuracoes.tema_escuro} 
-              onChange={() => handleConfigChange('tema_escuro', !configuracoes.tema_escuro)} 
-            />
-            <Checkbox 
-              id="menu_fonte_dislexia" 
-              label="Fonte para Dislexia" 
-              description="Aplica a fonte OpenDyslexic"
-              checked={configuracoes.fonte_dislexia} 
-              onChange={() => handleConfigChange('fonte_dislexia', !configuracoes.fonte_dislexia)} 
-            />
-            <Checkbox 
-              id="menu_leitura_texto" 
-              label="Leitura de Texto (TTS)" 
-              description="Ativa o botão flutuante de leitura"
-              checked={configuracoes.leitura_texto} 
-              onChange={() => handleConfigChange('leitura_texto', !configuracoes.leitura_texto)} 
-            />
-            
+            <Checkbox id="menu_tema_escuro" label="Tema Escuro (Dark Mode)" description="Reduz o brilho da tela" checked={configuracoes.tema_escuro} onChange={() => handleConfigChange('tema_escuro', !configuracoes.tema_escuro)} />
+            <Checkbox id="menu_fonte_dislexia" label="Fonte para Dislexia" description="Aplica a fonte OpenDyslexic" checked={configuracoes.fonte_dislexia} onChange={() => handleConfigChange('fonte_dislexia', !configuracoes.fonte_dislexia)} />
+            <Checkbox id="menu_leitura_texto" label="Leitura de Texto (TTS)" description="Ativa o botão flutuante de leitura" checked={configuracoes.leitura_texto} onChange={() => handleConfigChange('leitura_texto', !configuracoes.leitura_texto)} />
             <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tamanho da Fonte (Base)</label>
-              <select 
-                className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-md p-2 mt-1 focus:ring-2 focus:ring-purple-500 border border-gray-200 dark:border-gray-700 outline-none cursor-pointer"
-                value={configuracoes.tamanho_fonte}
-                onChange={(e) => handleConfigChange('tamanho_fonte', Number(e.target.value))}
-              >
+              <select className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-md p-2 mt-1 focus:ring-2 focus:ring-purple-500 border border-gray-200 dark:border-gray-700 outline-none cursor-pointer" value={configuracoes.tamanho_fonte} onChange={(e) => handleConfigChange('tamanho_fonte', Number(e.target.value))}>
                 <option value={16}>Padrão (16px)</option>
                 <option value={20}>Grande (20px)</option>
                 <option value={24}>Extra Grande (24px)</option>
@@ -190,7 +215,6 @@ const DashboardLayout = () => {
           </div>
         </div>
       </Modal>
-
     </div>
   );
 };
