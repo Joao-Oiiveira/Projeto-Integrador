@@ -18,7 +18,7 @@ export const iniciarSessaoExercicios = async (dados) => {
     body: JSON.stringify({
       disciplina_id: dados.disciplina_id || null,
       tema: dados.tema || "",
-      modo: dados.modo || "vestibular",
+      modo: dados.dificuldade || "médio", // Mandamos a dificuldade dentro da chave 'modo' para a API Python
       quantidade_questoes: Number(dados.quantidade_questoes) || 5
     })
   });
@@ -47,7 +47,7 @@ export const responderQuestaoAPI = async (sessaoId, dados) => {
         pergunta: dados.pergunta,
         alternativa_marcada: dados.alternativa_marcada,
         alternativa_correta: dados.alternativa_correta,
-        origem: dados.origem || "enem_api"
+        origem: dados.origem || "ia"
       })
     });
 
@@ -57,4 +57,18 @@ export const responderQuestaoAPI = async (sessaoId, dados) => {
   } catch (error) {
     console.error("Falha na comunicação ao salvar resposta:", error);
   }
+};
+
+// Rota 3: Obter Relatório de Desempenho
+export const obterRelatorioExercicios = async () => {
+  const token = getToken();
+  if (!token) throw new Error("Usuário não autenticado.");
+
+  const response = await fetch(`${API_URL}/relatorio`, {
+    method: 'GET',
+    headers: { 'Authorization': `Bearer ${token}` }
+  });
+
+  if (!response.ok) throw new Error("Erro ao buscar relatório.");
+  return await response.json();
 };

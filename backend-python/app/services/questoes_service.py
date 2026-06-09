@@ -1,155 +1,121 @@
+import os
+import json
 import requests
 import random
+import re
+from dotenv import load_dotenv
 
-def buscar_questoes_enem(quantidade: int):
-    url = "https://enem.dev/api/questions"
-    questoes_padronizadas = []
+# Carrega as variáveis do .env
+load_dotenv()
+
+# Pega a chave da API da Groq
+api_key = os.getenv("GROQ_API_KEY")
+
+def gerar_questoes_ia(tema: str, dificuldade: str, quantidade: int):
+    """
+    Função principal chamada pela rota. Prepara os dados e chama a Groq.
+    """
+    tema_real = tema if tema else "Conhecimentos Gerais"
+    dificuldade_real = dificuldade if dificuldade else "médio"
+    return _gerar_questoes_com_groq(tema_real, dificuldade_real, quantidade)
+
+def _gerar_questoes_com_groq(tema: str, dificuldade: str, quantidade: int):
+    """
+    Comunicação direta com o Llama 3.3 de 70 Bilhões de parâmetros da Groq.
+    """
+    if not api_key:
+        print("ERRO: GROQ_API_KEY não encontrada no arquivo .env")
+        return _gerar_fallback(quantidade)
+
+    # O prompt blindado e rigoroso
+    prompt = f"""
+    Você é um professor especialista, rigoroso e extremamente preciso.
+    Gere EXATAMENTE {quantidade} questões de múltipla escolha sobre o tema: "{tema}".
+    O nível de dificuldade das questões deve ser: {dificuldade.upper()}.
+    
+    REGRAS DE CONTEÚDO (MUITO IMPORTANTE):
+    1. As questões devem ser 100% precisas historicamente, cientificamente e factualmente.
+    2. Revise a "alternativa_correta" antes de gerar o JSON para garantir que ela é a única resposta verdadeira.
+    
+    REGRA DE FORMATO ABSOLUTA: Retorne APENAS um array JSON válido. Não escreva nenhuma introdução. APENAS O JSON.
+    
+    O JSON deve ter EXATAMENTE esta estrutura:
+    [
+      {{
+        "identificador_externo": "groq_ia",
+        "origem": "ia",
+        "enunciado": "Texto da pergunta aqui...",
+        "alternativas": [
+          {{"letra": "A", "texto": "Opção 1"}},
+          {{"letra": "B", "texto": "Opção 2"}},
+          {{"letra": "C", "texto": "Opção 3"}},
+          {{"letra": "D", "texto": "Opção 4"}},
+          {{"letra": "E", "texto": "Opção 5"}}
+        ],
+        "alternativa_correta": "C"
+      }}
+    ]
+    """
+
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json"
+    }
+    
+    # Usamos o modelo de 70 Bilhões para não ter erros factuais
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.2
+    }
 
     try:
-        # Adicionamos um User-Agent falso para a API achar que somos o Google Chrome
-        headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-        }
-        
-        response = requests.get(f"{url}?limit={quantidade}", headers=headers, timeout=5)
-        
-        # DEBUG: Isso vai imprimir no terminal do VS Code o motivo real do erro da API
-        print(f"DEBUG API ENEM -> Status: {response.status_code}")
+        response = requests.post(url, headers=headers, json=payload, timeout=20)
         
         if response.status_code == 200:
             dados = response.json()
-            lista_questoes = dados.get('data', []) if isinstance(dados, dict) else dados
+            texto_resposta = dados['choices'][0]['message']['content'].strip()
             
-            if not lista_questoes:
-                return _gerar_fallback_enem(quantidade)
-
-            letras = ['A', 'B', 'C', 'D', 'E']
-            for q in lista_questoes:
-                alternativas_formatadas = []
-                for i, alt in enumerate(q.get('alternatives', [])):
-                    if i < len(letras):
-                        alternativas_formatadas.append({
-                            "letra": letras[i],
-                            "texto": alt.get('text', alt.get('body', ''))
-                        })
-
-                index_correta = q.get('correctAlternativeIndex', 0)
-                letra_correta = letras[index_correta] if index_correta < len(letras) else 'A'
-
-                enunciado = q.get('context', '')
-                if not enunciado:
-                    enunciado = q.get('body', 'Leia atentamente e responda:')
+            # Extrai apenas o JSON usando Expressão Regular
+            match = re.search(r'\[.*\]', texto_resposta, re.DOTALL)
+            
+            if match:
+                texto_json = match.group(0)
+                questoes = json.loads(texto_json)
                 
-                questao = {
-                    "identificador_externo": str(q.get('id', 'enem_desconhecido')),
-                    "origem": "enem_api",
-                    "enunciado": enunciado,
-                    "alternativas": alternativas_formatadas,
-                    "alternativa_correta": letra_correta
-                }
-                questoes_padronizadas.append(questao)
-                if len(questoes_padronizadas) >= quantidade:
-                    break
+                # Adiciona IDs únicos
+                for i, q in enumerate(questoes):
+                    q["identificador_externo"] = f"groq_{random.randint(10000, 99999)}_{i}"
+                    
+                return questoes[:quantidade]
+            else:
+                print("Erro: A IA não retornou um array JSON válido.")
+                return _gerar_fallback(quantidade)
         else:
-            return _gerar_fallback_enem(quantidade)
-            
-    except Exception as e:
-        print(f"DEBUG API ENEM -> Erro de Conexão: {e}")
-        return _gerar_fallback_enem(quantidade)
-        
-    return questoes_padronizadas
+            print(f"Erro da API Groq: {response.text}")
+            return _gerar_fallback(quantidade)
 
-def _gerar_fallback_enem(quantidade: int):
+    except Exception as e:
+        print(f"Erro ao processar resposta da Groq: {e}")
+        return _gerar_fallback(quantidade)
+
+def _gerar_fallback(quantidade: int):
     """
-    Banco de questões de reserva com questões reais de vestibular.
-    Garante que a apresentação do TCC seja impecável mesmo sem internet.
+    Plano B de segurança caso a API da Groq fique fora do ar.
     """
-    banco_reserva = [
+    return [
         {
-            "identificador_externo": "reserva_1",
+            "identificador_externo": f"fallback_{random.randint(1000, 9999)}",
             "origem": "banco_reserva",
-            "enunciado": "(ENEM) A Revolução Industrial, ocorrida na Inglaterra no século XVIII, trouxe profundas transformações sociais e econômicas. Qual foi uma das principais consequências sociais desse processo?",
+            "enunciado": "A Inteligência Artificial está temporariamente indisponível. Qual é a capital do Brasil?",
             "alternativas": [
-                {"letra": "A", "texto": "Melhoria imediata nas condições de trabalho nas fábricas."},
-                {"letra": "B", "texto": "Êxodo rural e crescimento desordenado das cidades (urbanização)."},
-                {"letra": "C", "texto": "Fim do trabalho infantil e regulamentação da jornada de trabalho."},
-                {"letra": "D", "texto": "Distribuição igualitária de renda entre os operários."},
-                {"letra": "E", "texto": "Fortalecimento do poder dos artesãos e das guildas."}
-            ],
-            "alternativa_correta": "B"
-        },
-        {
-            "identificador_externo": "reserva_2",
-            "origem": "banco_reserva",
-            "enunciado": "(FUVEST) Na biologia, as mitocôndrias são organelas celulares fundamentais para a sobrevivência das células eucariontes. Qual é a principal função da mitocôndria?",
-            "alternativas": [
-                {"letra": "A", "texto": "Síntese de proteínas."},
-                {"letra": "B", "texto": "Armazenamento de material genético."},
-                {"letra": "C", "texto": "Respiração celular e produção de energia (ATP)."},
-                {"letra": "D", "texto": "Digestão intracelular."},
-                {"letra": "E", "texto": "Fotossíntese."}
-            ],
-            "alternativa_correta": "C"
-        },
-        {
-            "identificador_externo": "reserva_3",
-            "origem": "banco_reserva",
-            "enunciado": "(ENEM) Em um triângulo retângulo, os catetos medem 3 cm e 4 cm. Qual é o valor da hipotenusa?",
-            "alternativas": [
-                {"letra": "A", "texto": "5 cm"},
-                {"letra": "B", "texto": "6 cm"},
-                {"letra": "C", "texto": "7 cm"},
-                {"letra": "D", "texto": "8 cm"},
-                {"letra": "E", "texto": "9 cm"}
-            ],
-            "alternativa_correta": "A"
-        },
-        {
-            "identificador_externo": "reserva_4",
-            "origem": "banco_reserva",
-            "enunciado": "(UNICAMP) A fotossíntese é um processo vital realizado pelas plantas. Qual gás é absorvido da atmosfera durante esse processo?",
-            "alternativas": [
-                {"letra": "A", "texto": "Oxigênio (O2)"},
-                {"letra": "B", "texto": "Nitrogênio (N2)"},
-                {"letra": "C", "texto": "Dióxido de Carbono (CO2)"},
-                {"letra": "D", "texto": "Monóxido de Carbono (CO)"},
-                {"letra": "E", "texto": "Hélio (He)"}
-            ],
-            "alternativa_correta": "C"
-        },
-        {
-            "identificador_externo": "reserva_5",
-            "origem": "banco_reserva",
-            "enunciado": "(ENEM) A globalização é um fenômeno que encurtou distâncias e integrou economias. Uma das principais características tecnológicas da globalização atual é:",
-            "alternativas": [
-                {"letra": "A", "texto": "A substituição da internet pelo rádio."},
-                {"letra": "B", "texto": "O isolamento das redes de comunicação nacionais."},
-                {"letra": "C", "texto": "A expansão das redes de telecomunicação e internet."},
-                {"letra": "D", "texto": "A diminuição do comércio internacional."},
-                {"letra": "E", "texto": "O fim do transporte aéreo comercial."}
+                {"letra": "A", "texto": "Rio de Janeiro"},
+                {"letra": "B", "texto": "São Paulo"},
+                {"letra": "C", "texto": "Brasília"},
+                {"letra": "D", "texto": "Salvador"},
+                {"letra": "E", "texto": "Belo Horizonte"}
             ],
             "alternativa_correta": "C"
         }
-    ]
-    
-    # Embaralha as questões para o simulado não ser sempre igual
-    random.shuffle(banco_reserva)
-    
-    # Retorna apenas a quantidade que o aluno pediu (limitado a 5 no fallback)
-    return banco_reserva[:min(quantidade, len(banco_reserva))]
-
-def gerar_questoes_ia(tema: str, quantidade: int):
-    questoes_padronizadas = []
-    for i in range(quantidade):
-        questoes_padronizadas.append({
-            "identificador_externo": f"ia_gen_{i}",
-            "origem": "ia",
-            "enunciado": f"Questão gerada por Inteligência Artificial sobre o tema: {tema or 'Geral'}. Qual é a resposta correta?",
-            "alternativas": [
-                {"letra": "A", "texto": "Resposta incorreta gerada pela IA"},
-                {"letra": "B", "texto": "Resposta correta gerada pela IA"},
-                {"letra": "C", "texto": "Outra resposta incorreta"}
-            ],
-            "alternativa_correta": "B"
-        })
-    return questoes_padronizadas
+    ] * quantidade
