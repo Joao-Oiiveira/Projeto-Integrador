@@ -9,6 +9,7 @@ import 'package:mobile/telas/login.dart';
 import 'package:mobile/telas/perfil_educacional.dart';
 import 'package:mobile/telas/exercicios.dart';
 import 'package:mobile/telas/exercicios_sessao.dart';
+import 'package:mobile/telas/perfil.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -26,6 +27,11 @@ final appRouter = GoRouter(
     GoRoute(
       path: '/perfil-educacional',
       builder: (context, state) => const PerfilEducacionalScreen(),
+    ),
+
+    GoRoute(
+      path: '/perfil',
+      builder: (context, state) => const PerfilScreen(),
     ),
 
     GoRoute(
