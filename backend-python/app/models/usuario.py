@@ -36,7 +36,10 @@ class ConfiguracoesUsuario(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), unique=True, nullable=False)
     tamanho_fonte = Column(Integer, default=16)
-    alto_contraste = Column(Boolean, default=False)
     leitura_texto = Column(Boolean, default=False)
+    
+    # NOVOS CAMPOS
+    tema_escuro = Column(Boolean, default=False)
+    fonte_dislexia = Column(Boolean, default=False)
 
     usuario = relationship("Usuario", back_populates="configuracoes")

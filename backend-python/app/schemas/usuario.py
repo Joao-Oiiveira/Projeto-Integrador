@@ -21,8 +21,9 @@ class PerfilUpdate(BaseModel):
 
 class ConfiguracoesUpdate(BaseModel):
     tamanho_fonte: int = 16
-    alto_contraste: bool = False
     leitura_texto: bool = False
+    tema_escuro: bool = False
+    fonte_dislexia: bool = False
 
 class OnboardingUpdate(BaseModel):
     nome: str

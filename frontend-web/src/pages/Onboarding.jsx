@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Checkbox from '../components/Checkbox';
-import { saveOnboardingDataAPI, getLoggedUser } from '../services/auth'; // <-- Atualizado
+import { saveOnboardingDataAPI, getLoggedUser } from '../services/auth';
 
 const Onboarding = () => {
   const navigate = useNavigate();
@@ -11,7 +11,7 @@ const Onboarding = () => {
   useEffect(() => {
     const user = getLoggedUser();
     if (!user) navigate('/login');
-    if (user?.perfil) navigate('/dashboard'); // <-- Ajustado para 'perfil'
+    if (user?.perfil) navigate('/dashboard');
   }, [navigate]);
 
   const user = getLoggedUser();
@@ -25,21 +25,37 @@ const Onboarding = () => {
     prefere_auditivo: false,
   });
 
+  // Estado atualizado para bater EXATAMENTE com o contrato da API Python
   const [configuracoes, setConfiguracoes] = useState({
     tamanho_fonte: 16,
-    alto_contraste: false,
     leitura_texto: false,
+    tema_escuro: false,
+    fonte_dislexia: false,
   });
 
   const handlePerfilChange = (campo) => {
-    setPerfil((prev) => ({ ...prev, [campo]: !prev[campo] }));
+    setPerfil((prev) => {
+      const novoValor = !prev[campo];
+      const novoPerfil = { ...prev, [campo]: novoValor };
+
+      // REGRA DE NEGÓCIO: Auto-ativação de Acessibilidade
+      if (novoValor === true) { // Só ativa se o usuário estiver marcando a opção
+        if (campo === 'dificuldade_leitura') {
+          setConfiguracoes(c => ({ ...c, fonte_dislexia: true }));
+        }
+        if (campo === 'autismo' || campo === 'prefere_visual') {
+          setConfiguracoes(c => ({ ...c, tema_escuro: true }));
+        }
+      }
+
+      return novoPerfil;
+    });
   };
 
   const handleConfiguracoesChange = (campo) => {
     setConfiguracoes((prev) => ({ ...prev, [campo]: !prev[campo] }));
   };
 
-  // <-- Função agora é async
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!nome.trim()) {
@@ -48,9 +64,9 @@ const Onboarding = () => {
     }
 
     try {
-      // <-- Adicionado o await
       await saveOnboardingDataAPI(nome, perfil, configuracoes);
-      navigate('/dashboard');
+      // Força um reload simples para o AccessibilityContext ler os dados novos do localStorage e injetar no HTML
+      window.location.href = '/dashboard'; 
     } catch (error) {
       alert(error.message || "Erro ao salvar dados.");
     }
@@ -79,7 +95,7 @@ const Onboarding = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Checkbox id="tdah" label="Tenho TDAH" description="Ajuda a reduzir distrações na interface" checked={perfil.tdah} onChange={() => handlePerfilChange('tdah')} />
               <Checkbox id="autismo" label="Estou no Espectro Autista" description="Interfaces mais previsíveis e sem poluição" checked={perfil.autismo} onChange={() => handlePerfilChange('autismo')} />
-              <Checkbox id="dificuldade_leitura" label="Dificuldade de Leitura (ex: Dislexia)" description="Fontes específicas e maior espaçamento" checked={perfil.dificuldade_leitura} onChange={() => handlePerfilChange('dificuldade_leitura')} />
+              <Checkbox id="dificuldade_leitura" label="Dificuldade de Leitura (ex: Dislexia)" description="Ativa fonte especial automaticamente" checked={perfil.dificuldade_leitura} onChange={() => handlePerfilChange('dificuldade_leitura')} />
               <Checkbox id="prefere_visual" label="Aprendizado Visual" description="Prefiro imagens, mapas mentais e gráficos" checked={perfil.prefere_visual} onChange={() => handlePerfilChange('prefere_visual')} />
               <Checkbox id="prefere_auditivo" label="Aprendizado Auditivo" description="Prefiro explicações em áudio" checked={perfil.prefere_auditivo} onChange={() => handlePerfilChange('prefere_auditivo')} />
             </div>
@@ -88,17 +104,19 @@ const Onboarding = () => {
           <section className="flex flex-col gap-4">
             <h2 className="text-xl font-semibold border-b border-gray-800 pb-2">3. Acessibilidade</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Checkbox id="alto_contraste" label="Modo de Alto Contraste" description="Aumenta o contraste das cores do sistema" checked={configuracoes.alto_contraste} onChange={() => handleConfiguracoesChange('alto_contraste')} />
+              
+              {/* Opções atualizadas para o contrato da API */}
+              <Checkbox id="tema_escuro" label="Tema Escuro (Dark Mode)" description="Reduz o brilho e descansa a visão" checked={configuracoes.tema_escuro} onChange={() => handleConfiguracoesChange('tema_escuro')} />
+              <Checkbox id="fonte_dislexia" label="Fonte para Dislexia" description="Aplica a fonte OpenDyslexic globalmente" checked={configuracoes.fonte_dislexia} onChange={() => handleConfiguracoesChange('fonte_dislexia')} />
               <Checkbox id="leitura_texto" label="Leitura de Texto (Text-to-Speech)" description="Ativa o botão de ler textos em voz alta" checked={configuracoes.leitura_texto} onChange={() => handleConfiguracoesChange('leitura_texto')} />
               
               <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-gray-800 bg-gray-900/50">
                 <label className="text-sm font-medium text-white">Tamanho da Fonte (Base)</label>
                 <select 
-                  className="bg-gray-800 text-white rounded-md p-2 mt-1 focus:ring-2 focus:ring-purple-500 border-none outline-none"
+                  className="bg-gray-800 text-white rounded-md p-2 mt-1 focus:ring-2 focus:ring-purple-500 border-none outline-none cursor-pointer"
                   value={configuracoes.tamanho_fonte}
                   onChange={(e) => setConfiguracoes(prev => ({...prev, tamanho_fonte: Number(e.target.value)}))}
                 >
-                  <option value={14}>Pequena (14px)</option>
                   <option value={16}>Padrão (16px)</option>
                   <option value={20}>Grande (20px)</option>
                   <option value={24}>Extra Grande (24px)</option>
