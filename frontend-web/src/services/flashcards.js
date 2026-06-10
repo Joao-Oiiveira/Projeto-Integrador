@@ -75,3 +75,14 @@ export const registrarResultadoEstudo = async (flashcardId, acertou) => {
   });
   if (!response.ok) throw new Error("Erro ao registrar estudo");
 };
+
+export const gerarFlashcardsIA = async (baralhoId, tema, dificuldade, quantidade) => {
+  const token = localStorage.getItem('@EduAcess:token');
+  const response = await fetch(`http://127.0.0.1:8000/estudos/baralhos/${baralhoId}/gerar-ia`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ tema, dificuldade, quantidade: Number(quantidade) })
+  });
+  if (!response.ok) throw new Error("Erro ao gerar flashcards com IA");
+  return await response.json();
+};

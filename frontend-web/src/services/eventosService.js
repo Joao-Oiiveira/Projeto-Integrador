@@ -42,3 +42,28 @@ export const excluirEvento = async (id) => {
   
   if (!response.ok) throw new Error("Erro ao excluir evento");
 };
+
+export const atualizarEvento = async (id, dadosAtualizados) => {
+  const token = localStorage.getItem('@EduAcess:token');
+  if (!token) throw new Error("Usuário não autenticado");
+
+  const response = await fetch(`http://127.0.0.1:8000/eventos/${id}`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    },
+    body: JSON.stringify({
+      titulo: dadosAtualizados.titulo,
+      descricao: dadosAtualizados.descricao || '',
+      data_inicio: dadosAtualizados.data_inicio,
+      data_fim: dadosAtualizados.data_fim || dadosAtualizados.data_inicio,
+      disciplina_id: dadosAtualizados.disciplina_id ? Number(dadosAtualizados.disciplina_id) : null
+    })
+  });
+  
+  if (!response.ok) {
+    const data = await response.json();
+    throw new Error(data.detail || "Erro ao atualizar evento");
+  }
+};

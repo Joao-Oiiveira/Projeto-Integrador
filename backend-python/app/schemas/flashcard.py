@@ -25,12 +25,18 @@ class FlashcardCreate(FlashcardBase):
 
 class FlashcardUpdate(FlashcardBase): pass
 
+# Mude a classe FlashcardResponse para ficar assim:
 class FlashcardResponse(FlashcardBase):
     id: int
     baralho_id: int
+    acertos: Optional[int] = 0
+    erros: Optional[int] = 0
+    proxima_revisao: Optional[datetime] = None
     data_criacao: datetime
     data_atualizacao: datetime
-    class Config: from_attributes = True
+    
+class Config: 
+        from_attributes = True
 
 # --- PROGRESSO (ESTUDO) ---
 class ResultadoEstudo(BaseModel):

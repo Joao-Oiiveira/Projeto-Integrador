@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
-import { getLoggedUser } from '../services/auth';
+import { getLoggedUser, logoutAPI } from '../services/auth'; // <-- Corrigido para logoutAPI
 import { useAccessibility } from '../contexts/AccessibilityContext';
 import Modal from '../components/Modal';
 import Checkbox from '../components/Checkbox';
 import TTSReader from '../components/TTSReader';
-import { obterNotificacoes, marcarComoLida, marcarTodasComoLidas } from '../services/notificacoes'; // NOVO
+import { obterNotificacoes, marcarComoLida, marcarTodasComoLidas } from '../services/notificacoes';
 
 const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -16,9 +16,12 @@ const DashboardLayout = () => {
   const { configuracoes, updateAccessibility } = useAccessibility();
   const [isAcessibilidadeOpen, setIsAcessibilidadeOpen] = useState(false);
 
-  // NOVO: Estados de Notificações
+  // Estados de Notificações
   const [notificacoes, setNotificacoes] = useState([]);
   const [isNotificacoesOpen, setIsNotificacoesOpen] = useState(false);
+
+  // Estado para o Dropdown do Perfil
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const carregarNotificacoes = async () => {
     try {
@@ -37,13 +40,14 @@ const DashboardLayout = () => {
       navigate('/onboarding');
     } else {
       setUser(loggedUser);
-      carregarNotificacoes(); // Carrega as notificações ao entrar
+      carregarNotificacoes();
     }
   }, [navigate]);
 
   useEffect(() => {
     setIsSidebarOpen(false);
-    setIsNotificacoesOpen(false); // Fecha o dropdown ao mudar de tela
+    setIsNotificacoesOpen(false);
+    setIsProfileOpen(false); // Fecha o menu de perfil ao mudar de tela
   }, [location.pathname]);
 
   if (!user) return null;
@@ -61,6 +65,12 @@ const DashboardLayout = () => {
     await marcarTodasComoLidas();
     carregarNotificacoes();
     setIsNotificacoesOpen(false);
+  };
+
+  // NOVO: Função que limpa os dados e redireciona
+  const handleLogout = () => {
+    logoutAPI();
+    navigate('/login');
   };
 
   const notificacoesNaoLidas = notificacoes.filter(n => !n.lida);
@@ -114,7 +124,6 @@ const DashboardLayout = () => {
             Acessibilidade
           </button>
 
-          {/* NOVO: Rota para Configurações */}
           <button onClick={() => navigate('/configuracoes')} className={`flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all ${location.pathname === '/configuracoes' ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900 shadow-md' : 'text-gray-500 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white'}`}>
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             Configurações
@@ -136,10 +145,13 @@ const DashboardLayout = () => {
 
           <div className="flex items-center gap-4 relative">
             
-            {/* NOVO: SINO DE NOTIFICAÇÕES */}
+            {/* SINO DE NOTIFICAÇÕES */}
             <div className="relative">
               <button 
-                onClick={() => setIsNotificacoesOpen(!isNotificacoesOpen)}
+                onClick={() => {
+                  setIsNotificacoesOpen(!isNotificacoesOpen);
+                  setIsProfileOpen(false);
+                }}
                 className="bg-white dark:bg-gray-800 p-2.5 rounded-full text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 shadow-sm border border-gray-100 dark:border-gray-700 transition-colors relative"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
@@ -180,15 +192,42 @@ const DashboardLayout = () => {
               )}
             </div>
             
-            <div className="flex items-center gap-3 bg-white dark:bg-gray-800 p-1 sm:px-2 sm:py-1.5 sm:pr-4 rounded-full shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-sm">
-                {user.nome ? user.nome.charAt(0).toUpperCase() : 'U'}
+            {/* PERFIL COM DROPDOWN DE LOGOUT */}
+            <div className="relative">
+              <div 
+                onClick={() => {
+                  setIsProfileOpen(!isProfileOpen);
+                  setIsNotificacoesOpen(false);
+                }}
+                className="flex items-center gap-3 bg-white dark:bg-gray-800 p-1 sm:px-2 sm:py-1.5 sm:pr-4 rounded-full shadow-sm border border-gray-100 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+              >
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-600 dark:text-purple-300 flex items-center justify-center font-bold text-sm">
+                  {user.nome ? user.nome.charAt(0).toUpperCase() : 'U'}
+                </div>
+                <div className="hidden sm:flex flex-col">
+                  <span className="text-sm font-bold text-gray-900 dark:text-white leading-tight max-w-[120px] truncate">{user.nome}</span>
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Estudante</span>
+                </div>
               </div>
-              <div className="hidden sm:flex flex-col">
-                <span className="text-sm font-bold text-gray-900 dark:text-white leading-tight max-w-[120px] truncate">{user.nome}</span>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Estudante</span>
-              </div>
+
+              {/* Menu Flutuante do Perfil */}
+              {isProfileOpen && (
+                <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 overflow-hidden z-50 animate-fade-in">
+                  <div className="p-2">
+                    <button 
+                      onClick={handleLogout} // <-- Usando a nova função que limpa e redireciona
+                      className="w-full flex items-center gap-3 px-4 py-3 text-sm font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Sair da Conta
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
+
           </div>
         </header>
 
