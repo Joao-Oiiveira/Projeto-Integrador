@@ -3,34 +3,16 @@ import 'accessibility_preferences.dart';
 
 final accessibilityProvider = AccessibilityPreferences();
 
-class AccessibilityConsumer extends StatefulWidget {
-  final Widget child;
+class AccessibilityConsumer extends StatelessWidget {
+  final WidgetBuilder builder;
 
-  const AccessibilityConsumer({super.key, required this.child});
-
-  @override
-  State<AccessibilityConsumer> createState() => _AccessibilityConsumerState();
-}
-
-class _AccessibilityConsumerState extends State<AccessibilityConsumer> {
-  @override
-  void initState() {
-    super.initState();
-    accessibilityProvider.addListener(_onAccessibilityChanged);
-  }
-
-  @override
-  void dispose() {
-    accessibilityProvider.removeListener(_onAccessibilityChanged);
-    super.dispose();
-  }
-
-  void _onAccessibilityChanged() {
-    setState(() {});
-  }
+  const AccessibilityConsumer({super.key, required this.builder});
 
   @override
   Widget build(BuildContext context) {
-    return widget.child;
+    return ListenableBuilder(
+      listenable: accessibilityProvider,
+      builder: (context, _) => builder(context),
+    );
   }
 }

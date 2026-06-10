@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/tema/app_colors.dart';
+import 'package:mobile/tema/app_text_styles.dart';
 import 'auth_widgets.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -16,7 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppColors.background(context),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -26,18 +28,14 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 24),
 
               // Título
-              const Text(
+              Text(
                 'Seja bem vindo',
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+                style: AppTextStyles.titulo(context, size: 26.0),
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 'Efetue seu login',
-                style: TextStyle(fontSize: 13, color: Colors.white54),
+                style: AppTextStyles.corpo(context, size: 13.0, color: AppColors.textSecondary(context)),
               ),
 
               const SizedBox(height: 32),
@@ -79,21 +77,22 @@ class _LoginScreenState extends State<LoginScreen> {
                       Switch(
                         value: _rememberMe,
                         onChanged: (v) => setState(() => _rememberMe = v),
-                        activeTrackColor: Colors.white30,
-                        inactiveThumbColor: Colors.white38,
-                        inactiveTrackColor: Colors.white12,
+                        activeColor: AppColors.destaque,
+                        activeTrackColor: AppColors.destaque.withOpacity(0.3),
+                        inactiveThumbColor: AppColors.textHint(context),
+                        inactiveTrackColor: AppColors.border(context),
                         materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       const SizedBox(width: 6),
-                      const Text(
+                      Text(
                         'Lembrar-me',
-                        style: TextStyle(fontSize: 12, color: Colors.white70),
+                        style: AppTextStyles.legenda(context, color: AppColors.textSecondary(context)),
                       ),
                     ],
                   ),
-                  const Text(
+                  Text(
                     'Esqueceu sua senha?',
-                    style: TextStyle(fontSize: 12, color: Colors.white54),
+                    style: AppTextStyles.legenda(context, color: AppColors.textSecondary(context)),
                   ),
                 ],
               ),
@@ -104,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
               PrimaryButton(
                 label: 'Acessar',
                 onPressed: () {
-                  // 🔧 BACK-END: Apenas navegação, sem lógica
+                  // Navegação para a Home/Menu
                   context.go('/menu');
                 },
               ),
@@ -116,9 +115,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 onTap: () {
                   context.go('/cadastro');
                 },
-                child: const Text(
+                child: Text(
                   'Não tem uma conta?',
-                  style: TextStyle(fontSize: 13, color: Colors.white38),
+                  style: AppTextStyles.corpo(context, size: 13.0, color: AppColors.textHint(context)),
                 ),
               ),
             ],

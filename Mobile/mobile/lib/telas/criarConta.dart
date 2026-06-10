@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/tema/app_colors.dart';
+import 'package:mobile/tema/app_text_styles.dart';
 import 'auth_widgets.dart';
 
 class SignUpScreen extends StatefulWidget {
@@ -13,14 +15,13 @@ class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscurePassword = true;
   bool _acceptTerms = false;
 
-  // 🔧 BACK-END: Controllers para capturar o que o usuário digita
+  // Controllers para capturar o que o usuário digita
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
 
   @override
   void dispose() {
-    // 🔧 BACK-END: Sempre libere os controllers quando a tela for destruída
     _nomeController.dispose();
     _emailController.dispose();
     _senhaController.dispose();
@@ -30,7 +31,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppColors.background(context),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
@@ -39,128 +40,71 @@ class _SignUpScreenState extends State<SignUpScreen> {
             children: [
               const SizedBox(height: 24),
 
-              // ── Título ──────────────────────────────
-              const Text(
+              // Título
+              Text(
                 'Crie sua conta',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
+                style: AppTextStyles.titulo(context, size: 28.0),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'Insira seu nome completo, email, senha para\ncriar sua conta e começar',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.white54,
-                  height: 1.5,
+                style: AppTextStyles.corpo(
+                  context,
+                  size: 13.0,
+                  color: AppColors.textSecondary(context),
                 ),
               ),
 
               const SizedBox(height: 32),
 
-              // ── Botão Google ────────────────────────
-              // 🔧 BACK-END: Ao pressionar, chamar autenticação OAuth com Google
-              // Ex: AuthService.signInWithGoogle()
+              // Botão Google
               const GoogleButton(),
 
               const SizedBox(height: 20),
 
-              // ── Divisor "ou" ────────────────────────
+              // Divisor "ou"
               const OrDivider(),
 
               const SizedBox(height: 20),
 
-              // ── Campo Nome completo ──────────────────
-              // 🔧 BACK-END: _nomeController.text terá o nome digitado
-              TextField(
+              // Campo Nome completo
+              AuthTextField(
                 controller: _nomeController,
+                label: 'Nome completo',
                 keyboardType: TextInputType.name,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                cursorColor: Colors.white,
-                decoration: InputDecoration(
-                  labelText: 'Nome completo',
-                  labelStyle: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 13,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.white24),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.white60),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFF1A1A1A),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
-                ),
               ),
 
               const SizedBox(height: 16),
 
-              // ── Campo E-mail ─────────────────────────
-              // 🔧 BACK-END: _emailController.text terá o email digitado
-              TextField(
+              // Campo E-mail
+              AuthTextField(
                 controller: _emailController,
+                label: 'E-mail',
                 keyboardType: TextInputType.emailAddress,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                cursorColor: Colors.white,
-                decoration: InputDecoration(
-                  labelText: 'E-mail',
-                  labelStyle: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 13,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.white24),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.white60),
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFF1A1A1A),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 14,
-                    vertical: 14,
-                  ),
-                ),
               ),
 
               const SizedBox(height: 16),
 
-              // ── Campo Senha ──────────────────────────
-              // 🔧 BACK-END: _senhaController.text terá a senha digitada
-              // Lembre de usar hash (ex: bcrypt) antes de enviar para a API
+              // Campo Senha
               TextField(
                 controller: _senhaController,
                 obscureText: _obscurePassword,
-                style: const TextStyle(color: Colors.white, fontSize: 14),
-                cursorColor: Colors.white,
+                style: AppTextStyles.corpo(context, color: AppColors.textPrimary(context)),
+                cursorColor: AppColors.textPrimary(context),
                 decoration: InputDecoration(
                   labelText: 'Senha',
-                  labelStyle: const TextStyle(
-                    color: Colors.white38,
-                    fontSize: 13,
-                  ),
+                  labelStyle: AppTextStyles.legenda(context, color: AppColors.textHint(context), size: 13.0),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.white24),
+                    borderSide: BorderSide(color: AppColors.borderMedium(context)),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(color: Colors.white60),
+                    borderSide: const BorderSide(color: AppColors.destaque),
                   ),
                   filled: true,
-                  fillColor: const Color(0xFF1A1A1A),
+                  fillColor: AppColors.cardSecondary(context),
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 14,
                     vertical: 14,
@@ -170,7 +114,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                       _obscurePassword
                           ? Icons.visibility_off_outlined
                           : Icons.visibility_outlined,
-                      color: Colors.white38,
+                      color: AppColors.textHint(context),
                       size: 20,
                     ),
                     onPressed:
@@ -183,41 +127,45 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
               const SizedBox(height: 12),
 
-              // ── Termos de uso ────────────────────────
-              // 🔧 BACK-END: _acceptTerms deve ser true para permitir o cadastro
-              // Registrar a data de aceite dos termos no banco de dados
+              // Termos de uso
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Switch(
                     value: _acceptTerms,
                     onChanged: (v) => setState(() => _acceptTerms = v),
-                    activeThumbColor: Colors.white,
-                    activeTrackColor: Colors.white30,
-                    inactiveThumbColor: Colors.white38,
-                    inactiveTrackColor: Colors.white12,
+                    activeColor: AppColors.destaque,
+                    activeTrackColor: AppColors.destaque.withOpacity(0.3),
+                    inactiveThumbColor: AppColors.textHint(context),
+                    inactiveTrackColor: AppColors.border(context),
                     materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: RichText(
-                      text: const TextSpan(
-                        style: TextStyle(fontSize: 11, color: Colors.white54),
+                      text: TextSpan(
+                        style: AppTextStyles.legenda(context, color: AppColors.textSecondary(context), size: 11.0),
                         children: [
-                          TextSpan(text: 'Concordo em aceitar os '),
+                          const TextSpan(text: 'Concordo em aceitar os '),
                           TextSpan(
                             text: 'termos',
-                            style: TextStyle(
-                              color: Colors.white,
+                            style: AppTextStyles.legenda(
+                              context,
+                              color: AppColors.textPrimary(context),
+                              size: 11.0,
+                            ).copyWith(
                               fontWeight: FontWeight.bold,
                               decoration: TextDecoration.underline,
                             ),
                           ),
-                          TextSpan(text: ' de '),
+                          const TextSpan(text: ' de '),
                           TextSpan(
                             text: 'política e privacidade',
-                            style: TextStyle(
-                              color: Colors.white,
+                            style: AppTextStyles.legenda(
+                              context,
+                              color: AppColors.textPrimary(context),
+                              size: 11.0,
+                            ).copyWith(
                               fontWeight: FontWeight.bold,
                               decoration: TextDecoration.underline,
                             ),
@@ -231,37 +179,25 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
               const SizedBox(height: 24),
 
-              // ── Botão Acessar ────────────────────────
+              // Botão Cadastrar (Acessar)
               PrimaryButton(
                 label: 'Acessar',
                 onPressed: () {
-                  // 🔧 BACK-END: Validar campos e chamar a API de cadastro
-                  // 1. Verificar se todos os campos estão preenchidos
-                  // 2. Verificar se _acceptTerms == true
-                  // 3. Validar formato do email
-                  // 4. Verificar força da senha
-                  // 5. Chamar: AuthService.register(
-                  //      nome: _nomeController.text,
-                  //      email: _emailController.text,
-                  //      senha: _senhaController.text,
-                  //    )
-                  // 6. Se sucesso → redirecionar para formulário de perfil educacional
-                  //    context.go('/perfil-educacional')
+                  // Redireciona para o formulário de perfil educacional pós-cadastro
+                  context.go('/perfil-educacional');
                 },
               ),
 
               const SizedBox(height: 40),
 
-              // ── Link para Login ──────────────────────
+              // Link para Login
               GestureDetector(
                 onTap: () {
                   context.go('/login');
-                  // 🔧 BACK-END: Apenas navegação, sem lógica
-                  // context.go('/login');
                 },
-                child: const Text(
+                child: Text(
                   'Tem uma conta? Entre aqui',
-                  style: TextStyle(fontSize: 13, color: Colors.white38),
+                  style: AppTextStyles.corpo(context, size: 13.0, color: AppColors.textHint(context)),
                 ),
               ),
             ],

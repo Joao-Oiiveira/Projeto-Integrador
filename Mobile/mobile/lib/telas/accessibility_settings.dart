@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/servicos/accessibility_provider.dart';
 import 'package:mobile/tema/app_colors.dart';
+import 'package:mobile/tema/app_text_styles.dart';
 
 class AccessibilitySettingsScreen extends StatefulWidget {
   const AccessibilitySettingsScreen({super.key});
@@ -30,8 +31,6 @@ class _AccessibilitySettingsScreenState
     _espacamentoLinhas = accessibilityProvider.espacamentoLinhas;
     _fonteDislexia = accessibilityProvider.fonteDislexia;
   }
-
-  double _getFontSize(double base) => base * _fontSizeMultiplier;
 
   @override
   Widget build(BuildContext context) {
@@ -69,7 +68,6 @@ class _AccessibilitySettingsScreenState
                       value: _temaClaro,
                       onChanged: (value) {
                         setState(() => _temaClaro = value);
-                        // 🔧 BACK-END: Salvar preferência de tema do usuário
                         accessibilityProvider.setTemaClaro(value);
                       },
                     ),
@@ -97,7 +95,6 @@ class _AccessibilitySettingsScreenState
                       value: _textToSpeechEnabled,
                       onChanged: (value) {
                         setState(() => _textToSpeechEnabled = value);
-                        // 🔧 BACK-END: Integrar com flutter_tts para leitura real
                         accessibilityProvider.setTextToSpeechEnabled(value);
                       },
                     ),
@@ -110,8 +107,6 @@ class _AccessibilitySettingsScreenState
                       value: _fonteDislexia,
                       onChanged: (value) {
                         setState(() => _fonteDislexia = value);
-                        // 🔧 BACK-END: Aplicar fonte OpenDyslexic globalmente
-                        // Requer assets/fonts/OpenDyslexic configurado no pubspec.yaml
                         accessibilityProvider.setFonteDislexia(value);
                       },
                     ),
@@ -146,28 +141,24 @@ class _AccessibilitySettingsScreenState
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E1E1E),
-        border: Border(bottom: BorderSide(color: Colors.white12)),
+      decoration: BoxDecoration(
+        color: AppColors.cardBackground(context),
+        border: Border(bottom: BorderSide(color: AppColors.border(context))),
       ),
       child: Row(
         children: [
           GestureDetector(
             onTap: () => context.go('/menu'),
-            child: const Icon(
+            child: Icon(
               Icons.arrow_back_ios,
-              color: Colors.white,
+              color: AppColors.textPrimary(context),
               size: 22,
             ),
           ),
           const SizedBox(width: 16),
           Text(
             'Acessibilidade',
-            style: TextStyle(
-              fontSize: _getFontSize(20),
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: AppTextStyles.titulo(context, size: 20.0),
           ),
         ],
       ),
@@ -178,12 +169,11 @@ class _AccessibilitySettingsScreenState
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: TextStyle(
-        fontSize: _getFontSize(13),
-        fontWeight: FontWeight.w700,
-        color: Colors.white54,
-        letterSpacing: 1.1,
-      ),
+      style: AppTextStyles.subtitulo(
+        context,
+        size: 13.0,
+        color: AppColors.textHint(context),
+      ).copyWith(letterSpacing: 1.1),
     );
   }
 
@@ -199,8 +189,9 @@ class _AccessibilitySettingsScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
         children: [
@@ -225,12 +216,14 @@ class _AccessibilitySettingsScreenState
                       decoration: BoxDecoration(
                         color:
                             selecionado
-                                ? AppColors.destaque.withOpacity(0.2)
-                                : const Color(0xFF2A2A2A),
+                                ? AppColors.destaque.withValues(alpha: 0.2)
+                                : AppColors.cardSecondary(context),
                         borderRadius: BorderRadius.circular(10),
                         border: Border.all(
                           color:
-                              selecionado ? AppColors.destaque : Colors.white12,
+                              selecionado
+                                  ? AppColors.destaque
+                                  : AppColors.border(context),
                           width: selecionado ? 1.5 : 1,
                         ),
                       ),
@@ -244,7 +237,7 @@ class _AccessibilitySettingsScreenState
                             color:
                                 selecionado
                                     ? AppColors.destaque
-                                    : Colors.white54,
+                                    : AppColors.textSecondary(context),
                           ),
                         ),
                       ),
@@ -265,12 +258,16 @@ class _AccessibilitySettingsScreenState
                     child: Text(
                       opcao['nome'] as String,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 10,
+                      style: AppTextStyles.legenda(
+                        context,
                         color:
-                            selecionado ? AppColors.destaque : Colors.white24,
+                            selecionado
+                                ? AppColors.destaque
+                                : AppColors.textHint(context),
+                        size: 10.0,
+                      ).copyWith(
                         fontWeight:
-                            selecionado ? FontWeight.w600 : FontWeight.w400,
+                            selecionado ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   );
@@ -292,15 +289,19 @@ class _AccessibilitySettingsScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Espaço entre linhas',
-            style: TextStyle(fontSize: _getFontSize(13), color: Colors.white54),
+            style: AppTextStyles.corpo(
+              context,
+              color: AppColors.textSecondary(context),
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -315,7 +316,6 @@ class _AccessibilitySettingsScreenState
                       onTap: () {
                         final value = opcao['value'] as double;
                         setState(() => _espacamentoLinhas = value);
-                        // 🔧 BACK-END: Salvar preferência de espaçamento
                         accessibilityProvider.setEspacamentoLinhas(value);
                       },
                       child: AnimatedContainer(
@@ -325,14 +325,14 @@ class _AccessibilitySettingsScreenState
                         decoration: BoxDecoration(
                           color:
                               selecionado
-                                  ? AppColors.destaque.withOpacity(0.2)
-                                  : const Color(0xFF2A2A2A),
+                                  ? AppColors.destaque.withValues(alpha: 0.2)
+                                  : AppColors.cardSecondary(context),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color:
                                 selecionado
                                     ? AppColors.destaque
-                                    : Colors.white12,
+                                    : AppColors.border(context),
                             width: selecionado ? 1.5 : 1,
                           ),
                         ),
@@ -343,22 +343,24 @@ class _AccessibilitySettingsScreenState
                               color:
                                   selecionado
                                       ? AppColors.destaque
-                                      : Colors.white38,
+                                      : AppColors.textHint(context),
                               size: 20,
                             ),
                             const SizedBox(height: 6),
                             Text(
                               opcao['label'] as String,
-                              style: TextStyle(
-                                fontSize: 11,
+                              style: AppTextStyles.legenda(
+                                context,
                                 color:
                                     selecionado
                                         ? AppColors.destaque
-                                        : Colors.white38,
+                                        : AppColors.textSecondary(context),
+                                size: 11.0,
+                              ).copyWith(
                                 fontWeight:
                                     selecionado
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                               ),
                             ),
                           ],
@@ -384,10 +386,13 @@ class _AccessibilitySettingsScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: value ? AppColors.destaque.withOpacity(0.4) : Colors.white12,
+          color:
+              value
+                  ? AppColors.destaque.withValues(alpha: 0.4)
+                  : AppColors.border(context),
           width: value ? 1.5 : 1,
         ),
       ),
@@ -399,13 +404,14 @@ class _AccessibilitySettingsScreenState
             decoration: BoxDecoration(
               color:
                   value
-                      ? AppColors.destaque.withOpacity(0.2)
-                      : const Color(0xFF2A2A2A),
+                      ? AppColors.destaque.withValues(alpha: 0.2)
+                      : AppColors.cardSecondary(context),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(
               icon,
-              color: value ? AppColors.destaque : Colors.white38,
+              color:
+                  value ? AppColors.destaque : AppColors.textSecondary(context),
               size: 20,
             ),
           ),
@@ -416,19 +422,14 @@ class _AccessibilitySettingsScreenState
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: _getFontSize(14),
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+                  style: AppTextStyles.subtitulo(context, size: 14.0),
                 ),
                 const SizedBox(height: 3),
                 Text(
                   subtitle,
-                  style: TextStyle(
-                    fontSize: _getFontSize(11),
-                    color: Colors.white38,
-                    height: 1.4,
+                  style: AppTextStyles.legenda(
+                    context,
+                    color: AppColors.textHint(context),
                   ),
                 ),
               ],
@@ -437,10 +438,10 @@ class _AccessibilitySettingsScreenState
           const SizedBox(width: 12),
           Switch(
             value: value,
-            activeColor: AppColors.destaque,
-            activeTrackColor: AppColors.destaque.withOpacity(0.3),
-            inactiveThumbColor: Colors.white38,
-            inactiveTrackColor: Colors.white12,
+            activeThumbColor: AppColors.destaque,
+            activeTrackColor: AppColors.destaque.withValues(alpha: 0.3),
+            inactiveThumbColor: AppColors.textHint(context),
+            inactiveTrackColor: AppColors.border(context),
             onChanged: onChanged,
           ),
         ],
@@ -453,26 +454,26 @@ class _AccessibilitySettingsScreenState
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(
+              Icon(
                 Icons.visibility_outlined,
-                color: Colors.white38,
+                color: AppColors.textHint(context),
                 size: 16,
               ),
               const SizedBox(width: 8),
               Text(
                 'Como o texto aparecerá',
-                style: TextStyle(
-                  fontSize: _getFontSize(12),
-                  color: Colors.white38,
+                style: AppTextStyles.legenda(
+                  context,
+                  color: AppColors.textHint(context),
                 ),
               ),
             ],
@@ -482,9 +483,14 @@ class _AccessibilitySettingsScreenState
             width: double.infinity,
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: _highContrast ? Colors.black : const Color(0xFF2A2A2A),
+              color:
+                  _highContrast
+                      ? (Theme.of(context).brightness == Brightness.dark
+                          ? Colors.black
+                          : Colors.white)
+                      : AppColors.cardSecondary(context),
               borderRadius: BorderRadius.circular(8),
-              border: _highContrast ? Border.all(color: Colors.white38) : null,
+              border: Border.all(color: AppColors.border(context)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -492,22 +498,26 @@ class _AccessibilitySettingsScreenState
                 Text(
                   'Matemática',
                   style: TextStyle(
-                    fontSize: _getFontSize(18),
+                    fontSize: 18 * _fontSizeMultiplier,
                     fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    // 🔧 Fonte para dislexia aplicada aqui quando disponível
-                    fontFamily: _fonteDislexia ? 'OpenDyslexic' : null,
+                    color: AppColors.textPrimary(context),
+                    fontFamily:
+                        _fonteDislexia
+                            ? 'OpenDyslexic'
+                            : AppTextStyles.fontFamilyPadrao,
                   ),
                 ),
                 const SizedBox(height: 6),
                 Text(
                   'Este é um exemplo de como o conteúdo aparecerá com as configurações atuais.',
                   style: TextStyle(
-                    fontSize: _getFontSize(13),
-                    color: Colors.white70,
-                    // 🔧 Espaçamento entre linhas aplicado aqui
+                    fontSize: 13 * _fontSizeMultiplier,
+                    color: AppColors.textSecondary(context),
                     height: _espacamentoLinhas,
-                    fontFamily: _fonteDislexia ? 'OpenDyslexic' : null,
+                    fontFamily:
+                        _fonteDislexia
+                            ? 'OpenDyslexic'
+                            : AppTextStyles.fontFamilyPadrao,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -517,19 +527,22 @@ class _AccessibilitySettingsScreenState
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.destaque.withOpacity(0.2),
+                    color: AppColors.destaque.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(
-                      color: AppColors.destaque.withOpacity(0.4),
+                      color: AppColors.destaque.withValues(alpha: 0.4),
                     ),
                   ),
                   child: Text(
                     'Botão de exemplo',
                     style: TextStyle(
-                      fontSize: _getFontSize(13),
+                      fontSize: 13 * _fontSizeMultiplier,
                       color: AppColors.destaque,
                       fontWeight: FontWeight.w600,
-                      fontFamily: _fonteDislexia ? 'OpenDyslexic' : null,
+                      fontFamily:
+                          _fonteDislexia
+                              ? 'OpenDyslexic'
+                              : AppTextStyles.fontFamilyPadrao,
                     ),
                   ),
                 ),
@@ -562,8 +575,14 @@ class _AccessibilitySettingsScreenState
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Configurações restauradas ao padrão'),
-            backgroundColor: AppColors.background(context),
+            content: Text(
+              'Configurações restauradas ao padrão',
+              style: AppTextStyles.corpo(
+                context,
+                color: AppColors.background(context),
+              ),
+            ),
+            backgroundColor: AppColors.textPrimary(context),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(10),
@@ -577,18 +596,19 @@ class _AccessibilitySettingsScreenState
         decoration: BoxDecoration(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: AppColors.border(context)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.refresh, color: Colors.white38, size: 18),
+            Icon(Icons.refresh, color: AppColors.textHint(context), size: 18),
             const SizedBox(width: 8),
             Text(
               'Restaurar padrões',
-              style: TextStyle(
-                fontSize: _getFontSize(14),
-                color: Colors.white38,
+              style: AppTextStyles.subtitulo(
+                context,
+                size: 14.0,
+                color: AppColors.textHint(context),
                 fontWeight: FontWeight.w500,
               ),
             ),

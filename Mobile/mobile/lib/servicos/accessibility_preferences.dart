@@ -10,6 +10,12 @@ class AccessibilityPreferences extends ChangeNotifier {
   double _espacamentoLinhas = 1.5;
   bool _fonteDislexia = false;
 
+  // ── Perfis Educacionais ───────────────────────
+  bool _dificuldadeLeitura = false;
+  bool _tdah = false;
+  bool _autismo = false;
+  String _preferenciaConteudo = 'texto'; // 'visual', 'auditivo', 'texto'
+
   // ── Getters ──────────────────────────────────
   double get fontSizeMultiplier => _fontSizeMultiplier;
   bool get highContrast => _highContrast;
@@ -17,6 +23,11 @@ class AccessibilityPreferences extends ChangeNotifier {
   bool get temaClaro => _temaClaro;
   double get espacamentoLinhas => _espacamentoLinhas;
   bool get fonteDislexia => _fonteDislexia;
+
+  bool get dificuldadeLeitura => _dificuldadeLeitura;
+  bool get tdah => _tdah;
+  bool get autismo => _autismo;
+  String get preferenciaConteudo => _preferenciaConteudo;
 
   // ── Carrega configurações salvas ─────────────
   // Chamado no main() antes de abrir o app
@@ -28,6 +39,11 @@ class AccessibilityPreferences extends ChangeNotifier {
     _temaClaro = prefs.getBool('temaClaro') ?? false;
     _espacamentoLinhas = prefs.getDouble('espacamentoLinhas') ?? 1.5;
     _fonteDislexia = prefs.getBool('fonteDislexia') ?? false;
+
+    _dificuldadeLeitura = prefs.getBool('dificuldadeLeitura') ?? false;
+    _tdah = prefs.getBool('tdah') ?? false;
+    _autismo = prefs.getBool('autismo') ?? false;
+    _preferenciaConteudo = prefs.getString('preferenciaConteudo') ?? 'texto';
     notifyListeners();
   }
 
@@ -74,6 +90,53 @@ class AccessibilityPreferences extends ChangeNotifier {
     _fonteDislexia = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('fonteDislexia', value);
+    notifyListeners();
+  }
+
+  // Setters do Perfil Educacional com automações
+  void setDificuldadeLeitura(bool value) async {
+    _dificuldadeLeitura = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('dificuldadeLeitura', value);
+    
+    // Automação: se tem dificuldade de leitura, ativa a fonte OpenDyslexic
+    if (value) {
+      _fonteDislexia = true;
+      await prefs.setBool('fonteDislexia', true);
+    }
+    notifyListeners();
+  }
+
+  void setTdah(bool value) async {
+    _tdah = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('tdah', value);
+    notifyListeners();
+  }
+
+  void setAutismo(bool value) async {
+    _autismo = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('autismo', value);
+    
+    // Automação: se tem autismo/sensibilidade visual, ativa alto contraste
+    if (value) {
+      _highContrast = true;
+      await prefs.setBool('highContrast', true);
+    }
+    notifyListeners();
+  }
+
+  void setPreferenciaConteudo(String value) async {
+    _preferenciaConteudo = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('preferenciaConteudo', value);
+    
+    // Automação: se a preferência for áudio, ativa leitura de texto por voz
+    if (value == 'auditivo') {
+      _textToSpeechEnabled = true;
+      await prefs.setBool('textToSpeechEnabled', true);
+    }
     notifyListeners();
   }
 

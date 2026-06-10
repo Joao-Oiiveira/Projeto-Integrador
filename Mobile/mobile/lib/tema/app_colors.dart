@@ -6,6 +6,24 @@ class AppColors {
   static const Color portugues = Color(0xFFE95353);
   static const Color destaque = Color(0xFF7EB8F7);
 
+  // ── Cores de feedback ──────────────────────────────────
+  static const Color correto = Color(0xFF2E7D32); // Verde escuro para melhor contraste
+  static const Color incorreto = Color(0xFFC62828); // Vermelho escuro para melhor contraste
+
+  // Helper para buscar cor por nome
+  static Color materiaCor(String nome) {
+    switch (nome.toLowerCase()) {
+      case 'matemática':
+      case 'matematica':
+        return matematica;
+      case 'português':
+      case 'portugues':
+        return portugues;
+      default:
+        return destaque;
+    }
+  }
+
   // ── Cores do tema escuro ─────────────────────────────────
   static const Color backgroundDark = Color(0xFF121212);
   static const Color cardBackgroundDark = Color(0xFF1E1E1E);

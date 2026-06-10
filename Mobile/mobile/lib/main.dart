@@ -14,7 +14,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AccessibilityConsumer(
-      child: MaterialApp.router(
+      builder: (context) => MaterialApp.router(
         title: 'Meu App',
         debugShowCheckedModeBanner: false,
 

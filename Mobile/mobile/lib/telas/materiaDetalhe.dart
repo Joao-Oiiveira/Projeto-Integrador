@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/tema/app_colors.dart';
-import 'package:mobile/servicos/accessibility_provider.dart';
+import 'package:mobile/tema/app_text_styles.dart';
 
 class MateriaDetalhe {
   final String nome;
@@ -116,32 +116,10 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
         materiasData[widget.materiaNome] ?? materiasData['Matemática']!;
   }
 
-  // Helpers de acessibilidade
-  double _getFontSize(double baseSize) {
-    return baseSize * accessibilityProvider.fontSizeMultiplier;
-  }
-
-  Color _getColorWithContrast(Color color) {
-    if (!accessibilityProvider.highContrast) return color;
-    return color.withValues(alpha: 1.0);
-  }
-
-  TextStyle _getTextStyle(
-    double fontSize, {
-    FontWeight fontWeight = FontWeight.normal,
-    Color color = Colors.white,
-  }) {
-    return TextStyle(
-      fontSize: _getFontSize(fontSize),
-      fontWeight: fontWeight,
-      color: _getColorWithContrast(color),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppColors.background(context),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
@@ -158,9 +136,9 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                       onTap: () {
                         context.go('/menu');
                       },
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_back_ios,
-                        color: Colors.white,
+                        color: AppColors.textPrimary(context),
                         size: 24,
                       ),
                     ),
@@ -168,7 +146,7 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                     Expanded(
                       child: Text(
                         widget.materiaNome,
-                        style: _getTextStyle(18, fontWeight: FontWeight.w600),
+                        style: AppTextStyles.subtitulo(context, size: 18.0),
                       ),
                     ),
                   ],
@@ -192,7 +170,7 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                     children: [
                       Text(
                         materiaAtual.nome,
-                        style: _getTextStyle(24, fontWeight: FontWeight.bold),
+                        style: AppTextStyles.titulo(context, size: 24.0, color: Colors.white),
                         semanticsLabel: 'Disciplina: ${materiaAtual.nome}',
                       ),
                       const SizedBox(height: 16),
@@ -210,23 +188,23 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                               children: [
                                 Text(
                                   'Seu progresso no',
-                                  style: _getTextStyle(
-                                    12,
+                                  style: AppTextStyles.legenda(
+                                    context,
                                     color: Colors.white70,
                                   ),
                                 ),
                                 Text(
-                                  'matérial',
-                                  style: _getTextStyle(
-                                    14,
+                                  'material',
+                                  style: AppTextStyles.subtitulo(
+                                    context,
                                     fontWeight: FontWeight.w600,
+                                    color: Colors.white,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 GestureDetector(
                                   onTap: () {
-                                    // 🔧 BACK-END: Navegar para Agenda da disciplina
-                                    // context.go('/agenda?disciplina=${materiaAtual.nome}');
+                                    // Navegar para Agenda da disciplina
                                   },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
@@ -241,10 +219,10 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                                     ),
                                     child: Text(
                                       'Ver progresso',
-                                      style: _getTextStyle(
-                                        12,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                      style: AppTextStyles.legenda(
+                                        context,
+                                        color: Colors.white,
+                                      ).copyWith(fontWeight: FontWeight.w500),
                                     ),
                                   ),
                                 ),
@@ -297,10 +275,11 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                   children: [
                     Text(
                       'AÇÕES RÁPIDAS',
-                      style: _getTextStyle(
-                        14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white54,
+                      style: AppTextStyles.subtitulo(
+                        context,
+                        size: 14.0,
+                        color: AppColors.textHint(context),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -311,32 +290,40 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                             icon: Icons.assessment_outlined,
                             label: 'Flashcards',
                             count: materiaAtual.flashcardsDisponiveis,
-                            onTap: () {
-                              // 🔧 BACK-END: Navegar para Flashcards da disciplina
-                              // context.go('/flashcards/${materiaAtual.nome}');
-                            },
+                            onTap: () {},
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: _buildActionButton(
                             icon: Icons.task_alt_outlined,
                             label: 'Tarefas',
                             count: materiaAtual.tarefasPendentes,
+                            onTap: () {},
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _buildActionButton(
+                            icon: Icons.assignment_outlined,
+                            label: 'Exercícios',
                             onTap: () {
-                              // 🔧 BACK-END: Navegar para Agenda da disciplina
-                              // context.go('/agenda?disciplina=${materiaAtual.nome}');
+                              context.go('/exercicios?materia=${materiaAtual.nome}');
                             },
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: _buildActionButton(
                             icon: Icons.auto_awesome_outlined,
                             label: 'IA',
                             onTap: () {
-                              // 🔧 BACK-END: Abrir chat IA contextualizado
-                              // context.go('/ia?disciplina=${materiaAtual.nome}');
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Chat IA contextualizado - Em breve!'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
                             },
                           ),
                         ),
@@ -357,10 +344,11 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                   children: [
                     Text(
                       'UNIDADES',
-                      style: _getTextStyle(
-                        14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white54,
+                      style: AppTextStyles.subtitulo(
+                        context,
+                        size: 14.0,
+                        color: AppColors.textHint(context),
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -389,33 +377,38 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: materiaAtual.cor.withValues(alpha: 0.6),
+          color: AppColors.cardBackground(context),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: materiaAtual.cor.withValues(alpha: 0.8)),
+          border: Border.all(color: AppColors.border(context)),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, color: Colors.white, size: 24),
+            Icon(icon, color: materiaAtual.cor, size: 24),
             const SizedBox(height: 6),
             Text(
               label,
-              style: _getTextStyle(12, fontWeight: FontWeight.w600),
+              style: AppTextStyles.legenda(context, color: AppColors.textPrimary(context), size: 11.0).copyWith(
+                fontWeight: FontWeight.bold,
+              ),
               semanticsLabel: label,
+              textAlign: TextAlign.center,
             ),
             if (count != null && count > 0) ...[
               const SizedBox(height: 4),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: materiaAtual.cor.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   '$count',
-                  style: _getTextStyle(11, fontWeight: FontWeight.w700),
+                  style: AppTextStyles.legenda(context, color: materiaAtual.cor, size: 10.0).copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
                   semanticsLabel: '$count ${label.toLowerCase()}',
                 ),
               ),
@@ -429,26 +422,55 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
   Widget _buildUnidadeCard(UnidadeMateria unidade) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
-        color: materiaAtual.cor.withValues(alpha: 0.8),
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.border(context)),
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            unidade.nome,
-            style: _getTextStyle(16, fontWeight: FontWeight.w600),
-            semanticsLabel: 'Unidade: ${unidade.nome}',
-          ),
-          Text(
-            '${unidade.concluidas}/${unidade.total}',
-            style: _getTextStyle(16, fontWeight: FontWeight.w600),
-            semanticsLabel:
-                '${unidade.concluidas} de ${unidade.total} concluídos',
-          ),
-        ],
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Barra lateral de cor da matéria
+            Container(
+              width: 6,
+              decoration: BoxDecoration(
+                color: materiaAtual.cor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(12),
+                  bottomLeft: Radius.circular(12),
+                ),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        unidade.nome,
+                        style: AppTextStyles.subtitulo(context, size: 15.0),
+                        semanticsLabel: 'Unidade: ${unidade.nome}',
+                      ),
+                    ),
+                    Text(
+                      '${unidade.concluidas}/${unidade.total}',
+                      style: AppTextStyles.subtitulo(
+                        context,
+                        size: 15.0,
+                        color: materiaAtual.cor,
+                      ),
+                      semanticsLabel:
+                          '${unidade.concluidas} de ${unidade.total} concluídos',
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

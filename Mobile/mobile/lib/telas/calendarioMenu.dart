@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:mobile/tema/app_colors.dart';
+import 'package:mobile/tema/app_text_styles.dart';
 
 // ─────────────────────────────────────────────
 // Modelo de dados de uma Tarefa
@@ -116,9 +118,6 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
   }
 
   void _gerarDiasDaSemana() {
-    // No Dart weekday: 1=SEG ... 6=SAB, 7=DOM
-    // % 7 converte para: 0=DOM, 1=SEG ... 6=SAB
-    // Assim conseguimos voltar ao domingo correto da semana
     int diaDaSemana = hoje.weekday % 7;
     final inicioDaSemana = hoje.subtract(Duration(days: diaDaSemana));
 
@@ -149,8 +148,6 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
     return [];
   }
 
-  // Filtra tarefas de dias passados e ordena por data
-  // 🔧 BACK-END: Essa lógica pode ser feita direto na query da API
   // Tarefas de hoje
   List<Tarefa> get tarefasHoje {
     return tarefas
@@ -193,13 +190,8 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print('BUILD - Hoje: ${hoje.day}/${hoje.month} weekday: ${hoje.weekday}');
-    print(
-      'diasDaSemana: ${diasDaSemana.map((d) => '${d['dia']} isHoje:${d['isHoje']}').toList()}',
-    );
-
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppColors.background(context),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -212,17 +204,12 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
               _buildCalendario(),
               const SizedBox(height: 28),
 
-              const Text(
+              Text(
                 'Tarefas pendentes',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                style: AppTextStyles.subtitulo(context, size: 20.0),
               ),
               const SizedBox(height: 14),
 
-              // 🔧 BACK-END: tarefasFiltradas vem da API filtrada e ordenada
               // ── Tarefas de Hoje ──────────────────────
               if (tarefasHoje.isNotEmpty) ...[
                 _buildSecaoTarefa('Hoje'),
@@ -265,43 +252,35 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
           children: [
             GestureDetector(
               onTap: () {
-                // 🔧 BACK-END: Apenas navegação
                 context.go('/menu');
               },
-              child: const Icon(
+              child: Icon(
                 Icons.arrow_back,
-                color: Colors.white,
+                color: AppColors.textPrimary(context),
                 size: 22,
               ),
             ),
             const SizedBox(width: 12),
-            const Text(
+            Text(
               'CALENDÁRIO',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: 1.2,
-              ),
+              style: AppTextStyles.titulo(context, size: 20.0).copyWith(letterSpacing: 1.2),
             ),
           ],
         ),
         GestureDetector(
           onTap: () {
             context.go('/calendario');
-            // 🔧 BACK-END: Navegar para tela de calendário mensal
-            // context.go('/calendario/mensal');
           },
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: const Color(0xFF1E1E1E),
+              color: AppColors.cardBackground(context),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white12),
+              border: Border.all(color: AppColors.border(context)),
             ),
-            child: const Icon(
+            child: Icon(
               Icons.calendar_month_outlined,
-              color: Colors.white70,
+              color: AppColors.textSecondary(context),
               size: 22,
             ),
           ),
@@ -315,20 +294,19 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white12),
+        border: Border.all(color: AppColors.border(context)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '${_nomesMeses[hoje.month - 1]} ${hoje.year}',
-            style: const TextStyle(
-              fontSize: 13,
-              color: Colors.white54,
-              fontWeight: FontWeight.w500,
-            ),
+            style: AppTextStyles.legenda(
+              context,
+              color: AppColors.textSecondary(context),
+            ).copyWith(fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 12),
           SingleChildScrollView(
@@ -353,17 +331,17 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
-      width: isHoje ? 115 : 82, // dia de hoje fica mais largo
+      width: isHoje ? 115 : 82,
       margin: const EdgeInsets.only(right: 10),
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color:
             isHoje
-                ? const Color(0xFF7EB8F7).withValues(alpha: 0.2)
-                : const Color(0xFF2A2A2A),
+                ? AppColors.destaque.withOpacity(0.2)
+                : AppColors.cardSecondary(context),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(
-          color: isHoje ? const Color(0xFF7EB8F7) : Colors.white12,
+          color: isHoje ? AppColors.destaque : AppColors.border(context),
           width: isHoje ? 1.5 : 1,
         ),
       ),
@@ -372,14 +350,14 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
         children: [
           Text(
             '${diaInfo['dia']}/${diaInfo['mes']} ${diaInfo['nomeDia']}',
-            style: TextStyle(
-              fontSize: isHoje ? 11 : 10,
-              color: isHoje ? const Color(0xFF7EB8F7) : Colors.white54,
-              fontWeight: isHoje ? FontWeight.w700 : FontWeight.w400,
+            style: AppTextStyles.legenda(
+              context,
+              color: isHoje ? AppColors.destaque : AppColors.textSecondary(context),
+            ).copyWith(
+              fontWeight: isHoje ? FontWeight.bold : FontWeight.normal,
             ),
           ),
           const SizedBox(height: 6),
-          // 🔧 BACK-END: eventos vêm da API por dia
           if (eventos.isEmpty)
             const SizedBox(height: 20)
           else
@@ -392,7 +370,7 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
                       width: 5,
                       height: 5,
                       decoration: const BoxDecoration(
-                        color: Color(0xFFF7A8C4),
+                        color: AppColors.destaque,
                         shape: BoxShape.circle,
                       ),
                     ),
@@ -400,9 +378,9 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
                     Expanded(
                       child: Text(
                         e,
-                        style: const TextStyle(
-                          fontSize: 8,
-                          color: Colors.white70,
+                        style: AppTextStyles.legenda(
+                          context,
+                          color: AppColors.textSecondary(context),
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -423,18 +401,20 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
         tarefa.data.month == hoje.month &&
         tarefa.data.year == hoje.year;
 
+    final Color materiaCor = AppColors.materiaCor(tarefa.materia ?? '');
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E1E1E),
+        color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color:
               isHoje
-                  ? const Color(0xFF7EB8F7).withValues(alpha: 0.5)
-                  : Colors.white12,
+                  ? AppColors.destaque.withOpacity(0.5)
+                  : AppColors.border(context),
         ),
       ),
       child: Row(
@@ -444,8 +424,6 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
             onTap: () {
               setState(() {
                 tarefa.concluida = !tarefa.concluida;
-                // 🔧 BACK-END: Atualizar status da tarefa na API
-                // Ex: AgendaService.updateTarefa(tarefa.id, concluida: true);
               });
             },
             child: AnimatedContainer(
@@ -456,19 +434,19 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
                 shape: BoxShape.circle,
                 color:
                     tarefa.concluida
-                        ? const Color(0xFF7EB8F7)
+                        ? AppColors.destaque
                         : Colors.transparent,
                 border: Border.all(
                   color:
                       tarefa.concluida
-                          ? const Color(0xFF7EB8F7)
-                          : Colors.white38,
+                          ? AppColors.destaque
+                          : AppColors.textHint(context),
                   width: 2,
                 ),
               ),
               child:
                   tarefa.concluida
-                      ? const Icon(Icons.check, color: Colors.white, size: 14)
+                      ? Icon(Icons.check, color: AppColors.background(context), size: 14)
                       : null,
             ),
           ),
@@ -482,17 +460,16 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
               children: [
                 Text(
                   tarefa.titulo,
-                  style: TextStyle(
-                    fontSize: 15,
+                  style: AppTextStyles.corpo(
+                    context,
+                    color: tarefa.concluida ? AppColors.textHint(context) : AppColors.textPrimary(context),
                     fontWeight: FontWeight.w500,
-                    color: tarefa.concluida ? Colors.white38 : Colors.white,
-                    // 🔧 BACK-END: risco some no próximo dia pois a tarefa
-                    // é filtrada pelo campo data na query da API
+                  ).copyWith(
                     decoration:
                         tarefa.concluida
                             ? TextDecoration.lineThrough
                             : TextDecoration.none,
-                    decorationColor: Colors.white38,
+                    decorationColor: AppColors.textHint(context),
                   ),
                 ),
                 if (tarefa.materia != null) ...[
@@ -502,18 +479,17 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
                       Container(
                         width: 6,
                         height: 6,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF7EB8F7),
+                        decoration: BoxDecoration(
+                          color: materiaCor,
                           shape: BoxShape.circle,
                         ),
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        // 🔧 BACK-END: materia vem do relacionamento com tabela disciplinas
                         tarefa.materia!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white38,
+                        style: AppTextStyles.legenda(
+                          context,
+                          color: AppColors.textSecondary(context),
                         ),
                       ),
                     ],
@@ -528,10 +504,11 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
             isHoje
                 ? 'Hoje'
                 : '${tarefa.data.day.toString().padLeft(2, '0')}/${tarefa.data.month.toString().padLeft(2, '0')}',
-            style: TextStyle(
-              fontSize: 11,
-              color: isHoje ? const Color(0xFF7EB8F7) : Colors.white38,
-              fontWeight: isHoje ? FontWeight.w600 : FontWeight.w400,
+            style: AppTextStyles.legenda(
+              context,
+              color: isHoje ? AppColors.destaque : AppColors.textHint(context),
+            ).copyWith(
+              fontWeight: isHoje ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ],
@@ -544,13 +521,13 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 40),
       alignment: Alignment.center,
-      child: const Column(
+      child: Column(
         children: [
-          Icon(Icons.check_circle_outline, color: Colors.white24, size: 48),
-          SizedBox(height: 12),
+          Icon(Icons.check_circle_outline, color: AppColors.textHint(context), size: 48),
+          const SizedBox(height: 12),
           Text(
             'Nenhuma tarefa pendente!',
-            style: TextStyle(fontSize: 15, color: Colors.white38),
+            style: AppTextStyles.corpo(context, color: AppColors.textHint(context)),
           ),
         ],
       ),
@@ -562,10 +539,10 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Text(
         titulo,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.white70,
+        style: AppTextStyles.subtitulo(
+          context,
+          size: 16.0,
+          color: AppColors.textSecondary(context),
         ),
       ),
     );
