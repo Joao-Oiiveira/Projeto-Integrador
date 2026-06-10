@@ -1,6 +1,6 @@
 // services/auth.js
 
-const API_URL = 'http://127.0.0.1:8000/auth'; // URL do nosso backend FastAPI
+const API_URL = 'http://localhost:8000/auth';
 const TOKEN_KEY = '@EduAcess:token';
 const USER_KEY = '@EduAcess:loggedUser';
 
