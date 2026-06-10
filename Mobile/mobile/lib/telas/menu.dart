@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/tema/app_colors.dart';
+import 'package:mobile/tema/app_text_styles.dart';
 
 // ─────────────────────────────────────────────
 // Modelos de dados
@@ -77,7 +78,6 @@ class _MenuScreenState extends State<MenuScreen> {
   ];
   late List<Map<String, dynamic>> eventosDaSemana;
 
-  //initstate
   @override
   void initState() {
     super.initState();
@@ -105,7 +105,6 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   // 🔧 BACK-END: Buscar matérias do usuário na API
-  // Essa lista é dinâmica — cada usuário tem as suas próprias matérias
   final List<Materia> materias = const [
     Materia(
       nome: 'Matemática',
@@ -119,7 +118,6 @@ class _MenuScreenState extends State<MenuScreen> {
       progresso: 25,
       totalItens: 100,
     ),
-    // 🔧 BACK-END: Novas matérias adicionadas pelo usuário aparecem aqui automaticamente
   ];
 
   // 🔧 BACK-END: Buscar resumo de flashcards do usuário na API
@@ -134,13 +132,12 @@ class _MenuScreenState extends State<MenuScreen> {
       cor: AppColors.portugues,
       quantidade: 12,
     ),
-    // 🔧 BACK-END: Novos flashcards aparecem aqui automaticamente
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF121212),
+      backgroundColor: AppColors.background(context),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
@@ -155,14 +152,19 @@ class _MenuScreenState extends State<MenuScreen> {
               _buildCalendario(),
               const SizedBox(height: 28),
 
+              // ── Atalhos de Estudo ────────────────────
+              Text(
+                'Ferramentas de Estudo',
+                style: AppTextStyles.subtitulo(context, size: 18.0),
+              ),
+              const SizedBox(height: 12),
+              _buildAtalhosEstudo(),
+              const SizedBox(height: 28),
+
               // ── Matérias (cards empilhados) ──────────
-              const Text(
+              Text(
                 'Matérias',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                style: AppTextStyles.subtitulo(context, size: 18.0),
               ),
               const SizedBox(height: 12),
               _buildCardsEmpilhados(
@@ -180,13 +182,9 @@ class _MenuScreenState extends State<MenuScreen> {
               const SizedBox(height: 28),
 
               // ── Flashcards (cards empilhados) ────────
-              const Text(
+              Text(
                 'Flashcards',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                style: AppTextStyles.subtitulo(context, size: 18.0),
               ),
               const SizedBox(height: 12),
               _buildCardsEmpilhados(
@@ -209,9 +207,115 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
+  // ── Widget: Atalhos de Estudo ──────────────────
+  Widget _buildAtalhosEstudo() {
+    return Row(
+      children: [
+        // Atalho: Exercícios
+        Expanded(
+          child: GestureDetector(
+            onTap: () => context.go('/exercicios'),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border(context)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.destaque.withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.assignment_outlined,
+                      color: AppColors.destaque,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Exercícios',
+                          style: AppTextStyles.corpo(context, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Vestibular & IA',
+                          style: AppTextStyles.legenda(context, color: AppColors.textSecondary(context)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        // Atalho: IA
+        Expanded(
+          child: GestureDetector(
+            onTap: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Chat IA contextualizado - Em breve!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+              decoration: BoxDecoration(
+                color: AppColors.cardBackground(context),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border(context)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF9C27B0).withOpacity(0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.auto_awesome_outlined,
+                      color: Color(0xFFBA68C8),
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Assistente IA',
+                          style: AppTextStyles.corpo(context, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Tirar dúvidas',
+                          style: AppTextStyles.legenda(context, color: AppColors.textSecondary(context)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   // ── Widget: Cards Empilhados ─────────────────
-  // Quando fechado: cards sobrepostos mostrando só as bordas
-  // Quando aberto: todos os cards aparecem separados
   Widget _buildCardsEmpilhados({
     required int itens,
     required bool expandido,
@@ -219,11 +323,8 @@ class _MenuScreenState extends State<MenuScreen> {
     required Widget Function(int) buildCard,
     required Widget Function(int) buildCardFechado,
   }) {
-    const double cardHeight = 72.0; // altura do card fechado
-    const double offsetEmpilhado =
-        10.0; // quanto cada card fica visível embaixo
-
-    // Altura total quando fechado — mostra o primeiro card + bordas dos outros
+    const double cardHeight = 72.0;
+    const double offsetEmpilhado = 10.0;
     final altureFechado = cardHeight + (offsetEmpilhado * (itens - 1));
 
     return GestureDetector(
@@ -231,20 +332,15 @@ class _MenuScreenState extends State<MenuScreen> {
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 1000),
         curve: Curves.easeInOut,
-        // Quando aberto: altura suficiente para todos os cards
-        // Quando fechado: altura do empilhamento
         height: expandido ? (cardHeight + 12) * itens : altureFechado,
         child: Stack(
           clipBehavior: Clip.none,
           children: List.generate(itens, (index) {
-            // Índice invertido — primeiro card fica na frente
             final reverseIndex = itens - 1 - index;
 
             return AnimatedPositioned(
               duration: const Duration(milliseconds: 1000),
               curve: Curves.easeInOut,
-              // Quando aberto: cada card na sua posição
-              // Quando fechado: cards empilhados com pequeno offset
               top:
                   expandido
                       ? reverseIndex * (cardHeight + 12)
@@ -267,10 +363,12 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   // ── Widget: Card de Matéria FECHADO ──────────
-  // Aparece quando os cards estão empilhados
   Widget _buildMateriaCardFechado(Materia materia) {
     return GestureDetector(
-      onTap: () => context.go('/materia/${materia.nome}'),
+      onTap: () async {
+        setState(() => _materiasExpandidas = true);
+        await Future.delayed(const Duration(milliseconds: 1000));
+      },
       child: Container(
         height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -283,11 +381,7 @@ class _MenuScreenState extends State<MenuScreen> {
           children: [
             Text(
               materia.nome,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              style: AppTextStyles.titulo(context, size: 18.0, color: Colors.white),
             ),
             _buildProgressoCircular(materia.progresso),
           ],
@@ -297,10 +391,12 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   // ── Widget: Card de Matéria ABERTO ───────────
-  // Aparece quando os cards estão expandidos
   Widget _buildMateriaCard(Materia materia) {
     return GestureDetector(
-      onTap: () => context.go('/materia/${materia.nome}'),
+      onTap: () async {
+        await Future.delayed(const Duration(milliseconds: 150));
+        if (mounted) context.go('/materia/${materia.nome}');
+      },
       child: Container(
         height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -317,16 +413,11 @@ class _MenuScreenState extends State<MenuScreen> {
               children: [
                 Text(
                   materia.nome,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: AppTextStyles.titulo(context, size: 18.0, color: Colors.white),
                 ),
                 Text(
-                  // 🔧 BACK-END: progresso e totalItens vêm da API
                   '${materia.progresso}/${materia.totalItens} concluídos',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  style: AppTextStyles.legenda(context, color: Colors.white70),
                 ),
               ],
             ),
@@ -352,16 +443,11 @@ class _MenuScreenState extends State<MenuScreen> {
         children: [
           Text(
             flash.materia,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: AppTextStyles.subtitulo(context, size: 16.0, color: Colors.white),
           ),
           Text(
-            // 🔧 BACK-END: quantidade vem da API
             'Flashcards: ${flash.quantidade}',
-            style: const TextStyle(fontSize: 12, color: Colors.white70),
+            style: AppTextStyles.legenda(context, color: Colors.white70),
           ),
         ],
       ),
@@ -371,10 +457,9 @@ class _MenuScreenState extends State<MenuScreen> {
   // ── Widget: Card de Flashcard ABERTO ─────────
   Widget _buildFlashcardCard(FlashcardResumo flash) {
     return GestureDetector(
-      //onTap: () {
-      // 🔧 BACK-END: Navegar para sessão de flashcards da matéria
-      // context.go('/flashcards/${flash.materiaId}');
-      //},
+      onTap: () {
+        // Redirecionamento futuro para sessões de flashcards
+      },
       child: Container(
         height: 72,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -391,15 +476,11 @@ class _MenuScreenState extends State<MenuScreen> {
               children: [
                 Text(
                   flash.materia,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
+                  style: AppTextStyles.subtitulo(context, size: 16.0, color: Colors.white),
                 ),
                 Text(
                   'Flashcards: ${flash.quantidade}',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                  style: AppTextStyles.legenda(context, color: Colors.white70),
                 ),
               ],
             ),
@@ -420,13 +501,8 @@ class _MenuScreenState extends State<MenuScreen> {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          // 🔧 BACK-END: nomeUsuario vem do usuário logado
           'Olá, $nomeUsuario',
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: AppTextStyles.titulo(context, size: 28.0),
         ),
         Row(
           children: [
@@ -438,12 +514,12 @@ class _MenuScreenState extends State<MenuScreen> {
                 height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white24),
-                  color: const Color(0xFF1E1E1E),
+                  border: Border.all(color: AppColors.border(context)),
+                  color: AppColors.cardBackground(context),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.accessibility_outlined,
-                  color: Colors.white70,
+                  color: AppColors.textSecondary(context),
                   size: 24,
                 ),
               ),
@@ -452,40 +528,37 @@ class _MenuScreenState extends State<MenuScreen> {
             // Botão de Perfil com Menu
             PopupMenuButton(
               position: PopupMenuPosition.under,
-              color: const Color(0xFF1E1E1E),
+              color: AppColors.cardBackground(context),
               itemBuilder: (BuildContext context) => [
                 PopupMenuItem(
                   child: Row(
-                    children: const [
+                    children: [
                       Icon(
                         Icons.person_outline,
-                        color: Colors.white70,
+                        color: AppColors.textSecondary(context),
                         size: 20,
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Text(
                         'Meu Perfil',
-                        style: TextStyle(color: Colors.white),
+                        style: AppTextStyles.corpo(context),
                       ),
                     ],
                   ),
-                  onTap: () {
-                    // 🔧 BACK-END: Navegar para tela de perfil
-                    // context.go('/perfil');
-                  },
+                  onTap: () {},
                 ),
                 PopupMenuItem(
                   child: Row(
-                    children: const [
+                    children: [
                       Icon(
                         Icons.accessibility_outlined,
-                        color: Colors.white70,
+                        color: AppColors.textSecondary(context),
                         size: 20,
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Text(
                         'Acessibilidade',
-                        style: TextStyle(color: Colors.white),
+                        style: AppTextStyles.corpo(context),
                       ),
                     ],
                   ),
@@ -495,23 +568,20 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
                 PopupMenuItem(
                   child: Row(
-                    children: const [
+                    children: [
                       Icon(
                         Icons.settings_outlined,
-                        color: Colors.white70,
+                        color: AppColors.textSecondary(context),
                         size: 20,
                       ),
-                      SizedBox(width: 12),
+                      const SizedBox(width: 12),
                       Text(
                         'Configurações',
-                        style: TextStyle(color: Colors.white),
+                        style: AppTextStyles.corpo(context),
                       ),
                     ],
                   ),
-                  onTap: () {
-                    // 🔧 BACK-END: Navegar para tela de configurações
-                    // context.go('/configuracoes');
-                  },
+                  onTap: () {},
                 ),
               ],
               child: Container(
@@ -519,12 +589,12 @@ class _MenuScreenState extends State<MenuScreen> {
                 height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white24),
-                  color: const Color(0xFF1E1E1E),
+                  border: Border.all(color: AppColors.border(context)),
+                  color: AppColors.cardBackground(context),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.person_outline,
-                  color: Colors.white70,
+                  color: AppColors.textSecondary(context),
                   size: 24,
                 ),
               ),
@@ -542,21 +612,20 @@ class _MenuScreenState extends State<MenuScreen> {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
+          color: AppColors.cardBackground(context),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white12),
+          border: Border.all(color: AppColors.border(context)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'CALENDÁRIO',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: Colors.white54,
-                letterSpacing: 1.2,
-              ),
+              style: AppTextStyles.subtitulo(
+                context,
+                size: 12.0,
+                color: AppColors.textHint(context),
+              ).copyWith(letterSpacing: 1.2),
             ),
             const SizedBox(height: 12),
             SingleChildScrollView(
@@ -575,14 +644,14 @@ class _MenuScreenState extends State<MenuScreen> {
                         decoration: BoxDecoration(
                           color:
                               isHoje
-                                  ? const Color(0xFF7EB8F7).withOpacity(0.2)
-                                  : const Color(0xFF2A2A2A),
+                                  ? AppColors.destaque.withOpacity(0.2)
+                                  : AppColors.cardSecondary(context),
                           borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color:
                                 isHoje
-                                    ? const Color(0xFF7EB8F7)
-                                    : Colors.white12,
+                                    ? AppColors.destaque
+                                    : AppColors.border(context),
                             width: isHoje ? 1.5 : 1,
                           ),
                         ),
@@ -591,18 +660,17 @@ class _MenuScreenState extends State<MenuScreen> {
                           children: [
                             Text(
                               '${diaInfo['dia']}/${diaInfo['mes']} ${diaInfo['nomeDia']}',
-                              style: TextStyle(
-                                fontSize: 10,
+                              style: AppTextStyles.legenda(
+                                context,
                                 color:
                                     isHoje
-                                        ? const Color(0xFF7EB8F7)
-                                        : Colors.white54,
-                                fontWeight:
-                                    isHoje ? FontWeight.w700 : FontWeight.w400,
+                                        ? AppColors.destaque
+                                        : AppColors.textSecondary(context),
+                              ).copyWith(
+                                fontWeight: isHoje ? FontWeight.bold : FontWeight.normal,
                               ),
                             ),
                             const SizedBox(height: 6),
-                            // 🔧 BACK-END: eventos do dia virão da API
                             if (eventos.isEmpty)
                               const SizedBox(height: 20)
                             else
@@ -615,7 +683,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                         width: 5,
                                         height: 5,
                                         decoration: const BoxDecoration(
-                                          color: Color(0xFFF7A8C4),
+                                          color: AppColors.destaque,
                                           shape: BoxShape.circle,
                                         ),
                                       ),
@@ -623,10 +691,7 @@ class _MenuScreenState extends State<MenuScreen> {
                                       Expanded(
                                         child: Text(
                                           e,
-                                          style: const TextStyle(
-                                            fontSize: 9,
-                                            color: Colors.white70,
-                                          ),
+                                          style: AppTextStyles.legenda(context, color: AppColors.textSecondary(context)),
                                           overflow: TextOverflow.ellipsis,
                                         ),
                                       ),
@@ -655,7 +720,6 @@ class _MenuScreenState extends State<MenuScreen> {
         alignment: Alignment.center,
         children: [
           CircularProgressIndicator(
-            // 🔧 BACK-END: progresso / 100 = valor entre 0.0 e 1.0
             value: progresso / 100,
             strokeWidth: 4,
             backgroundColor: Colors.white24,

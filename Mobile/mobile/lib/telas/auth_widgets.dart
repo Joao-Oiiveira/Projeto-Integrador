@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:mobile/tema/app_colors.dart';
+import 'package:mobile/tema/app_text_styles.dart';
 
 // ─────────────────────────────────────────────
 // Widgets reutilizáveis compartilhados entre
@@ -17,23 +19,23 @@ class GoogleButton extends StatelessWidget {
       child: OutlinedButton(
         onPressed: () {},
         style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Colors.white24),
-          backgroundColor: const Color(0xFF1E1E1E),
+          side: BorderSide(color: AppColors.borderMedium(context)),
+          backgroundColor: AppColors.cardBackground(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            FaIcon(FontAwesomeIcons.google, color: Color(0xFFEA4335), size: 20),
-            SizedBox(width: 10),
+          children: [
+            const FaIcon(FontAwesomeIcons.google, color: Color(0xFFEA4335), size: 20),
+            const SizedBox(width: 10),
             Text(
               'Google',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
+              style: AppTextStyles.subtitulo(
+                context,
+                color: AppColors.textPrimary(context),
+                size: 15.0,
               ),
             ),
           ],
@@ -50,15 +52,15 @@ class OrDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Divider(color: Colors.white24, thickness: 1)),
+        Expanded(child: Divider(color: AppColors.border(context), thickness: 1)),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 12),
           child: Text(
             'ou',
-            style: const TextStyle(fontSize: 12, color: Colors.white38),
+            style: AppTextStyles.legenda(context, color: AppColors.textHint(context)),
           ),
         ),
-        const Expanded(child: Divider(color: Colors.white24, thickness: 1)),
+        Expanded(child: Divider(color: AppColors.border(context), thickness: 1)),
       ],
     );
   }
@@ -67,32 +69,35 @@ class OrDivider extends StatelessWidget {
 class AuthTextField extends StatelessWidget {
   final String label;
   final TextInputType keyboardType;
+  final TextEditingController? controller;
 
   const AuthTextField({
     super.key,
     required this.label,
     this.keyboardType = TextInputType.text,
+    this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
-      cursorColor: Colors.white,
+      style: AppTextStyles.corpo(context, color: AppColors.textPrimary(context)),
+      cursorColor: AppColors.textPrimary(context),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+        labelStyle: AppTextStyles.legenda(context, color: AppColors.textHint(context), size: 13.0),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.white24),
+          borderSide: BorderSide(color: AppColors.borderMedium(context)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.white60),
+          borderSide: const BorderSide(color: AppColors.destaque),
         ),
         filled: true,
-        fillColor: const Color(0xFF1A1A1A),
+        fillColor: AppColors.cardSecondary(context),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
@@ -106,33 +111,36 @@ class PasswordField extends StatelessWidget {
   final String label;
   final bool obscure;
   final VoidCallback onToggle;
+  final TextEditingController? controller;
 
   const PasswordField({
     super.key,
     required this.label,
     required this.obscure,
     required this.onToggle,
+    this.controller,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       obscureText: obscure,
-      style: const TextStyle(color: Colors.white, fontSize: 14),
-      cursorColor: Colors.white,
+      style: AppTextStyles.corpo(context, color: AppColors.textPrimary(context)),
+      cursorColor: AppColors.textPrimary(context),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+        labelStyle: AppTextStyles.legenda(context, color: AppColors.textHint(context), size: 13.0),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.white24),
+          borderSide: BorderSide(color: AppColors.borderMedium(context)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Colors.white60),
+          borderSide: const BorderSide(color: AppColors.destaque),
         ),
         filled: true,
-        fillColor: const Color(0xFF1A1A1A),
+        fillColor: AppColors.cardSecondary(context),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 14,
           vertical: 14,
@@ -140,7 +148,7 @@ class PasswordField extends StatelessWidget {
         suffixIcon: IconButton(
           icon: Icon(
             obscure ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-            color: Colors.white38,
+            color: AppColors.textHint(context),
             size: 20,
           ),
           onPressed: onToggle,
@@ -168,9 +176,9 @@ class PrimaryButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-          side: const BorderSide(color: Colors.white24),
+          backgroundColor: AppColors.textPrimary(context),
+          foregroundColor: AppColors.background(context),
+          side: BorderSide(color: AppColors.border(context)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -178,11 +186,7 @@ class PrimaryButton extends StatelessWidget {
         ),
         child: Text(
           label,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.3,
-          ),
+          style: AppTextStyles.botao(context, color: AppColors.background(context)),
         ),
       ),
     );
