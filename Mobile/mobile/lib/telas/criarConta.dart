@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
 import 'auth_widgets.dart';
@@ -182,9 +183,17 @@ class _SignUpScreenState extends State<SignUpScreen> {
               // Botão Cadastrar (Acessar)
               PrimaryButton(
                 label: 'Acessar',
-                onPressed: () {
+                onPressed: () async {
+                  final router = GoRouter.of(context);
+                  final prefs = await SharedPreferences.getInstance();
+                  if (_nomeController.text.isNotEmpty) {
+                    await prefs.setString('userName', _nomeController.text);
+                  }
+                  if (_emailController.text.isNotEmpty) {
+                    await prefs.setString('userEmail', _emailController.text);
+                  }
                   // Redireciona para o formulário de perfil educacional pós-cadastro
-                  context.go('/perfil-educacional');
+                  router.go('/perfil-educacional');
                 },
               ),
 

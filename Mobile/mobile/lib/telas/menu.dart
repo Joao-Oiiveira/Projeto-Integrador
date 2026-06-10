@@ -525,65 +525,8 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            // Botão de Perfil com Menu
-            PopupMenuButton(
-              position: PopupMenuPosition.under,
-              color: AppColors.cardBackground(context),
-              itemBuilder: (BuildContext context) => [
-                PopupMenuItem(
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.person_outline,
-                        color: AppColors.textSecondary(context),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Meu Perfil',
-                        style: AppTextStyles.corpo(context),
-                      ),
-                    ],
-                  ),
-                  onTap: () {},
-                ),
-                PopupMenuItem(
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.accessibility_outlined,
-                        color: AppColors.textSecondary(context),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Acessibilidade',
-                        style: AppTextStyles.corpo(context),
-                      ),
-                    ],
-                  ),
-                  onTap: () {
-                    context.go('/acessibilidade');
-                  },
-                ),
-                PopupMenuItem(
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.settings_outlined,
-                        color: AppColors.textSecondary(context),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Configurações',
-                        style: AppTextStyles.corpo(context),
-                      ),
-                    ],
-                  ),
-                  onTap: () {},
-                ),
-              ],
+            GestureDetector(
+              onTap: () => context.go('/perfil'),
               child: Container(
                 width: 44,
                 height: 44,
