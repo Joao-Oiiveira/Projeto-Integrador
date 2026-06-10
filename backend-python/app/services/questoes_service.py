@@ -119,3 +119,35 @@ def _gerar_fallback(quantidade: int):
             "alternativa_correta": "C"
         }
     ] * quantidade
+
+def gerar_flashcards_ia(tema: str, dificuldade: str, quantidade: int):
+    if not api_key:
+        return []
+
+    prompt = f"""
+    Crie {quantidade} flashcards sobre o tema: "{tema}" (Dificuldade: {dificuldade}).
+    Retorne APENAS um array JSON válido, sem introdução.
+    Formato:
+    [
+      {{"pergunta": "O que é...", "resposta": "Significa..."}}
+    ]
+    """
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
+    payload = {
+        "model": "llama-3.3-70b-versatile",
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0.3
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=payload, timeout=20)
+        if response.status_code == 200:
+            import re
+            texto = response.json()['choices'][0]['message']['content']
+            match = re.search(r'\[.*\]', texto, re.DOTALL)
+            if match:
+                return json.loads(match.group(0))[:quantidade]
+    except:
+        pass
+    return []
