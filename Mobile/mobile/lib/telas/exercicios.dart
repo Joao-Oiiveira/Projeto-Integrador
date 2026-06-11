@@ -15,7 +15,7 @@ class ExerciciosConfigScreen extends StatefulWidget {
 class _ExerciciosConfigScreenState extends State<ExerciciosConfigScreen> {
   late String _materiaSelecionada;
   final TextEditingController _temaController = TextEditingController();
-  
+
   String _dificuldade = 'Médio'; // 'Fácil', 'Médio', 'Difícil'
   int _quantidadeQuestoes = 5; // 5, 10, 15
   String _modo = 'Vestibular'; // 'Vestibular', 'IA'
@@ -29,7 +29,8 @@ class _ExerciciosConfigScreenState extends State<ExerciciosConfigScreen> {
   void initState() {
     super.initState();
     // Se foi passado uma matéria inicial válida pelas rotas, pré-seleciona ela
-    if (widget.materiaInicial != null && _materias.contains(widget.materiaInicial)) {
+    if (widget.materiaInicial != null &&
+        _materias.contains(widget.materiaInicial)) {
       _materiaSelecionada = widget.materiaInicial!;
     } else {
       _materiaSelecionada = 'Matemática';
@@ -52,11 +53,14 @@ class _ExerciciosConfigScreenState extends State<ExerciciosConfigScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: AppColors.textPrimary(context)),
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: AppColors.textPrimary(context),
+          ),
           onPressed: () => context.go('/menu'),
         ),
         title: Text(
-          'Configurar Prática',
+          'Exercícios',
           style: AppTextStyles.subtitulo(context, size: 20.0),
         ),
       ),
@@ -70,36 +74,41 @@ class _ExerciciosConfigScreenState extends State<ExerciciosConfigScreen> {
               _buildLabel('Disciplina'),
               const SizedBox(height: 8),
               Row(
-                children: _materias.map((m) {
-                  final bool sel = _materiaSelecionada == m;
-                  final Color cMateria = AppColors.materiaCor(m);
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: ChoiceChip(
-                      label: Text(m),
-                      selected: sel,
-                      onSelected: (selected) {
-                        if (selected) {
-                          setState(() => _materiaSelecionada = m);
-                        }
-                      },
-                      selectedColor: cMateria.withOpacity(0.2),
-                      backgroundColor: AppColors.cardBackground(context),
-                      labelStyle: AppTextStyles.corpo(
-                        context,
-                        fontWeight: sel ? FontWeight.bold : FontWeight.normal,
-                        color: sel ? cMateria : AppColors.textSecondary(context),
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                        side: BorderSide(
-                          color: sel ? cMateria : AppColors.border(context),
-                          width: sel ? 1.5 : 1,
+                children:
+                    _materias.map((m) {
+                      final bool sel = _materiaSelecionada == m;
+                      final Color cMateria = AppColors.materiaCor(m);
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 12),
+                        child: ChoiceChip(
+                          label: Text(m),
+                          selected: sel,
+                          onSelected: (selected) {
+                            if (selected) {
+                              setState(() => _materiaSelecionada = m);
+                            }
+                          },
+                          selectedColor: cMateria.withOpacity(0.2),
+                          backgroundColor: AppColors.cardBackground(context),
+                          labelStyle: AppTextStyles.corpo(
+                            context,
+                            fontWeight:
+                                sel ? FontWeight.bold : FontWeight.normal,
+                            color:
+                                sel
+                                    ? cMateria
+                                    : AppColors.textSecondary(context),
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                            side: BorderSide(
+                              color: sel ? cMateria : AppColors.border(context),
+                              width: sel ? 1.5 : 1,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
               const SizedBox(height: 24),
 
@@ -111,8 +120,12 @@ class _ExerciciosConfigScreenState extends State<ExerciciosConfigScreen> {
                 style: AppTextStyles.corpo(context),
                 cursorColor: materiaCor,
                 decoration: InputDecoration(
-                  hintText: 'Ex: Equações de 2º Grau, Sintaxe, Trigonometria...',
-                  hintStyle: AppTextStyles.legenda(context, color: AppColors.textHint(context)),
+                  hintText:
+                      'Ex: Equações de 2º Grau, Sintaxe, Trigonometria...',
+                  hintStyle: AppTextStyles.legenda(
+                    context,
+                    color: AppColors.textHint(context),
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
                     borderSide: BorderSide(color: AppColors.border(context)),
@@ -123,7 +136,10 @@ class _ExerciciosConfigScreenState extends State<ExerciciosConfigScreen> {
                   ),
                   filled: true,
                   fillColor: AppColors.cardBackground(context),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 16,
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -132,37 +148,45 @@ class _ExerciciosConfigScreenState extends State<ExerciciosConfigScreen> {
               _buildLabel('Dificuldade'),
               const SizedBox(height: 8),
               Row(
-                children: _dificuldades.map((d) {
-                  final bool sel = _dificuldade == d;
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: ChoiceChip(
-                        label: Center(child: Text(d)),
-                        selected: sel,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() => _dificuldade = d);
-                          }
-                        },
-                        selectedColor: materiaCor.withOpacity(0.2),
-                        backgroundColor: AppColors.cardBackground(context),
-                        labelStyle: AppTextStyles.corpo(
-                          context,
-                          fontWeight: sel ? FontWeight.bold : FontWeight.normal,
-                          color: sel ? materiaCor : AppColors.textSecondary(context),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          side: BorderSide(
-                            color: sel ? materiaCor : AppColors.border(context),
-                            width: sel ? 1.5 : 1,
+                children:
+                    _dificuldades.map((d) {
+                      final bool sel = _dificuldade == d;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: ChoiceChip(
+                            label: Center(child: Text(d)),
+                            selected: sel,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() => _dificuldade = d);
+                              }
+                            },
+                            selectedColor: materiaCor.withOpacity(0.2),
+                            backgroundColor: AppColors.cardBackground(context),
+                            labelStyle: AppTextStyles.corpo(
+                              context,
+                              fontWeight:
+                                  sel ? FontWeight.bold : FontWeight.normal,
+                              color:
+                                  sel
+                                      ? materiaCor
+                                      : AppColors.textSecondary(context),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color:
+                                    sel
+                                        ? materiaCor
+                                        : AppColors.border(context),
+                                width: sel ? 1.5 : 1,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
               const SizedBox(height: 24),
 
@@ -170,37 +194,45 @@ class _ExerciciosConfigScreenState extends State<ExerciciosConfigScreen> {
               _buildLabel('Quantidade de Questões'),
               const SizedBox(height: 8),
               Row(
-                children: _quantidades.map((q) {
-                  final bool sel = _quantidadeQuestoes == q;
-                  return Expanded(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: ChoiceChip(
-                        label: Center(child: Text('$q questões')),
-                        selected: sel,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() => _quantidadeQuestoes = q);
-                          }
-                        },
-                        selectedColor: materiaCor.withOpacity(0.2),
-                        backgroundColor: AppColors.cardBackground(context),
-                        labelStyle: AppTextStyles.corpo(
-                          context,
-                          fontWeight: sel ? FontWeight.bold : FontWeight.normal,
-                          color: sel ? materiaCor : AppColors.textSecondary(context),
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          side: BorderSide(
-                            color: sel ? materiaCor : AppColors.border(context),
-                            width: sel ? 1.5 : 1,
+                children:
+                    _quantidades.map((q) {
+                      final bool sel = _quantidadeQuestoes == q;
+                      return Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                          child: ChoiceChip(
+                            label: Center(child: Text('$q questões')),
+                            selected: sel,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() => _quantidadeQuestoes = q);
+                              }
+                            },
+                            selectedColor: materiaCor.withOpacity(0.2),
+                            backgroundColor: AppColors.cardBackground(context),
+                            labelStyle: AppTextStyles.corpo(
+                              context,
+                              fontWeight:
+                                  sel ? FontWeight.bold : FontWeight.normal,
+                              color:
+                                  sel
+                                      ? materiaCor
+                                      : AppColors.textSecondary(context),
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                              side: BorderSide(
+                                color:
+                                    sel
+                                        ? materiaCor
+                                        : AppColors.border(context),
+                                width: sel ? 1.5 : 1,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
               const SizedBox(height: 24),
 
@@ -208,55 +240,88 @@ class _ExerciciosConfigScreenState extends State<ExerciciosConfigScreen> {
               _buildLabel('Modo de Resolução'),
               const SizedBox(height: 8),
               Row(
-                children: _modos.map((m) {
-                  final bool sel = _modo == m;
-                  final IconData icon = m == 'Vestibular' ? Icons.school_outlined : Icons.auto_awesome_outlined;
-                  return Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _modo = m),
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        decoration: BoxDecoration(
-                          color: sel ? materiaCor.withOpacity(0.15) : AppColors.cardBackground(context),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: sel ? materiaCor : AppColors.border(context),
-                            width: sel ? 2 : 1,
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Icon(icon, color: sel ? materiaCor : AppColors.textHint(context), size: 24),
-                            const SizedBox(height: 6),
-                            Text(
-                              m == 'Vestibular' ? 'Modo Vestibular' : 'Modo IA',
-                              style: AppTextStyles.corpo(
-                                context,
-                                fontWeight: sel ? FontWeight.bold : FontWeight.normal,
-                                color: sel ? materiaCor : AppColors.textSecondary(context),
+                children:
+                    _modos.map((m) {
+                      final bool sel = _modo == m;
+                      final IconData icon =
+                          m == 'Vestibular'
+                              ? Icons.school_outlined
+                              : Icons.auto_awesome_outlined;
+                      return Expanded(
+                        child: GestureDetector(
+                          onTap: () => setState(() => _modo = m),
+                          child: Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 4),
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            decoration: BoxDecoration(
+                              color:
+                                  sel
+                                      ? materiaCor.withOpacity(0.15)
+                                      : AppColors.cardBackground(context),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color:
+                                    sel
+                                        ? materiaCor
+                                        : AppColors.border(context),
+                                width: sel ? 2 : 1,
                               ),
                             ),
-                            const SizedBox(height: 2),
-                            Text(
-                              m == 'Vestibular' ? 'Questões oficiais ENEM' : 'Gerado dinamicamente',
-                              style: AppTextStyles.legenda(context, color: AppColors.textHint(context)),
-                              textAlign: TextAlign.center,
+                            child: Column(
+                              children: [
+                                Icon(
+                                  icon,
+                                  color:
+                                      sel
+                                          ? materiaCor
+                                          : AppColors.textHint(context),
+                                  size: 24,
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  m == 'Vestibular'
+                                      ? 'Modo Vestibular'
+                                      : 'Modo IA',
+                                  style: AppTextStyles.corpo(
+                                    context,
+                                    fontWeight:
+                                        sel
+                                            ? FontWeight.bold
+                                            : FontWeight.normal,
+                                    color:
+                                        sel
+                                            ? materiaCor
+                                            : AppColors.textSecondary(context),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  m == 'Vestibular'
+                                      ? 'Questões oficiais ENEM'
+                                      : 'Gerado dinamicamente',
+                                  style: AppTextStyles.legenda(
+                                    context,
+                                    color: AppColors.textHint(context),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                  );
-                }).toList(),
+                      );
+                    }).toList(),
               ),
               const SizedBox(height: 40),
 
               // ── Iniciar Sessão ──────────────────────
               ElevatedButton(
                 onPressed: () {
-                  final tema = _temaController.text.trim().isEmpty ? 'Geral' : _temaController.text.trim();
-                  
+                  final tema =
+                      _temaController.text.trim().isEmpty
+                          ? 'Geral'
+                          : _temaController.text.trim();
+
                   // Transaciona para a tela de resolução passando os parâmetros via query/path parameters
                   context.go(
                     '/exercicios/sessao'
@@ -264,7 +329,7 @@ class _ExerciciosConfigScreenState extends State<ExerciciosConfigScreen> {
                     '&tema=$tema'
                     '&dificuldade=$_dificuldade'
                     '&quantidade=$_quantidadeQuestoes'
-                    '&modo=$_modo'
+                    '&modo=$_modo',
                   );
                 },
                 style: ElevatedButton.styleFrom(

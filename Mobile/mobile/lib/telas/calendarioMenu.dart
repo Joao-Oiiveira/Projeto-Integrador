@@ -262,8 +262,11 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
             ),
             const SizedBox(width: 12),
             Text(
-              'CALENDÁRIO',
-              style: AppTextStyles.titulo(context, size: 20.0).copyWith(letterSpacing: 1.2),
+              'AGENDA',
+              style: AppTextStyles.titulo(
+                context,
+                size: 20.0,
+              ).copyWith(letterSpacing: 1.2),
             ),
           ],
         ),
@@ -352,7 +355,10 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
             '${diaInfo['dia']}/${diaInfo['mes']} ${diaInfo['nomeDia']}',
             style: AppTextStyles.legenda(
               context,
-              color: isHoje ? AppColors.destaque : AppColors.textSecondary(context),
+              color:
+                  isHoje
+                      ? AppColors.destaque
+                      : AppColors.textSecondary(context),
             ).copyWith(
               fontWeight: isHoje ? FontWeight.bold : FontWeight.normal,
             ),
@@ -433,9 +439,7 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color:
-                    tarefa.concluida
-                        ? AppColors.destaque
-                        : Colors.transparent,
+                    tarefa.concluida ? AppColors.destaque : Colors.transparent,
                 border: Border.all(
                   color:
                       tarefa.concluida
@@ -446,7 +450,11 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
               ),
               child:
                   tarefa.concluida
-                      ? Icon(Icons.check, color: AppColors.background(context), size: 14)
+                      ? Icon(
+                        Icons.check,
+                        color: AppColors.background(context),
+                        size: 14,
+                      )
                       : null,
             ),
           ),
@@ -462,7 +470,10 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
                   tarefa.titulo,
                   style: AppTextStyles.corpo(
                     context,
-                    color: tarefa.concluida ? AppColors.textHint(context) : AppColors.textPrimary(context),
+                    color:
+                        tarefa.concluida
+                            ? AppColors.textHint(context)
+                            : AppColors.textPrimary(context),
                     fontWeight: FontWeight.w500,
                   ).copyWith(
                     decoration:
@@ -523,11 +534,18 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
       alignment: Alignment.center,
       child: Column(
         children: [
-          Icon(Icons.check_circle_outline, color: AppColors.textHint(context), size: 48),
+          Icon(
+            Icons.check_circle_outline,
+            color: AppColors.textHint(context),
+            size: 48,
+          ),
           const SizedBox(height: 12),
           Text(
             'Nenhuma tarefa pendente!',
-            style: AppTextStyles.corpo(context, color: AppColors.textHint(context)),
+            style: AppTextStyles.corpo(
+              context,
+              color: AppColors.textHint(context),
+            ),
           ),
         ],
       ),
