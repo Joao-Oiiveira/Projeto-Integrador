@@ -214,7 +214,7 @@ const Tarefas = () => {
           <h1 className="text-2xl font-bold text-gray-900">Minhas Tarefas</h1>
           <p className="text-gray-500 text-sm mt-1">Organize seus estudos por prioridade.</p>
         </div>
-        <Button text="+ Nova Tarefa" onClick={abrirModalNovo} className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-purple-200 whitespace-nowrap" />
+        <Button text="+ Nova Tarefa" onClick={abrirModalNovo} className="bg-blue-600 hover:bg-blue-700 text-white border-none shadow-sm whitespace-nowrap" />
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">

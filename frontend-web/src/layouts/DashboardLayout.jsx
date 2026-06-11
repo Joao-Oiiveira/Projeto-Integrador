@@ -119,7 +119,11 @@ const DashboardLayout = () => {
         </div>
 
         <div className="flex flex-col gap-2 mt-4">
-          <button onClick={() => setIsAcessibilidadeOpen(true)} className="flex items-center gap-3 px-4 py-3 rounded-2xl font-medium text-purple-600 bg-purple-50 hover:bg-purple-100 dark:bg-purple-900/30 dark:hover:bg-purple-900/50 transition-all">
+          {/* Botão de Acessibilidade Ajustado (Igual ao de Configurações) */}
+          <button 
+            onClick={() => setIsAcessibilidadeOpen(true)} 
+            className="flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all text-gray-500 hover:bg-white dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
             Acessibilidade
           </button>

@@ -338,7 +338,7 @@ const Flashcards = () => {
               <Button 
                 text="+ Nova Carta" 
                 onClick={abrirModalNovoFlashcard} 
-                className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm whitespace-nowrap" 
+                className="bg-blue-600 hover:bg-blue-700 text-white border-none shadow-sm whitespace-nowrap" 
               />
             </div>
           </div>
@@ -449,7 +449,7 @@ const Flashcards = () => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Meus Baralhos</h1>
             <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Organize seus flashcards por disciplina.</p>
           </div>
-          <Button text="+ Novo Baralho" onClick={abrirModalNovoBaralho} className="bg-purple-600 hover:bg-purple-700 text-white border-none shadow-sm whitespace-nowrap" />
+          <Button text="+ Novo Baralho" onClick={abrirModalNovoBaralho} className="bg-blue-600 hover:bg-blue-700 text-white border-none shadow-sm whitespace-nowrap" />
         </div>
 
         {baralhos.length === 0 ? (
