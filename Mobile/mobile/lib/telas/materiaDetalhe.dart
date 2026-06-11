@@ -290,7 +290,7 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                             icon: Icons.assessment_outlined,
                             label: 'Flashcards',
                             count: materiaAtual.flashcardsDisponiveis,
-                            onTap: () {},
+                            onTap: () => context.go('/flashcard-menu/${widget.materiaNome}'),
                           ),
                         ),
                         const SizedBox(width: 8),

@@ -430,26 +430,31 @@ class _MenuScreenState extends State<MenuScreen> {
 
   // ── Widget: Card de Flashcard FECHADO ────────
   Widget _buildFlashcardCardFechado(FlashcardResumo flash) {
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: flash.cor.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            flash.materia,
-            style: AppTextStyles.subtitulo(context, size: 16.0, color: Colors.white),
-          ),
-          Text(
-            'Flashcards: ${flash.quantidade}',
-            style: AppTextStyles.legenda(context, color: Colors.white70),
-          ),
-        ],
+    return GestureDetector(
+      onTap: () {
+        context.go('/flashcard-menu/${flash.materia}');
+      },
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: flash.cor.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              flash.materia,
+              style: AppTextStyles.subtitulo(context, size: 16.0, color: Colors.white),
+            ),
+            Text(
+              'Flashcards: ${flash.quantidade}',
+              style: AppTextStyles.legenda(context, color: Colors.white70),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -458,7 +463,7 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget _buildFlashcardCard(FlashcardResumo flash) {
     return GestureDetector(
       onTap: () {
-        // Redirecionamento futuro para sessões de flashcards
+        context.go('/flashcard-menu/${flash.materia}');
       },
       child: Container(
         height: 72,

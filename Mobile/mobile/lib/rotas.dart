@@ -10,6 +10,9 @@ import 'package:mobile/telas/perfil_educacional.dart';
 import 'package:mobile/telas/exercicios.dart';
 import 'package:mobile/telas/exercicios_sessao.dart';
 import 'package:mobile/telas/perfil.dart';
+import 'package:mobile/telas/flashcard_menu.dart';
+import 'package:mobile/telas/criar_flashcard.dart';
+import 'package:mobile/telas/flashcard_revisao.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/login',
@@ -86,6 +89,32 @@ final appRouter = GoRouter(
           quantidade: quantidade,
           modo: modo,
         );
+      },
+    ),
+
+    GoRoute(
+      path: '/flashcard-menu/:materia',
+      builder: (context, state) {
+        final materia = state.pathParameters['materia'] ?? 'Matemática';
+        return FlashcardMenuScreen(materia: materia);
+      },
+    ),
+
+    GoRoute(
+      path: '/criar-flashcard/:materia/:deckNome',
+      builder: (context, state) {
+        final materia = state.pathParameters['materia'] ?? 'Matemática';
+        final deckNome = state.pathParameters['deckNome'] ?? 'Geral';
+        return CriarFlashcardScreen(materia: materia, deckNome: deckNome);
+      },
+    ),
+
+    GoRoute(
+      path: '/flashcard-revisao/:materia/:deckNome',
+      builder: (context, state) {
+        final materia = state.pathParameters['materia'] ?? 'Matemática';
+        final deckNome = state.pathParameters['deckNome'] ?? 'Geral';
+        return FlashcardRevisaoScreen(materia: materia, deckNome: deckNome);
       },
     ),
   ],
