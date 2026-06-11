@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { obterTarefas } from '../services/tarefas'; 
 import { obterDisciplinasAPI } from '../services/disciplinas';
-import { obterEventos } from '../services/eventosService'; // NOVO
-import { criarNotificacao } from '../services/notificacoes'; // NOVO
+import { obterEventos } from '../services/eventosService';
+import { criarNotificacao } from '../services/notificacoes';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const [tarefas, setTarefas] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
 
@@ -14,7 +16,7 @@ const Dashboard = () => {
         const [tarefasData, disciplinasData, eventosData] = await Promise.all([
           obterTarefas(),
           obterDisciplinasAPI(),
-          obterEventos() // NOVO: Busca os eventos para a inteligência
+          obterEventos()
         ]);
         
         setTarefas(tarefasData);
@@ -26,16 +28,12 @@ const Dashboard = () => {
         const hojeStr = new Date().toISOString().split('T')[0];
         const ultimaVerificacao = localStorage.getItem('ultima_verificacao_notificacoes');
 
-        // Só roda 1x por dia para não floodar o banco
         if (ultimaVerificacao !== hojeStr) {
-          
-          // 1. Verifica Tarefas Atrasadas
           const atrasadas = tarefasData.filter(t => t.status !== 'concluida' && t.data_entrega && t.data_entrega.split('T')[0] < hojeStr);
           if (atrasadas.length > 0) {
             await criarNotificacao("Tarefas Atrasadas", `Você tem ${atrasadas.length} tarefa(s) pendente(s) que já passaram do prazo!`);
           }
 
-          // 2. Verifica Eventos Hoje
           const eventosHoje = eventosData.filter(e => e.data_inicio && e.data_inicio.split('T')[0] === hojeStr);
           for (const ev of eventosHoje) {
             await criarNotificacao("Evento Hoje", `Você tem um compromisso marcado para hoje: ${ev.titulo}`);
@@ -113,15 +111,54 @@ const Dashboard = () => {
     ? `Você tem ${tarefasAtrasadasCount} tarefa(s) atrasada(s). Sugiro focar nelas agora para não acumular matéria.` 
     : "Ótimo trabalho! Você não tem tarefas atrasadas. Que tal revisar seus flashcards para fixar o conteúdo?";
 
-  const graficoSemana = [
-    { dia: 'Seg', horas: 2, percent: '40%' },
-    { dia: 'Ter', horas: 4, percent: '80%' },
-    { dia: 'Qua', horas: 3, percent: '60%' },
-    { dia: 'Qui', horas: 5, percent: '100%' },
-    { dia: 'Sex', horas: 1, percent: '20%' },
-    { dia: 'Sáb', horas: 2, percent: '40%' },
-    { dia: 'Dom', horas: 0, percent: '5%' },
-  ];
+  // ==========================================
+  // GRÁFICO DINÂMICO (Últimos 7 dias)
+  // ==========================================
+  const gerarDadosGrafico = () => {
+    const dias = [];
+    const diasDaSemana = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    
+    // Pega apenas as tarefas concluídas e que possuem data de atualização
+    const tarefasFeitas = tarefas.filter(t => t.status === 'concluida' && t.data_atualizacao);
+    
+    let maxConcluidasNoDia = 0; // Inicia em 0 para encontrar o valor máximo real
+
+    // Gera os últimos 7 dias (terminando hoje)
+    for (let i = 6; i >= 0; i--) {
+      const dataAlvo = new Date();
+      dataAlvo.setDate(dataAlvo.getDate() - i);
+      
+      // Formata a data localmente para evitar bugs de fuso horário
+      const year = dataAlvo.getFullYear();
+      const month = String(dataAlvo.getMonth() + 1).padStart(2, '0');
+      const day = String(dataAlvo.getDate()).padStart(2, '0');
+      const dataStr = `${year}-${month}-${day}`;
+      
+      // Conta quantas tarefas foram concluídas neste dia
+      const concluidasNesteDia = tarefasFeitas.filter(t => t.data_atualizacao.split('T')[0] === dataStr).length;
+      
+      if (concluidasNesteDia > maxConcluidasNoDia) {
+        maxConcluidasNoDia = concluidasNesteDia;
+      }
+
+      dias.push({
+        dia: i === 0 ? 'Hoje' : diasDaSemana[dataAlvo.getDay()],
+        valor: concluidasNesteDia,
+        dataStr: dataStr
+      });
+    }
+
+    // Calcula a porcentagem exata da altura da barra
+    return dias.map(d => {
+      const porcentagem = maxConcluidasNoDia === 0 ? 0 : Math.round((d.valor / maxConcluidasNoDia) * 100);
+      return {
+        ...d,
+        percent: `${porcentagem}%`
+      };
+    });
+  };
+
+  const graficoDinamico = gerarDadosGrafico();
 
   return (
     <div className="flex flex-col gap-6">
@@ -143,24 +180,41 @@ const Dashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 flex flex-col gap-6">
           
+          {/* GRÁFICO ATUALIZADO */}
           <div className="bg-white dark:bg-gray-800 p-6 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700 flex flex-col">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Horas de Estudo</h2>
-              <select className="bg-gray-50 dark:bg-gray-900 border-none text-sm text-gray-500 dark:text-gray-400 rounded-lg py-1.5 px-3 outline-none cursor-pointer"><option>Esta Semana</option></select>
+              <h2 className="text-xl font-bold text-gray-900 dark:text-white">Tarefas Concluídas</h2>
+              <select className="bg-gray-50 dark:bg-gray-900 border-none text-sm text-gray-500 dark:text-gray-400 rounded-lg py-1.5 px-3 outline-none cursor-pointer">
+                <option>Últimos 7 dias</option>
+              </select>
             </div>
             
             <div className="flex items-end justify-between h-48 gap-2 mt-auto">
-              {graficoSemana.map((dia) => (
-                <div key={dia.dia} className="flex flex-col items-center gap-2 flex-1 group">
-                  <div className="w-full bg-purple-50 dark:bg-purple-900/30 rounded-xl flex items-end justify-center h-full relative overflow-hidden">
-                    <div className="w-full bg-purple-500 rounded-xl transition-all duration-500 group-hover:bg-purple-600" style={{ height: dia.percent }}></div>
+              {graficoDinamico.map((dia) => (
+                <div key={dia.dataStr} className="flex flex-col items-center gap-2 flex-1 group relative h-full">
+                  {/* Tooltip no Hover mostrando o número exato */}
+                  <span className="absolute -top-8 bg-gray-900 text-white text-xs font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                    {dia.valor}
+                  </span>
+                  
+                  {/* Container da barra (Fundo claro) */}
+                  <div className="w-full bg-purple-50 dark:bg-purple-900/30 rounded-xl flex items-end justify-center flex-1 relative overflow-hidden">
+                    {/* A Barra em si (Roxa) */}
+                    <div 
+                      className="w-full bg-purple-500 rounded-xl transition-all duration-500 group-hover:bg-purple-600" 
+                      style={{ height: dia.percent }}
+                    ></div>
                   </div>
-                  <span className="text-xs font-medium text-gray-400">{dia.dia}</span>
+                  
+                  <span className={`text-xs font-medium ${dia.dia === 'Hoje' ? 'text-purple-600 dark:text-purple-400 font-bold' : 'text-gray-400'}`}>
+                    {dia.dia}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
 
+          {/* CARD DA IA ATUALIZADO COM NAVEGAÇÃO */}
           <div className={`p-6 rounded-[2rem] shadow-sm text-white flex flex-col sm:flex-row justify-between items-start sm:items-center relative overflow-hidden gap-4 transition-colors duration-500 ${tarefasAtrasadasCount > 0 ? 'bg-gradient-to-r from-red-500 to-orange-500' : 'bg-gradient-to-r from-purple-600 to-indigo-600'}`}>
             <svg className="absolute right-0 top-0 w-32 h-32 text-white opacity-10 transform translate-x-8 -translate-y-8" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M11.3 1.046A120.138 120.138 0 0013.989 0A119.908 119.908 0 0115.97 20.54a119.908 119.908 0 00-2.616 12.02A119.933 119.933 0 011.046 11.3c2.56.46 5.152.793 7.784 1.011A119.82 119.82 0 0111.3 1.046z" clipRule="evenodd" /></svg>
             <div className="relative z-10 flex flex-col gap-2">
@@ -171,7 +225,10 @@ const Dashboard = () => {
               <h3 className="text-xl font-bold">{iaTitulo}</h3>
               <p className="text-white/90 text-sm max-w-md">{iaTexto}</p>
             </div>
-            <button className={`relative z-10 bg-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition-transform whitespace-nowrap ${tarefasAtrasadasCount > 0 ? 'text-red-600' : 'text-purple-600'}`}>
+            <button 
+              onClick={() => navigate(tarefasAtrasadasCount > 0 ? '/tarefas' : '/flashcards')}
+              className={`relative z-10 bg-white px-6 py-3 rounded-xl font-bold text-sm shadow-lg hover:scale-105 transition-transform whitespace-nowrap ${tarefasAtrasadasCount > 0 ? 'text-red-600' : 'text-purple-600'}`}
+            >
               {tarefasAtrasadasCount > 0 ? 'Ver Tarefas' : 'Iniciar Revisão'}
             </button>
           </div>

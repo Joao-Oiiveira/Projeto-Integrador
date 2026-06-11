@@ -313,7 +313,7 @@ const Exercicios = () => {
               </div>
             </div>
 
-            <Button type="submit" text="Iniciar Sessão" className="w-full mt-4 bg-purple-600 hover:bg-purple-700 text-white border-none py-4 text-lg" />
+            <Button type="submit" text="Iniciar Sessão" className="w-full mt-4 bg-blue-600 hover:bg-blue-700 text-white border-none py-4 text-lg" />
           </form>
         </div>
       )}

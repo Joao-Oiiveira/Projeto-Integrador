@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/Button';
 import Input from '../components/Input';
-import { loginAPI } from '../services/auth'; // <-- Importação atualizada
+import { loginAPI } from '../services/auth';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -10,16 +10,14 @@ const Login = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  // <-- Função agora é async
   const handleLogin = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      // <-- Adicionado o await
       const user = await loginAPI(email, password);
       
-      if (!user.perfil) { // <-- O banco retorna 'perfil', e não 'perfil_usuario'
+      if (!user.perfil) { 
         navigate('/onboarding');
       } else {
         navigate('/dashboard');
@@ -30,13 +28,16 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black flex items-center justify-center p-4 sm:p-8">
-      <div className="flex flex-col md:flex-row w-full max-w-[1000px] bg-gray-900 rounded-[2rem] p-3 shadow-2xl border border-gray-800">
+    // Fundo alterado para bg-[#F4F7FE] combinando com o Dashboard
+    <div className="min-h-screen bg-[#F4F7FE] flex items-center justify-center p-4 sm:p-8">
+      {/* Card alterado para bg-white e borda clara */}
+      <div className="flex flex-col md:flex-row w-full max-w-[1000px] bg-white rounded-[2rem] p-3 shadow-2xl border border-gray-100">
         
         <div className="w-full md:w-1/2 flex flex-col justify-center px-6 py-12 md:px-12 lg:px-16">
           <div className="text-center mb-10">
-            <h1 className="text-3xl font-bold text-white mb-2">Entrar</h1>
-            <p className="text-gray-400 text-sm">Insira suas credenciais para acessar</p>
+            {/* Textos escuros */}
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">Entrar</h1>
+            <p className="text-gray-500 text-sm">Insira suas credenciais para acessar</p>
           </div>
 
           <form onSubmit={handleLogin} className="flex flex-col gap-5">
@@ -46,18 +47,20 @@ const Login = () => {
             <Input id="password" label="Senha" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
 
             <div className="flex items-center gap-2 mt-1 mb-4">
-              <input type="checkbox" id="remember" className="w-4 h-4 rounded border-gray-700 bg-gray-800 text-purple-500 focus:ring-purple-500" />
-              <label htmlFor="remember" className="text-sm text-gray-400 cursor-pointer">Lembrar de mim</label>
+              {/* Checkbox em tons claros */}
+              <input type="checkbox" id="remember" className="w-4 h-4 rounded border-gray-300 bg-white text-purple-600 focus:ring-purple-500" />
+              <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">Lembrar de mim</label>
             </div>
 
-            <Button type="submit" text="Entrar" className="w-full" />
+            <Button type="submit" text="Entrar" className="w-full bg-blue-600 hover:bg-blue-700 text-white border-none shadow-sm whitespace-nowrap" />
           </form>
 
-          <p className="text-center text-sm text-gray-400 mt-8">
-            Não é membro? <Link to="/register" className="text-white font-semibold hover:text-purple-400 transition-colors">Criar uma conta</Link>
+          <p className="text-center text-sm text-gray-500 mt-8">
+            Não é membro? <Link to="/register" className="text-purple-600 font-bold hover:text-purple-700 transition-colors">Criar uma conta</Link>
           </p>
         </div>
 
+        {/* Lado da Imagem (Mantido) */}
         <div className="hidden md:flex w-1/2 relative rounded-[1.5rem] overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-purple-800 via-pink-700 to-gray-900 opacity-90"></div>
           <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop" alt="Arte abstrata" className="absolute inset-0 w-full h-full object-cover mix-blend-overlay"/>
