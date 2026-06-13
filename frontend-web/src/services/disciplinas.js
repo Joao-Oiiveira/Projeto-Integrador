@@ -1,7 +1,6 @@
 const API_URL = 'http://127.0.0.1:8000/disciplinas';
 const TOKEN_KEY = '@EduAcess:token';
 
-// Função auxiliar para pegar o token e montar o cabeçalho
 const getHeaders = () => {
   const token = localStorage.getItem(TOKEN_KEY);
   if (!token) throw new Error("Usuário não autenticado");

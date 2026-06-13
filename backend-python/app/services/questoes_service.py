@@ -5,10 +5,8 @@ import random
 import re
 from dotenv import load_dotenv
 
-# Carrega as variáveis do .env
 load_dotenv()
 
-# Pega a chave da API da Groq
 api_key = os.getenv("GROQ_API_KEY")
 
 def gerar_questoes_ia(tema: str, dificuldade: str, quantidade: int):
@@ -27,7 +25,6 @@ def _gerar_questoes_com_groq(tema: str, dificuldade: str, quantidade: int):
         print("ERRO: GROQ_API_KEY não encontrada no arquivo .env")
         return _gerar_fallback(quantidade)
 
-    # O prompt blindado e rigoroso
     prompt = f"""
     Você é um professor especialista, rigoroso e extremamente preciso.
     Gere EXATAMENTE {quantidade} questões de múltipla escolha sobre o tema: "{tema}".
@@ -63,7 +60,6 @@ def _gerar_questoes_com_groq(tema: str, dificuldade: str, quantidade: int):
         "Content-Type": "application/json"
     }
     
-    # Usamos o modelo de 70 Bilhões para não ter erros factuais
     payload = {
         "model": "llama-3.3-70b-versatile",
         "messages": [{"role": "user", "content": prompt}],
