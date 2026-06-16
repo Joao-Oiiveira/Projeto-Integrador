@@ -1,5 +1,6 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
+import re
 
 # --- SCHEMAS DE ENTRADA (O que o Frontend envia) ---
 
@@ -8,9 +9,22 @@ class UsuarioCreate(BaseModel):
     email: EmailStr
     senha: str
 
+    # Validador de Senha Forte (Padrão de Mercado)
+    @field_validator('senha')
+    @classmethod
+    def validar_senha(cls, v):
+        if len(v) < 8:
+            raise ValueError('A senha deve ter no mínimo 8 caracteres.')
+        if not re.search(r'\d', v):
+            raise ValueError('A senha deve conter pelo menos um número.')
+        if not re.search(r'[A-Z]', v):
+            raise ValueError('A senha deve conter pelo menos uma letra maiúscula.')
+        return v
+
 class UsuarioLogin(BaseModel):
     email: EmailStr
     senha: str
+
 
 class PerfilUpdate(BaseModel):
     dificuldade_leitura: bool = False

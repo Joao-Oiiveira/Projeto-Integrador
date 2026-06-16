@@ -69,8 +69,12 @@ const DashboardLayout = () => {
 
   // NOVO: Função que limpa os dados e redireciona
   const handleLogout = () => {
-    logoutAPI();
-    navigate('/login');
+    // Limpa o cofre do navegador
+    localStorage.removeItem('@EduAcess:token');
+    localStorage.removeItem('@EduAcess:loggedUser');
+    
+    // Força o recarregamento da página para limpar qualquer estado do React
+    window.location.href = '/login';
   };
 
   const notificacoesNaoLidas = notificacoes.filter(n => !n.lida);
@@ -87,7 +91,7 @@ const DashboardLayout = () => {
   const dataAtual = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', weekday: 'long' }).format(new Date());
 
   return (
-    <div className="flex h-screen bg-[#F4F7FE] text-gray-800 font-sans overflow-hidden dark:bg-gray-900 dark:text-white transition-colors">
+    <div className="flex h-screen bg-[#F4F7FE] text-gray-800 font-sans dyslexia:font-opendyslexic overflow-hidden">
       
       <TTSReader />
 

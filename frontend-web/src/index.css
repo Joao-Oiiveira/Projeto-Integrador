@@ -2,30 +2,14 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ==========================================
-   ACESSIBILIDADE: FONTE PARA DISLEXIA
-   ========================================== */
-@font-face {
-  font-family: 'OpenDyslexic';
-  src: url('https://cdn.jsdelivr.net/npm/opendyslexic@1.0.3/woff/OpenDyslexic-Regular.woff') format('woff');
-  font-weight: normal;
-  font-style: normal;
-}
-
-/* CLASSE SUPREMA: Força a fonte em TODOS os elementos da tela */
-html.dislexia-mode, html.dislexia-mode *,
-html.dyslexic, html.dyslexic *,
-html.font-dyslexic, html.font-dyslexic * {
-  font-family: 'OpenDyslexic', sans-serif !important;
-}
-
-/* Garante transições suaves ao mudar o tema ou tamanho da fonte */
-html {
-  transition: background-color 0.3s ease, color 0.3s ease, font-size 0.3s ease;
+@layer base {
+  html {
+    transition: background-color 0.3s ease, color 0.3s ease, font-size 0.3s ease;
+  }
 }
 
 /* ==========================================
-   ANIMAÇÕES DO SISTEMA
+   ANIMAÇÕES
    ========================================== */
 @keyframes fadeInUp {
   from { opacity: 0; transform: translateY(15px); }

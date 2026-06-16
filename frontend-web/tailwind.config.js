@@ -1,17 +1,23 @@
+const plugin = require('tailwindcss/plugin')
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
-  darkMode: 'class', // <--- ISSO É OBRIGATÓRIO PARA O TEMA ESCURO FUNCIONAR
+  darkMode: 'class',
   theme: {
     extend: {
       fontFamily: {
-        // Define a classe font-opendyslexic
-        opendyslexic: ['OpenDyslexic', 'sans-serif'], 
+        // Usa fontes nativas que são amigáveis para dislexia
+        opendyslexic: ['"Comic Sans MS"', '"Trebuchet MS"', 'monospace', 'sans-serif'],
       }
     },
   },
-  plugins: [],
+  plugins: [
+    plugin(function({ addVariant }) {
+      addVariant('dyslexia', ':is(html.dislexia-mode) &')
+    })
+  ],
 }

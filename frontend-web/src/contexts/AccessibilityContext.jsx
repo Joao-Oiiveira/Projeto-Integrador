@@ -23,6 +23,8 @@ export const AccessibilityProvider = ({ children }) => {
   useEffect(() => {
     const html = document.documentElement;
 
+    console.log("TESTE DISLEXIA:", configuracoes.fonte_dislexia);
+
     html.style.fontSize = `${configuracoes.tamanho_fonte}px`;
 
     if (configuracoes.tema_escuro) html.classList.add('dark');

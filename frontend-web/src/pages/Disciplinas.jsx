@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import Modal from '../components/Modal';
 import Button from '../components/Button';
 import Input from '../components/Input';
+import ConfirmModal from '../components/ConfirmModal';
 import { obterDisciplinasAPI, criarDisciplinaAPI, atualizarDisciplinaAPI, excluirDisciplinaAPI } from '../services/disciplinas';
 
 const CORES_DISPONIVEIS = [
@@ -18,8 +19,9 @@ const Disciplinas = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editandoId, setEditandoId] = useState(null);
   const [formData, setFormData] = useState({ nome: '', descricao: '' });
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
 
-  // NOVO: Estados e Ref para a Importação
+  // Estados e Ref para a Importação
   const [isImporting, setIsImporting] = useState(false);
   const fileInputRef = useRef(null);
 
@@ -68,14 +70,20 @@ const Disciplinas = () => {
     }
   };
 
-  const handleExcluir = async (id) => {
-    if (window.confirm("Deseja realmente excluir esta disciplina?")) {
-      try {
-        await excluirDisciplinaAPI(id);
-        await carregarDados();
-      } catch (error) {
-        alert(error.message); 
-      }
+  // ==========================================
+  // LÓGICA DE EXCLUSÃO COM CONFIRM MODAL
+  // ==========================================
+  const handleExcluirClick = (id) => {
+    setConfirmModal({ isOpen: true, id });
+  };
+
+  const confirmarExclusao = async () => {
+    try {
+      await excluirDisciplinaAPI(confirmModal.id);
+      await carregarDados();
+      setConfirmModal({ isOpen: false, id: null });
+    } catch (error) {
+      alert(error.message); 
     }
   };
 
@@ -83,7 +91,6 @@ const Disciplinas = () => {
   // LÓGICA DE IMPORTAÇÃO DE JSON
   // ==========================================
   const handleImportClick = () => {
-    // Simula o clique no input de arquivo oculto
     fileInputRef.current.click();
   };
 
@@ -99,15 +106,13 @@ const Disciplinas = () => {
         const conteudo = e.target.result;
         const dadosParsed = JSON.parse(conteudo);
 
-        // Validação do formato
         if (!Array.isArray(dadosParsed)) {
           throw new Error("O arquivo JSON deve conter um array de objetos (ex: [{nome: '...', descricao: '...'}]).");
         }
 
         let importadas = 0;
-        // Loop iterando sobre o array e salvando na API
         for (const item of dadosParsed) {
-          if (item.nome) { // Garante que pelo menos o nome exista
+          if (item.nome) { 
             await criarDisciplinaAPI({
               nome: item.nome,
               descricao: item.descricao || ''
@@ -117,12 +122,11 @@ const Disciplinas = () => {
         }
 
         alert(`${importadas} disciplina(s) importada(s) com sucesso!`);
-        await carregarDados(); // Recarrega a tela com os novos dados
+        await carregarDados();
       } catch (error) {
         alert("Erro ao importar: " + (error.message || "Formato de arquivo inválido."));
       } finally {
         setIsImporting(false);
-        // Reseta o input para permitir importar o mesmo arquivo novamente, se necessário
         if (fileInputRef.current) fileInputRef.current.value = ''; 
       }
     };
@@ -132,7 +136,7 @@ const Disciplinas = () => {
       setIsImporting(false);
     };
 
-    reader.readAsText(file); // Inicia a leitura do arquivo
+    reader.readAsText(file);
   };
 
   return (
@@ -144,9 +148,7 @@ const Disciplinas = () => {
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Gerencie suas matérias e áreas de estudo.</p>
         </div>
         
-        {/* Botões de Ação */}
         <div className="flex flex-col sm:flex-row gap-3">
-          {/* Input de arquivo oculto */}
           <input 
             type="file" 
             accept=".json" 
@@ -155,7 +157,6 @@ const Disciplinas = () => {
             className="hidden" 
           />
           
-          {/* NOVO: Botão de Importar JSON */}
           <button 
             onClick={handleImportClick}
             disabled={isImporting}
@@ -210,7 +211,8 @@ const Disciplinas = () => {
                     <button onClick={() => abrirModalEdicao(disciplina)} className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
-                    <button onClick={() => handleExcluir(disciplina.id)} className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors">
+                    {/* CORREÇÃO: Usando handleExcluirClick */}
+                    <button onClick={() => handleExcluirClick(disciplina.id)} className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
                   </div>
@@ -248,6 +250,15 @@ const Disciplinas = () => {
           <Button type="submit" text={editandoId ? "Salvar Alterações" : "Criar Disciplina"} className="w-full mt-4 bg-purple-600 hover:bg-purple-700 border-none text-white" />
         </form>
       </Modal>
+
+      <ConfirmModal 
+        isOpen={confirmModal.isOpen}
+        title="Excluir Disciplina"
+        message="Tem certeza que deseja excluir esta disciplina? Esta ação não poderá ser desfeita e pode afetar tarefas vinculadas a ela."
+        confirmText="Excluir Disciplina"
+        onCancel={() => setConfirmModal({ isOpen: false, id: null })}
+        onConfirm={confirmarExclusao}
+      />
     </div>
   );
 };
