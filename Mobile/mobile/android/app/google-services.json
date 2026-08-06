@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "6151713177",
+    "project_id": "eduacess-ac280",
+    "storage_bucket": "eduacess-ac280.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:6151713177:android:afa14d592701babf15e308",
+        "android_client_info": {
+          "package_name": "com.example.mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "6151713177-74l21o5ak3g5h6kqh1ae91ssqolqbmee.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCHLLd_zUT0LuCMw8qKZQJvpNQ4Q5DecgY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "6151713177-74l21o5ak3g5h6kqh1ae91ssqolqbmee.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

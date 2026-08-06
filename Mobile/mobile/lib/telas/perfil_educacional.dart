@@ -183,61 +183,63 @@ class _PerfilEducacionalScreenState extends State<PerfilEducacionalScreen> {
     required String infoAcessibilidade,
     required IconData icon,
   }) {
-    return Column(
+    return SingleChildScrollView(
       key: key,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Icon(icon, color: AppColors.destaque, size: 48),
-        const SizedBox(height: 16),
-        Text(
-          titulo,
-          style: AppTextStyles.titulo(context, size: 24.0),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          subtitulo,
-          style: AppTextStyles.corpo(context, color: AppColors.textSecondary(context)),
-        ),
-        const SizedBox(height: 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: AppColors.destaque, size: 48),
+          const SizedBox(height: 16),
+          Text(
+            titulo,
+            style: AppTextStyles.titulo(context, size: 24.0),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitulo,
+            style: AppTextStyles.corpo(context, color: AppColors.textSecondary(context)),
+          ),
+          const SizedBox(height: 32),
 
-        // Cards de Opção
-        _buildCardOpcao(
-          titulo: 'Sim, eu possuo',
-          selecionado: valor == true,
-          onTap: () => onChanged(true),
-          icon: Icons.check_circle_outline,
-        ),
-        const SizedBox(height: 16),
-        _buildCardOpcao(
-          titulo: 'Não possuo',
-          selecionado: valor == false,
-          onTap: () => onChanged(false),
-          icon: Icons.cancel_outlined,
-        ),
-        const Spacer(),
-        
-        // Alerta de automação
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.cardSecondary(context),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border(context)),
+          // Cards de Opção
+          _buildCardOpcao(
+            titulo: 'Sim, eu possuo',
+            selecionado: valor == true,
+            onTap: () => onChanged(true),
+            icon: Icons.check_circle_outline,
           ),
-          child: Row(
-            children: [
-              Icon(Icons.info_outline, color: AppColors.textSecondary(context), size: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  infoAcessibilidade,
-                  style: AppTextStyles.legenda(context, color: AppColors.textSecondary(context)),
+          const SizedBox(height: 16),
+          _buildCardOpcao(
+            titulo: 'Não possuo',
+            selecionado: valor == false,
+            onTap: () => onChanged(false),
+            icon: Icons.cancel_outlined,
+          ),
+          const SizedBox(height: 24),
+          
+          // Alerta de automação
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.cardSecondary(context),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border(context)),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: AppColors.textSecondary(context), size: 18),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    infoAcessibilidade,
+                    style: AppTextStyles.legenda(context, color: AppColors.textSecondary(context)),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -264,61 +266,63 @@ class _PerfilEducacionalScreenState extends State<PerfilEducacionalScreen> {
       },
     ];
 
-    return Column(
+    return SingleChildScrollView(
       key: key,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Icon(Icons.auto_awesome_outlined, color: AppColors.destaque, size: 48),
-        const SizedBox(height: 16),
-        Text(
-          'Preferência de estudo',
-          style: AppTextStyles.titulo(context, size: 24.0),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          'Como você se sente mais confortável para compreender novos conteúdos?',
-          style: AppTextStyles.corpo(context, color: AppColors.textSecondary(context)),
-        ),
-        const SizedBox(height: 24),
-
-        ...opcoes.map((opcao) {
-          final bool selecionado = _preferenciaConteudo == opcao['id'];
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _buildCardOpcaoCompleto(
-              titulo: opcao['label'] as String,
-              subtitulo: opcao['desc'] as String,
-              icon: opcao['icon'] as IconData,
-              selecionado: selecionado,
-              onTap: () => setState(() => _preferenciaConteudo = opcao['id'] as String),
-            ),
-          );
-        }).toList(),
-        
-        const Spacer(),
-
-        if (_preferenciaConteudo == 'auditivo')
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.cardSecondary(context),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: AppColors.border(context)),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: AppColors.textSecondary(context), size: 18),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Esta opção ativará a Leitura em Voz Alta nas páginas de estudo automaticamente.',
-                    style: AppTextStyles.legenda(context, color: AppColors.textSecondary(context)),
-                  ),
-                ),
-              ],
-            ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.auto_awesome_outlined, color: AppColors.destaque, size: 48),
+          const SizedBox(height: 16),
+          Text(
+            'Preferência de estudo',
+            style: AppTextStyles.titulo(context, size: 24.0),
           ),
-      ],
+          const SizedBox(height: 8),
+          Text(
+            'Como você se sente mais confortável para compreender novos conteúdos?',
+            style: AppTextStyles.corpo(context, color: AppColors.textSecondary(context)),
+          ),
+          const SizedBox(height: 24),
+
+          ...opcoes.map((opcao) {
+            final bool selecionado = _preferenciaConteudo == opcao['id'];
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _buildCardOpcaoCompleto(
+                titulo: opcao['label'] as String,
+                subtitulo: opcao['desc'] as String,
+                icon: opcao['icon'] as IconData,
+                selecionado: selecionado,
+                onTap: () => setState(() => _preferenciaConteudo = opcao['id'] as String),
+              ),
+            );
+          }).toList(),
+          
+          const SizedBox(height: 24),
+
+          if (_preferenciaConteudo == 'auditivo')
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.cardSecondary(context),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: AppColors.border(context)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.info_outline, color: AppColors.textSecondary(context), size: 18),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Esta opção ativará a Leitura em Voz Alta nas páginas de estudo automaticamente.',
+                      style: AppTextStyles.legenda(context, color: AppColors.textSecondary(context)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+        ],
+      ),
     );
   }
 

@@ -6,3 +6,4 @@ passlib[bcrypt]==1.7.4
 python-jose[cryptography]==3.3.0
 bcrypt==3.2.2
 requests==2.31.0
+firebase-admin==6.5.0

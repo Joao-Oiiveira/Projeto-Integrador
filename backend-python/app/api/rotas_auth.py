@@ -3,10 +3,12 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import get_password_hash, verify_password, create_access_token
 from app.models.usuario import Usuario, PerfilUsuario, ConfiguracoesUsuario
-from app.schemas.usuario import UsuarioCreate, UsuarioLogin, TokenResponse, UsuarioResponse, OnboardingUpdate
+from app.schemas.usuario import UsuarioCreate, UsuarioLogin, GoogleLoginRequest, TokenResponse, UsuarioResponse, OnboardingUpdate
 from app.api.deps import get_usuario_atual
+from app.core.firebase import verificar_token_firebase
 
 router = APIRouter()
+
 
 # 1. Função de Cadastro (Registro)
 @router.post("/registrar", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
@@ -73,3 +75,33 @@ def salvar_onboarding(dados: OnboardingUpdate, db: Session = Depends(get_db), us
     db.refresh(usuario_atual)
     
     return usuario_atual
+
+# 5. Login / Cadastro via Google (Firebase Auth)
+@router.post("/google", response_model=TokenResponse)
+def login_com_google(dados: GoogleLoginRequest, db: Session = Depends(get_db)):
+    # Valida o ID Token recebido do Firebase
+    token_decodificado = verificar_token_firebase(dados.id_token)
+    
+    email = token_decodificado.get("email")
+    nome = token_decodificado.get("name") or (email.split("@")[0] if email else "Usuário Google")
+    
+    if not email:
+        raise HTTPException(status_code=400, detail="E-mail não retornado pelo Firebase.")
+        
+    # Busca o usuário no MySQL
+    usuario = db.query(Usuario).filter(Usuario.email == email).first()
+    
+    # Se não existir, cadastra automaticamente no MySQL
+    if not usuario:
+        usuario = Usuario(
+            nome=nome,
+            email=email,
+            senha=get_password_hash("GOOGLE_SSO_USER_NO_PASSWORD")
+        )
+        db.add(usuario)
+        db.commit()
+        db.refresh(usuario)
+        
+    # Gera o Token de acesso do nosso aplicativo
+    access_token = create_access_token(data={"sub": usuario.email})
+    return {"access_token": access_token, "token_type": "bearer", "usuario": usuario}

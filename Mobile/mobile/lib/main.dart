@@ -1,9 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:mobile/firebase_options.dart';
 import 'package:mobile/rotas.dart';
 import 'package:mobile/servicos/accessibility_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // 👈 necessário para async no main
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+  } catch (e) {
+    debugPrint("Erro ao inicializar Firebase: $e");
+  }
+
   await accessibilityProvider
       .carregarConfiguracoes(); // 👈 carrega configurações salvas
   runApp(const MyApp());

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/servicos/auth_service.dart';
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
 import 'auth_widgets.dart';
@@ -15,11 +15,12 @@ class SignUpScreen extends StatefulWidget {
 class _SignUpScreenState extends State<SignUpScreen> {
   bool _obscurePassword = true;
   bool _acceptTerms = false;
+  bool _isLoading = false;
 
-  // Controllers para capturar o que o usuário digita
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
+  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
@@ -27,6 +28,64 @@ class _SignUpScreenState extends State<SignUpScreen> {
     _emailController.dispose();
     _senhaController.dispose();
     super.dispose();
+  }
+
+  void _criarConta() async {
+    final nome = _nomeController.text.trim();
+    final email = _emailController.text.trim();
+    final senha = _senhaController.text.trim();
+
+    if (nome.isEmpty || email.isEmpty || senha.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor, preencha todos os campos.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    if (!_acceptTerms) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Você precisa aceitar os termos de uso para continuar.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // Cadastra o novo usuário no MySQL através da API Python
+      await _authService.cadastrarUsuario(nome, email, senha);
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Conta criada com sucesso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Redireciona para a configuração de perfil educacional
+      context.go('/perfil-educacional');
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -181,21 +240,12 @@ class _SignUpScreenState extends State<SignUpScreen> {
               const SizedBox(height: 24),
 
               // Botão Cadastrar (Acessar)
-              PrimaryButton(
-                label: 'Acessar',
-                onPressed: () async {
-                  final router = GoRouter.of(context);
-                  final prefs = await SharedPreferences.getInstance();
-                  if (_nomeController.text.isNotEmpty) {
-                    await prefs.setString('userName', _nomeController.text);
-                  }
-                  if (_emailController.text.isNotEmpty) {
-                    await prefs.setString('userEmail', _emailController.text);
-                  }
-                  // Redireciona para o formulário de perfil educacional pós-cadastro
-                  router.go('/perfil-educacional');
-                },
-              ),
+              _isLoading
+                  ? const CircularProgressIndicator(color: AppColors.destaque)
+                  : PrimaryButton(
+                      label: 'Cadastrar',
+                      onPressed: _criarConta,
+                    ),
 
               const SizedBox(height: 40),
 

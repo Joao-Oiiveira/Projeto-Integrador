@@ -25,6 +25,10 @@ class UsuarioLogin(BaseModel):
     email: EmailStr
     senha: str
 
+class GoogleLoginRequest(BaseModel):
+    id_token: str
+
+
 
 class PerfilUpdate(BaseModel):
     dificuldade_leitura: bool = False

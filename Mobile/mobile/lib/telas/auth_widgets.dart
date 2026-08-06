@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
+import 'package:mobile/servicos/auth_service.dart';
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
 
@@ -8,8 +10,54 @@ import 'package:mobile/tema/app_text_styles.dart';
 // LoginScreen e SignUpScreen
 // ─────────────────────────────────────────────
 
-class GoogleButton extends StatelessWidget {
+class GoogleButton extends StatefulWidget {
   const GoogleButton({super.key});
+
+  @override
+  State<GoogleButton> createState() => _GoogleButtonState();
+}
+
+class _GoogleButtonState extends State<GoogleButton> {
+  bool _isLoading = false;
+
+  Future<void> _handleGoogleLogin() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final response = await AuthService().loginComGoogle();
+
+      if (response != null && mounted) {
+        final usuario = response['usuario'];
+        final perfil = usuario?['perfil'];
+
+        if (perfil == null) {
+          // Novo usuário sem perfil educacional -> vai para Onboarding
+          context.go('/perfil-educacional');
+        } else {
+          // Usuário recorrente com perfil preenchido -> vai para o Dashboard
+          context.go('/menu');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.redAccent,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,29 +65,42 @@ class GoogleButton extends StatelessWidget {
       width: double.infinity,
       height: 48,
       child: OutlinedButton(
-        onPressed: () {},
+        onPressed: _isLoading ? null : _handleGoogleLogin,
         style: OutlinedButton.styleFrom(
-          side: BorderSide(color: AppColors.borderMedium(context)),
+          side: BorderSide(
+            color: _isLoading 
+                ? AppColors.borderMedium(context).withOpacity(0.5) 
+                : AppColors.borderMedium(context)
+          ),
           backgroundColor: AppColors.cardBackground(context),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const FaIcon(FontAwesomeIcons.google, color: Color(0xFFEA4335), size: 20),
-            const SizedBox(width: 10),
-            Text(
-              'Google',
-              style: AppTextStyles.subtitulo(
-                context,
-                color: AppColors.textPrimary(context),
-                size: 15.0,
+        child: _isLoading
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(AppColors.destaque),
+                ),
+              )
+            : Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const FaIcon(FontAwesomeIcons.google, color: Color(0xFFEA4335), size: 20),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Google',
+                    style: AppTextStyles.subtitulo(
+                      context,
+                      color: AppColors.textPrimary(context),
+                      size: 15.0,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }
