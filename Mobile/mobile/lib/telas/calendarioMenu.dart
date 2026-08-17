@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
+import 'package:mobile/servicos/api_service.dart';
 
 // ─────────────────────────────────────────────
 // Modelo de dados de uma Tarefa
@@ -65,38 +66,14 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
 
   late List<Map<String, dynamic>> diasDaSemana;
 
-  // 🔧 BACK-END: Buscar tarefas pendentes da API ordenadas por data
-  List<Tarefa> tarefas = [
-    Tarefa(
-      id: '1',
-      titulo: 'Estudar para prova de Matemática',
-      materia: 'Matemática',
-      data: DateTime.now(),
-    ),
-    Tarefa(
-      id: '2',
-      titulo: 'Fazer lista de exercícios',
-      materia: 'Português',
-      data: DateTime.now(),
-    ),
-    Tarefa(
-      id: '3',
-      titulo: 'Revisar flashcards',
-      materia: 'Matemática',
-      data: DateTime.now().add(const Duration(days: 1)),
-    ),
-    Tarefa(
-      id: '4',
-      titulo: 'Ler capítulo 3',
-      materia: 'Português',
-      data: DateTime.now().add(const Duration(days: 2)),
-    ),
-  ];
+  List<Tarefa> tarefas = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _gerarDiasDaSemana();
+    _loadData();
 
     // Rola automaticamente até o dia de hoje
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -117,9 +94,37 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
     super.dispose();
   }
 
+  Future<void> _loadData() async {
+    try {
+      final fetchedTarefas = await ApiService().obterTarefas();
+      if (mounted) {
+        setState(() {
+          tarefas = fetchedTarefas.map((t) => Tarefa(
+            id: t['id'].toString(),
+            titulo: t['titulo'],
+            materia: t['disciplina'] != null ? t['disciplina']['nome'] : null,
+            data: DateTime.parse(t['data_entrega'] ?? DateTime.now().toIso8601String()),
+            concluida: t['status'] == 'concluida',
+          )).toList();
+          
+          _gerarDiasDaSemana();
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   void _gerarDiasDaSemana() {
-    int diaDaSemana = hoje.weekday % 7;
-    final inicioDaSemana = hoje.subtract(Duration(days: diaDaSemana));
+    final int diaDaSemana = hoje.weekday; // 1 = Segunda, ..., 7 = Domingo
+    // Ajuste para o Flutter: Domingo é 7, queremos que a semana comece no Domingo (0)
+    final int offset = diaDaSemana == 7 ? 0 : diaDaSemana;
+    final DateTime inicioDaSemana = hoje.subtract(Duration(days: offset));
 
     diasDaSemana = List.generate(7, (index) {
       final dia = inicioDaSemana.add(Duration(days: index));
@@ -132,20 +137,19 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
             dia.day == hoje.day &&
             dia.month == hoje.month &&
             dia.year == hoje.year,
-        // 🔧 BACK-END: Substituir por chamada real à API de eventos por dia
         'eventos': _getEventosDoDia(dia),
       };
     });
   }
 
-  // 🔧 BACK-END: Substituir por chamada real à API
   List<String> _getEventosDoDia(DateTime dia) {
-    if (dia.day == hoje.day) return ['Prova Matem.'];
-    if (dia.day == hoje.add(const Duration(days: 1)).day)
-      return ['Prova Port.'];
-    if (dia.day == hoje.add(const Duration(days: 2)).day)
-      return ['Lista Mater.', 'Lista Port.'];
-    return [];
+    return tarefas
+        .where((t) =>
+            t.data.day == dia.day &&
+            t.data.month == dia.month &&
+            t.data.year == dia.year)
+        .map((t) => t.titulo)
+        .toList();
   }
 
   // Tarefas de hoje
@@ -190,6 +194,15 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background(context),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.destaque),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background(context),
       body: SafeArea(

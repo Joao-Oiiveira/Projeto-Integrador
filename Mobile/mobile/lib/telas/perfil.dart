@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/servicos/accessibility_provider.dart';
+import 'package:mobile/servicos/api_service.dart';
 import 'package:mobile/tema/app_colors.dart';
+
 import 'package:mobile/tema/app_text_styles.dart';
 
 class PerfilScreen extends StatefulWidget {
@@ -13,11 +15,12 @@ class PerfilScreen extends StatefulWidget {
 }
 
 class _PerfilScreenState extends State<PerfilScreen> {
-  String _userName = 'João Oliveira';
-  int _acertosMatematica = 3; // Mock de acertos
-  int _totalMatematica = 5;
-  int _acertosPortugues = 2;
-  int _totalPortugues = 5;
+  String _userName = 'Usuário';
+  int _nivelUsuario = 1;
+  int _ofensivaDias = 0;
+  int _totalDisciplinas = 0;
+  List<dynamic> _conquistas = [];
+  List<dynamic> _progressoDisciplinas = [];
 
   @override
   void initState() {
@@ -40,14 +43,42 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _userName = prefs.getString('userName') ?? 'João Oliveira';
-      // Tenta ler estatísticas de exercícios se salvas anteriormente
-      _acertosMatematica = prefs.getInt('acertos_matematica') ?? 3;
-      _totalMatematica = prefs.getInt('total_matematica') ?? 5;
-      _acertosPortugues = prefs.getInt('acertos_portugues') ?? 2;
-      _totalPortugues = prefs.getInt('total_portugues') ?? 5;
-    });
+    if (mounted) {
+      setState(() {
+        _userName = prefs.getString('userName') ?? 'Usuário';
+        _nivelUsuario = prefs.getInt('nivelUsuario') ?? 1;
+      });
+    }
+
+    try {
+      final perfil = await ApiService().obterPerfilLogado();
+      if (perfil['nome'] != null && mounted) {
+        setState(() {
+          _userName = perfil['nome'].toString();
+          if (perfil['nivel'] != null) {
+            _nivelUsuario = perfil['nivel'];
+          }
+        });
+        await prefs.setString('userName', perfil['nome'].toString());
+        await prefs.setInt('nivelUsuario', _nivelUsuario);
+      }
+    } catch (_) {}
+
+    try {
+      final stats = await ApiService().obterEstatisticas();
+      if (mounted) {
+        setState(() {
+          _ofensivaDias = stats['ofensiva_dias'] ?? 0;
+          _totalDisciplinas = stats['total_disciplinas'] ?? 0;
+          if (stats['conquistas'] != null) {
+            _conquistas = stats['conquistas'];
+          }
+          if (stats['progresso_disciplinas'] != null) {
+            _progressoDisciplinas = stats['progresso_disciplinas'];
+          }
+        });
+      }
+    } catch (_) {}
   }
 
   void _mostrarConfiguracoes(BuildContext context) {
@@ -207,56 +238,72 @@ class _PerfilScreenState extends State<PerfilScreen> {
                   Flexible(
                     child: SingleChildScrollView(
                       child: Column(
-                        children: [
-                          _buildConquistaDetalheItem(
-                            icon: Icons.menu_book,
-                            iconColor: const Color(0xFF1976D2),
-                            backgroundColor: const Color(0xFFE3F2FD),
-                            title: 'Pioneiro',
-                            desc:
-                                'Completou seu primeiro estudo de disciplina.',
-                            desbloqueado: true,
-                          ),
-                          const Divider(),
-                          _buildConquistaDetalheItem(
-                            icon: Icons.wb_sunny_outlined,
-                            iconColor: const Color(0xFFF57C00),
-                            backgroundColor: const Color(0xFFFFF3E0),
-                            title: 'Madrugador',
-                            desc:
-                                'Praticou exercícios nas primeiras horas da manhã.',
-                            desbloqueado: true,
-                          ),
-                          const Divider(),
-                          _buildConquistaDetalheItem(
-                            icon: Icons.military_tech,
-                            iconColor: const Color(0xFF7B1FA2),
-                            backgroundColor: const Color(0xFFF3E5F5),
-                            title: 'Invicto',
-                            desc: 'Acertou 100% das questões em uma lista.',
-                            desbloqueado: true,
-                          ),
-                          const Divider(),
-                          _buildConquistaDetalheItem(
-                            icon: Icons.star_border,
-                            iconColor: Colors.grey,
-                            backgroundColor: AppColors.cardSecondary(context),
-                            title: 'Mestre das Exatas',
-                            desc: 'Acerte 10 questões seguidas de Matemática.',
-                            desbloqueado: false,
-                            progresso: '5/10',
-                          ),
-                          const Divider(),
-                          _buildConquistaDetalheItem(
-                            icon: Icons.edit_note,
-                            iconColor: Colors.grey,
-                            backgroundColor: AppColors.cardSecondary(context),
-                            title: 'Fera da Gramática',
-                            desc: 'Acerte 10 questões seguidas de Português.',
-                            desbloqueado: false,
-                            progresso: '3/10',
-                          ),
-                        ],
+                        children:
+                            _conquistas.isEmpty
+                                ? [
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 20,
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        'Nenhuma conquista ainda.',
+                                        style: AppTextStyles.legenda(context),
+                                      ),
+                                    ),
+                                  ),
+                                ]
+                                : _conquistas.map((c) {
+                                  IconData iconData = Icons.emoji_events;
+                                  if (c['icone'] == 'menu_book')
+                                    iconData = Icons.menu_book;
+                                  if (c['icone'] == 'calculate')
+                                    iconData = Icons.calculate;
+                                  if (c['icone'] == 'edit_note')
+                                    iconData = Icons.edit_note;
+                                  if (c['icone'] == 'wb_sunny_outlined')
+                                    iconData = Icons.wb_sunny_outlined;
+
+                                  bool desbloqueada =
+                                      c['desbloqueada'] ?? false;
+                                  Color iconColor =
+                                      desbloqueada
+                                          ? Color(
+                                            int.parse(
+                                              (c['cor_icone'] as String)
+                                                  .replaceAll('#', '0x'),
+                                            ),
+                                          )
+                                          : Colors.grey;
+                                  Color bgColor =
+                                      desbloqueada
+                                          ? Color(
+                                            int.parse(
+                                              (c['cor_fundo'] as String)
+                                                  .replaceAll('#', '0x'),
+                                            ),
+                                          )
+                                          : AppColors.cardSecondary(context);
+
+                                  return Column(
+                                    children: [
+                                      _buildConquistaDetalheItem(
+                                        icon:
+                                            desbloqueada
+                                                ? iconData
+                                                : Icons.lock_outline,
+                                        iconColor: iconColor,
+                                        backgroundColor: bgColor,
+                                        title: c['titulo'],
+                                        desc: c['descricao'],
+                                        desbloqueado: desbloqueada,
+                                        progresso:
+                                            '${c['progresso']}/${c['meta_objetivo']}',
+                                      ),
+                                      const Divider(),
+                                    ],
+                                  );
+                                }).toList(),
                       ),
                     ),
                   ),
@@ -599,11 +646,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final double taxaAcertoMatematica =
-        _totalMatematica > 0 ? (_acertosMatematica / _totalMatematica) : 0.0;
-    final double taxaAcertoPortugues =
-        _totalPortugues > 0 ? (_acertosPortugues / _totalPortugues) : 0.0;
-
     return Scaffold(
       backgroundColor: AppColors.background(context),
       appBar: AppBar(
@@ -679,9 +721,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               color: const Color(0xFF9C27B0), // Roxo
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text(
-                              'NÍVEL 3',
-                              style: TextStyle(
+                            child: Text(
+                              'NÍVEL $_nivelUsuario',
+                              style: const TextStyle(
                                 fontSize: 9,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.white,
@@ -711,20 +753,6 @@ class _PerfilScreenState extends State<PerfilScreen> {
                               context,
                               color: AppColors.textSecondary(context),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _buildStatusChip(
-                                'ATIVO',
-                                const Color(0xFF0288D1),
-                              ),
-                              const SizedBox(width: 8),
-                              _buildStatusChip(
-                                'BRILHANTE',
-                                const Color(0xFFE040FB),
-                              ),
-                            ],
                           ),
                         ],
                       ),
@@ -799,18 +827,35 @@ class _PerfilScreenState extends State<PerfilScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 16),
-                    _buildProgressBarItem(
-                      label: 'MATEMÁTICA',
-                      valor: taxaAcertoMatematica,
-                      color: AppColors.matematica,
-                    ),
-                    const SizedBox(height: 14),
-                    _buildProgressBarItem(
-                      label: 'PORTUGUÊS',
-                      valor: taxaAcertoPortugues,
-                      color: AppColors.portugues,
-                    ),
+                    if (_progressoDisciplinas.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: Text(
+                          'Nenhum exercício resolvido ainda.',
+                          style: AppTextStyles.legenda(
+                            context,
+                            color: AppColors.textSecondary(context),
+                          ),
+                        ),
+                      )
+                    else
+                      ..._progressoDisciplinas.map((progresso) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 14),
+                          child: _buildProgressBarItem(
+                            label: (progresso['nome'] as String).toUpperCase(),
+                            valor: (progresso['taxa_acerto'] as num).toDouble(),
+                            color: Color(
+                              int.parse(
+                                (progresso['cor'] as String).replaceAll(
+                                  '#',
+                                  '0x',
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                   ],
                 ),
               ),
@@ -925,7 +970,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
             children: [
-              Text('15', style: AppTextStyles.titulo(context, size: 24.0)),
+              Text(
+                '$_ofensivaDias',
+                style: AppTextStyles.titulo(context, size: 24.0),
+              ),
               const SizedBox(width: 4),
               Text(
                 'dias',
@@ -974,31 +1022,65 @@ class _PerfilScreenState extends State<PerfilScreen> {
             ),
             const SizedBox(height: 12),
             Row(
-              children: [
-                _buildMiniBadge(
-                  Icons.menu_book,
-                  const Color(0xFF1976D2),
-                  const Color(0xFFE3F2FD),
-                ),
-                const SizedBox(width: 6),
-                _buildMiniBadge(
-                  Icons.wb_sunny_outlined,
-                  const Color(0xFFF57C00),
-                  const Color(0xFFFFF3E0),
-                ),
-                const SizedBox(width: 6),
-                _buildMiniBadge(
-                  Icons.military_tech,
-                  const Color(0xFF7B1FA2),
-                  const Color(0xFFF3E5F5),
-                ),
-                const SizedBox(width: 6),
-                _buildMiniBadge(
-                  Icons.lock_outline,
-                  Colors.grey,
-                  AppColors.cardSecondary(context),
-                ),
-              ],
+              children:
+                  _conquistas.isEmpty
+                      ? [
+                        _buildMiniBadge(
+                          Icons.lock_outline,
+                          Colors.grey,
+                          AppColors.cardSecondary(context),
+                        ),
+                        const SizedBox(width: 6),
+                        _buildMiniBadge(
+                          Icons.lock_outline,
+                          Colors.grey,
+                          AppColors.cardSecondary(context),
+                        ),
+                      ]
+                      : _conquistas.take(4).map((c) {
+                        IconData iconData = Icons.emoji_events;
+                        if (c['icone'] == 'menu_book')
+                          iconData = Icons.menu_book;
+                        if (c['icone'] == 'calculate')
+                          iconData = Icons.calculate;
+                        if (c['icone'] == 'edit_note')
+                          iconData = Icons.edit_note;
+                        if (c['icone'] == 'wb_sunny_outlined')
+                          iconData = Icons.wb_sunny_outlined;
+
+                        bool desbloqueada = c['desbloqueada'] ?? false;
+                        Color iconColor =
+                            desbloqueada
+                                ? Color(
+                                  int.parse(
+                                    (c['cor_icone'] as String).replaceAll(
+                                      '#',
+                                      '0x',
+                                    ),
+                                  ),
+                                )
+                                : Colors.grey;
+                        Color bgColor =
+                            desbloqueada
+                                ? Color(
+                                  int.parse(
+                                    (c['cor_fundo'] as String).replaceAll(
+                                      '#',
+                                      '0x',
+                                    ),
+                                  ),
+                                )
+                                : AppColors.cardSecondary(context);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6.0),
+                          child: _buildMiniBadge(
+                            desbloqueada ? iconData : Icons.lock_outline,
+                            iconColor,
+                            bgColor,
+                          ),
+                        );
+                      }).toList(),
             ),
           ],
         ),
@@ -1006,8 +1088,9 @@ class _PerfilScreenState extends State<PerfilScreen> {
     );
   }
 
-  // Card Disciplinas - Mantido igual ao original (com grande contador) e abrindo popup ao clicar
+  // Card Disciplinas (mostra quantas foram adicionadas no MySQL)
   Widget _buildDisciplinasGridCard() {
+    final formatado = _totalDisciplinas.toString().padLeft(2, '0');
     return GestureDetector(
       onTap: () => _mostrarDialogDisciplinas(context),
       child: Container(
@@ -1042,7 +1125,10 @@ class _PerfilScreenState extends State<PerfilScreen> {
               crossAxisAlignment: CrossAxisAlignment.baseline,
               textBaseline: TextBaseline.alphabetic,
               children: [
-                Text('02', style: AppTextStyles.titulo(context, size: 24.0)),
+                Text(
+                  formatado,
+                  style: AppTextStyles.titulo(context, size: 24.0),
+                ),
                 const SizedBox(width: 4),
                 Text(
                   'ativas',

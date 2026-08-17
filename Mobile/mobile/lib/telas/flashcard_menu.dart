@@ -4,20 +4,23 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
+import 'package:mobile/servicos/api_service.dart';
 
 class FlashcardDeck {
+  final int? id;
   final String nome;
   final String materia;
-  final List<Map<String, String>>
-  cards; // [{'pergunta': '...', 'resposta': '...'}]
+  final List<Map<String, String>> cards;
 
   FlashcardDeck({
+    this.id,
     required this.nome,
     required this.materia,
     required this.cards,
   });
 
   Map<String, dynamic> toJson() => {
+    'id': id,
     'nome': nome,
     'materia': materia,
     'cards': cards,
@@ -25,13 +28,12 @@ class FlashcardDeck {
 
   factory FlashcardDeck.fromJson(Map<String, dynamic> json) {
     return FlashcardDeck(
+      id: json['id'] as int?,
       nome: json['nome'] as String,
-      materia: json['materia'] as String,
-      cards: List<Map<String, String>>.from(
-        (json['cards'] as List).map(
-          (item) => Map<String, String>.from(item as Map),
-        ),
-      ),
+      materia: json['disciplina'] != null ? json['disciplina']['nome'] : (json['materia'] ?? ''),
+      cards: json['cards'] != null 
+        ? List<Map<String, String>>.from((json['cards'] as List).map((item) => Map<String, String>.from(item as Map)))
+        : [],
     );
   }
 }
@@ -56,200 +58,49 @@ class _FlashcardMenuScreenState extends State<FlashcardMenuScreen> {
   }
 
   Future<void> _loadDecks() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? decksJson = prefs.getString('flashcard_decks');
+    try {
+      final fetchedDecks = await ApiService().obterBaralhos();
+      List<FlashcardDeck> loadedDecks = [];
+      
+      for (var b in fetchedDecks) {
+        // Obter cartões de cada baralho
+        final fetchedCards = await ApiService().obterFlashcardsDoBaralho(b['id']);
+        final cardsList = fetchedCards.map((c) => {
+          'id': c['id'].toString(),
+          'pergunta': c['pergunta'].toString(),
+          'resposta': c['resposta'].toString()
+        }).toList();
+        
+        loadedDecks.add(FlashcardDeck(
+          id: b['id'],
+          nome: b['nome'],
+          materia: b['disciplina'] != null ? b['disciplina']['nome'] : '',
+          cards: cardsList,
+        ));
+      }
 
-    List<FlashcardDeck> loadedDecks = [];
-    if (decksJson != null) {
-      try {
-        final List decoded = jsonDecode(decksJson) as List;
-        loadedDecks =
-            decoded
-                .map(
-                  (item) =>
-                      FlashcardDeck.fromJson(item as Map<String, dynamic>),
-                )
-                .toList();
-      } catch (e) {
-        // Fallback se falhar
+      // Filtra decks por matéria
+      loadedDecks = loadedDecks
+          .where((deck) => deck.materia.toLowerCase() == widget.materia.toLowerCase())
+          .toList();
+
+      if (mounted) {
+        setState(() {
+          _decks = loadedDecks;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
       }
     }
-
-    // Filtra decks por matéria
-    loadedDecks =
-        loadedDecks
-            .where(
-              (deck) =>
-                  deck.materia.toLowerCase() == widget.materia.toLowerCase(),
-            )
-            .toList();
-
-    // Se a lista estiver vazia, carrega mocks padrão para teste
-    if (loadedDecks.isEmpty) {
-      if (widget.materia.toLowerCase().contains('port')) {
-        loadedDecks = [
-          FlashcardDeck(
-            nome: 'Fonetica',
-            materia: widget.materia,
-            cards: [
-              {
-                'pergunta': 'O que é um Fonema?',
-                'resposta': 'É a menor unidade sonora da fala.',
-              },
-              {
-                'pergunta': 'O que é um Dígrafo?',
-                'resposta':
-                    'Duas letras que representam um único fonema (ex: ch, lh, rr).',
-              },
-              {
-                'pergunta': 'Qual a diferença de vogal e semivogal?',
-                'resposta':
-                    'A vogal é o som mais forte da sílaba. A semivogal é o som mais fraco.',
-              },
-            ],
-          ),
-          FlashcardDeck(
-            nome: 'Estrutura verbal',
-            materia: widget.materia,
-            cards: [
-              {
-                'pergunta': 'O que é o Radical?',
-                'resposta':
-                    'Elemento base que contém o significado principal do verbo.',
-              },
-              {
-                'pergunta': 'O que é a Vogal Temática?',
-                'resposta':
-                    'Indica a conjugação a que o verbo pertence (A, E ou I).',
-              },
-            ],
-          ),
-          FlashcardDeck(
-            nome: 'Substantivo',
-            materia: widget.materia,
-            cards: [
-              {
-                'pergunta': 'O que é um substantivo concreto?',
-                'resposta':
-                    'Nomeia seres com existência própria, reais ou imaginários.',
-              },
-              {
-                'pergunta': 'Substantivo abstrato?',
-                'resposta': 'Nomeia sentimentos, estados, ações ou qualidades.',
-              },
-              {
-                'pergunta': 'Exemplo de substantivo coletivo?',
-                'resposta': 'Alcatéia (lobos), Arquipélago (ilhas).',
-              },
-              {
-                'pergunta': 'Substantivo primitivo?',
-                'resposta':
-                    'Não deriva de nenhuma outra palavra (ex: pedra, flor).',
-              },
-              {
-                'pergunta': 'Substantivo derivado?',
-                'resposta':
-                    'Substantivo que se origina de outra palavra (ex: pedreira, floricultura).',
-              },
-            ],
-          ),
-          FlashcardDeck(
-            nome: 'Tema',
-            materia: widget.materia,
-            cards: [
-              {
-                'pergunta': 'O que é Conotação?',
-                'resposta': 'Uso de palavra no sentido figurado.',
-              },
-              {
-                'pergunta': 'O que é Denotação?',
-                'resposta': 'Uso de palavra no sentido real, do dicionário.',
-              },
-              {
-                'pergunta': 'Exemplo de Hipérbole?',
-                'resposta': '"Estou morrendo de fome" (um exagero).',
-              },
-              {
-                'pergunta': 'Exemplo de Eufemismo?',
-                'resposta': '"Ele partiu desta para melhor" (suavização).',
-              },
-            ],
-          ),
-        ];
-      } else {
-        loadedDecks = [
-          FlashcardDeck(
-            nome: 'Funções de 1º Grau',
-            materia: widget.materia,
-            cards: [
-              {
-                'pergunta': 'Fórmula geral da função afim?',
-                'resposta': 'f(x) = ax + b',
-              },
-              {
-                'pergunta': 'O que representa o coeficiente "a"?',
-                'resposta': 'A taxa de variação ou inclinação da reta.',
-              },
-              {
-                'pergunta': 'O que representa o coeficiente "b"?',
-                'resposta': 'O coeficiente linear, onde a reta corta o eixo y.',
-              },
-            ],
-          ),
-          FlashcardDeck(
-            nome: 'Equações Quadráticas',
-            materia: widget.materia,
-            cards: [
-              {
-                'pergunta': 'Fórmula de Bhaskara?',
-                'resposta': 'x = (-b ± √Δ) / 2a',
-              },
-              {
-                'pergunta': 'Como calcula o Delta (Δ)?',
-                'resposta': 'Δ = b² - 4ac',
-              },
-            ],
-          ),
-        ];
-      }
-      // Salva no SharedPreferences
-      await _salvarDecksGlobais(loadedDecks);
-    }
-
-    setState(() {
-      _decks = loadedDecks;
-      _isLoading = false;
-    });
   }
 
   Future<void> _salvarDecksGlobais(List<FlashcardDeck> decksDaMateria) async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? decksJson = prefs.getString('flashcard_decks');
-
-    List<FlashcardDeck> todosDecks = [];
-    if (decksJson != null) {
-      try {
-        final List decoded = jsonDecode(decksJson) as List;
-        todosDecks =
-            decoded
-                .map(
-                  (item) =>
-                      FlashcardDeck.fromJson(item as Map<String, dynamic>),
-                )
-                .toList();
-      } catch (e) {}
-    }
-
-    // Remove decks antigos desta matéria para atualizar
-    todosDecks.removeWhere(
-      (deck) => deck.materia.toLowerCase() == widget.materia.toLowerCase(),
-    );
-    todosDecks.addAll(decksDaMateria);
-
-    await prefs.setString(
-      'flashcard_decks',
-      jsonEncode(todosDecks.map((d) => d.toJson()).toList()),
-    );
+    // Não precisa mais fazer nada, salvo na API direto
   }
 
   void _abrirCriarGrupoDialog() {
@@ -425,19 +276,21 @@ class _FlashcardMenuScreenState extends State<FlashcardMenuScreen> {
   }
 
   void _criarNovoGrupo(String nome) async {
-    final novoDeck = FlashcardDeck(
-      nome: nome,
-      materia: widget.materia,
-      cards: [],
-    );
-
-    setState(() {
-      _decks.insert(0, novoDeck);
-    });
-
-    await _salvarDecksGlobais(_decks);
+    setState(() => _isLoading = true);
+    try {
+      // Aqui teríamos que achar o disciplina_id baseado em widget.materia
+      // Por simplificação, o backend suporta criar baralho só com nome (e disciplina_id opcional)
+      await ApiService().criarBaralho(nome: nome);
+      await _loadDecks(); // Recarrega com IDs reais da API
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao criar baralho: $e')),
+        );
+      }
+    }
   }
-
 
   @override
   Widget build(BuildContext context) {

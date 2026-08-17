@@ -64,6 +64,7 @@ class UsuarioResponse(BaseModel):
     id: int
     nome: str
     email: EmailStr
+    nivel: int = 1
     perfil: Optional[PerfilResponse] = None
     configuracoes: Optional[ConfiguracoesResponse] = None
     

@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
 import 'package:mobile/telas/flashcard_menu.dart'; // Importa o modelo FlashcardDeck
+import 'package:mobile/servicos/api_service.dart';
 
 class FlashcardRevisaoScreen extends StatefulWidget {
   final String materia;
@@ -36,50 +37,49 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
   }
 
   Future<void> _loadDeck() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? decksJson = prefs.getString('flashcard_decks');
+    try {
+      final fetchedDecks = await ApiService().obterBaralhos();
+      final targetBaralho = fetchedDecks.cast<Map<String, dynamic>?>().firstWhere(
+        (d) => d != null && 
+               (d['disciplina'] != null ? d['disciplina']['nome'] : '').toString().toLowerCase() == widget.materia.toLowerCase() &&
+               d['nome'].toString().toLowerCase() == widget.deckNome.toLowerCase(),
+        orElse: () => null,
+      );
 
-    if (decksJson != null) {
-      try {
-        final List decoded = jsonDecode(decksJson) as List;
-        final List<FlashcardDeck> allDecks =
-            decoded
-                .map(
-                  (item) =>
-                      FlashcardDeck.fromJson(item as Map<String, dynamic>),
-                )
-                .toList();
+      if (targetBaralho != null) {
+        final fetchedCards = await ApiService().obterFlashcardsDoBaralho(targetBaralho['id']);
+        final cardsList = fetchedCards.map((c) => {
+          'id': c['id'].toString(),
+          'pergunta': c['pergunta'].toString(),
+          'resposta': c['resposta'].toString()
+        }).toList();
 
-        final deck = allDecks.firstWhere(
-          (d) =>
-              d.materia.toLowerCase() == widget.materia.toLowerCase() &&
-              d.nome.toLowerCase() == widget.deckNome.toLowerCase(),
-          orElse:
-              () => FlashcardDeck(
-                nome: widget.deckNome,
-                materia: widget.materia,
-                cards: [],
-              ),
-        );
-
+        if (mounted) {
+          setState(() {
+            _deck = FlashcardDeck(
+              id: targetBaralho['id'],
+              nome: targetBaralho['nome'],
+              materia: targetBaralho['disciplina'] != null ? targetBaralho['disciplina']['nome'] : '',
+              cards: cardsList,
+            );
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _deck = FlashcardDeck(nome: widget.deckNome, materia: widget.materia, cards: []);
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _deck = deck;
           _isLoading = false;
         });
-        return;
-      } catch (e) {
-        // Fallback
       }
     }
-
-    setState(() {
-      _deck = FlashcardDeck(
-        nome: widget.deckNome,
-        materia: widget.materia,
-        cards: [],
-      );
-      _isLoading = false;
-    });
   }
 
   void _flipCard() {
@@ -88,8 +88,22 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
     });
   }
 
-  void _responderCard(bool acertou) {
+  void _responderCard(bool acertou) async {
     if (_deck == null) return;
+
+    final card = _deck!.cards[_currentIndex];
+    final cardId = card['id'];
+    
+    if (cardId != null) {
+      try {
+        await ApiService().registrarRevisao(
+          int.parse(cardId),
+          acertou ? 'bom' : 'errei',
+        );
+      } catch (e) {
+        // Ignora erro visual e continua para não travar a revisão
+      }
+    }
 
     // Animação/transição para o próximo
     if (_currentIndex < _deck!.cards.length - 1) {

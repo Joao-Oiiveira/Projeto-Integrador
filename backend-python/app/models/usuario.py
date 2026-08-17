@@ -10,6 +10,7 @@ class Usuario(Base):
     nome = Column(String(100), nullable=False)
     email = Column(String(150), unique=True, index=True, nullable=False)
     senha = Column(String(255), nullable=False)
+    nivel = Column(Integer, default=1, nullable=False)
     data_criacao = Column(DateTime, default=func.now())
     data_atualizacao = Column(DateTime, default=func.now(), onupdate=func.now())
 

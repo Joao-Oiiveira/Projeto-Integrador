@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/servicos/api_service.dart';
 import 'package:mobile/telas/flashcard_menu.dart'; // Reutiliza o modelo FlashcardDeck
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
@@ -31,59 +32,53 @@ class _CriarFlashcardScreenState extends State<CriarFlashcardScreen> {
   }
 
   Future<void> _loadDeck() async {
-    final prefs = await SharedPreferences.getInstance();
-    final String? decksJson = prefs.getString('flashcard_decks');
+    try {
+      final fetchedDecks = await ApiService().obterBaralhos();
+      final targetBaralho = fetchedDecks.cast<Map<String, dynamic>?>().firstWhere(
+        (d) => d != null && 
+               (d['disciplina'] != null ? d['disciplina']['nome'] : '').toString().toLowerCase() == widget.materia.toLowerCase() &&
+               d['nome'].toString().toLowerCase() == widget.deckNome.toLowerCase(),
+        orElse: () => null,
+      );
 
-    if (decksJson != null) {
-      try {
-        final List decoded = jsonDecode(decksJson) as List;
-        final List<FlashcardDeck> allDecks = decoded
-            .map((item) => FlashcardDeck.fromJson(item as Map<String, dynamic>))
-            .toList();
+      if (targetBaralho != null) {
+        final fetchedCards = await ApiService().obterFlashcardsDoBaralho(targetBaralho['id']);
+        final cardsList = fetchedCards.map((c) => {
+          'id': c['id'].toString(),
+          'pergunta': c['pergunta'].toString(),
+          'resposta': c['resposta'].toString()
+        }).toList();
 
-        // Encontra o deck correto
-        final deck = allDecks.firstWhere(
-          (d) => d.materia.toLowerCase() == widget.materia.toLowerCase() &&
-                 d.nome.toLowerCase() == widget.deckNome.toLowerCase(),
-          orElse: () => FlashcardDeck(nome: widget.deckNome, materia: widget.materia, cards: []),
-        );
-
+        if (mounted) {
+          setState(() {
+            _deck = FlashcardDeck(
+              id: targetBaralho['id'],
+              nome: targetBaralho['nome'],
+              materia: targetBaralho['disciplina'] != null ? targetBaralho['disciplina']['nome'] : '',
+              cards: cardsList,
+            );
+            _isLoading = false;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _deck = FlashcardDeck(nome: widget.deckNome, materia: widget.materia, cards: []);
+            _isLoading = false;
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
         setState(() {
-          _deck = deck;
           _isLoading = false;
         });
-        return;
-      } catch (e) {}
+      }
     }
-
-    setState(() {
-      _deck = FlashcardDeck(nome: widget.deckNome, materia: widget.materia, cards: []);
-      _isLoading = false;
-    });
   }
 
   Future<void> _salvarDeck() async {
-    if (_deck == null) return;
-    
-    final prefs = await SharedPreferences.getInstance();
-    final String? decksJson = prefs.getString('flashcard_decks');
-    
-    List<FlashcardDeck> allDecks = [];
-    if (decksJson != null) {
-      try {
-        final List decoded = jsonDecode(decksJson) as List;
-        allDecks = decoded.map((item) => FlashcardDeck.fromJson(item as Map<String, dynamic>)).toList();
-      } catch (e) {}
-    }
-
-    // Remove deck antigo correspondente e adiciona o atualizado
-    allDecks.removeWhere(
-      (d) => d.materia.toLowerCase() == widget.materia.toLowerCase() &&
-             d.nome.toLowerCase() == widget.deckNome.toLowerCase(),
-    );
-    allDecks.add(_deck!);
-
-    await prefs.setString('flashcard_decks', jsonEncode(allDecks.map((d) => d.toJson()).toList()));
+    // Agora salvar é feito individualmente em _adicionarCard e _removerCard
   }
 
   void _abrirCriarCardDialog() {
@@ -274,26 +269,46 @@ class _CriarFlashcardScreenState extends State<CriarFlashcardScreen> {
   }
 
   void _adicionarCard(String pergunta, String resposta) async {
-    if (_deck == null) return;
+    if (_deck == null || _deck!.id == null) return;
 
-    setState(() {
-      _deck!.cards.add({
-        'pergunta': pergunta,
-        'resposta': resposta,
-      });
-    });
-
-    await _salvarDeck();
+    setState(() => _isLoading = true);
+    try {
+      await ApiService().criarFlashcard(
+        baralhoId: _deck!.id!,
+        frente: pergunta,
+        verso: resposta,
+      );
+      await _loadDeck(); // Refresh to get the new card with its ID
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao adicionar flashcard: $e')),
+        );
+      }
+    }
   }
 
   void _removerCard(int index) async {
-    if (_deck == null) return;
-
-    setState(() {
-      _deck!.cards.removeAt(index);
-    });
-
-    await _salvarDeck();
+    if (_deck == null || _deck!.id == null) return;
+    
+    final card = _deck!.cards[index];
+    final cardId = card['id'];
+    
+    if (cardId != null) {
+      setState(() => _isLoading = true);
+      try {
+        await ApiService().excluirFlashcard(int.parse(cardId));
+        await _loadDeck();
+      } catch (e) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Erro ao remover flashcard: $e')),
+          );
+        }
+      }
+    }
   }
 
 

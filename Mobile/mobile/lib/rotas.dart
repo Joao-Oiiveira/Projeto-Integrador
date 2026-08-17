@@ -81,6 +81,7 @@ final appRouter = GoRouter(
         final dificuldade = state.uri.queryParameters['dificuldade'] ?? 'Médio';
         final quantidade = int.tryParse(state.uri.queryParameters['quantidade'] ?? '5') ?? 5;
         final modo = state.uri.queryParameters['modo'] ?? 'Vestibular';
+        final moduloId = state.uri.queryParameters['modulo_id'];
 
         return ExerciciosSessaoScreen(
           materia: materia,
@@ -88,6 +89,7 @@ final appRouter = GoRouter(
           dificuldade: dificuldade,
           quantidade: quantidade,
           modo: modo,
+          moduloId: moduloId,
         );
       },
     ),

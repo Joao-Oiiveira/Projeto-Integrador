@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
+import 'package:mobile/servicos/api_service.dart';
 
 class MateriaDetalhe {
   final String nome;
@@ -47,73 +48,115 @@ class MateriaDetalheScreen extends StatefulWidget {
 }
 
 class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
-  // 🔧 BACK-END: Dados virão da API
   late MateriaDetalhe materiaAtual;
-
-  // Dados locais das matérias
-  final Map<String, MateriaDetalhe> materiasData = {
-    'Matemática': const MateriaDetalhe(
-      nome: 'Matemática',
-      cor: AppColors.matematica,
-      progresso: 10,
-      totalItens: 100,
-      flashcardsDisponiveis: 24,
-      tarefasPendentes: 3,
-      unidades: [
-        UnidadeMateria(nome: 'Materia 1', concluidas: 2, total: 10, id: 'mat1'),
-        UnidadeMateria(nome: 'Materia 2', concluidas: 2, total: 10, id: 'mat2'),
-        UnidadeMateria(nome: 'Materia 3', concluidas: 0, total: 10, id: 'mat3'),
-        UnidadeMateria(nome: 'Materia 4', concluidas: 0, total: 10, id: 'mat4'),
-        UnidadeMateria(nome: 'Materia 5', concluidas: 0, total: 10, id: 'mat5'),
-      ],
-    ),
-    'Português': const MateriaDetalhe(
-      nome: 'Português',
-      cor: AppColors.portugues,
-      progresso: 25,
-      totalItens: 100,
-      flashcardsDisponiveis: 18,
-      tarefasPendentes: 2,
-      unidades: [
-        UnidadeMateria(
-          nome: 'Materia 1',
-          concluidas: 3,
-          total: 10,
-          id: 'port1',
-        ),
-        UnidadeMateria(
-          nome: 'Materia 2',
-          concluidas: 2,
-          total: 10,
-          id: 'port2',
-        ),
-        UnidadeMateria(
-          nome: 'Materia 3',
-          concluidas: 0,
-          total: 10,
-          id: 'port3',
-        ),
-        UnidadeMateria(
-          nome: 'Materia 4',
-          concluidas: 0,
-          total: 10,
-          id: 'port4',
-        ),
-        UnidadeMateria(
-          nome: 'Materia 5',
-          concluidas: 0,
-          total: 10,
-          id: 'port5',
-        ),
-      ],
-    ),
-  };
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    materiaAtual =
-        materiasData[widget.materiaNome] ?? materiasData['Matemática']!;
+    // Valor inicial de fallback
+    materiaAtual = MateriaDetalhe(
+      nome: widget.materiaNome,
+      cor: AppColors.matematica, // Será atualizada depois
+      progresso: 0,
+      totalItens: 100,
+      flashcardsDisponiveis: 0,
+      tarefasPendentes: 0,
+      unidades: [],
+    );
+    _carregarDados();
+  }
+
+  Future<void> _carregarDados() async {
+    try {
+      // Definir cores para as matérias (igual menu.dart)
+      final cores = [AppColors.matematica, AppColors.portugues, AppColors.destaque, Colors.orange, Colors.purple];
+
+      final disciplinas = await ApiService().obterDisciplinas();
+      Color corMateria = AppColors.matematica;
+      
+      print('=== DEBUG ===');
+      print('Materia Nome: ${widget.materiaNome}');
+      print('Total de disciplinas recebidas da API: ${disciplinas.length}');
+      if (disciplinas.isNotEmpty) {
+        print('Exemplo de disciplina 0: ${disciplinas[0]['nome']}');
+      }
+      
+      int dIndex = disciplinas.indexWhere((d) {
+        final nomeApi = d['nome'].toString().toLowerCase();
+        final nomeTela = widget.materiaNome.toLowerCase();
+        // Fallback por conta de possíveis erros de encoding no banco (ex: Matemtica)
+        if (nomeTela.contains('matem') && nomeApi.contains('matem')) return true;
+        if (nomeTela.contains('port') && nomeApi.contains('port')) return true;
+        return nomeApi == nomeTela;
+      });
+      print('=== DEBUG ===');
+      print('Materia Nome: ${widget.materiaNome}');
+      print('dIndex encontrado: $dIndex');
+      if (dIndex != -1) {
+        print('Disciplina ID: ${disciplinas[dIndex]['id']}');
+        corMateria = cores[dIndex % cores.length];
+      } else {
+        print('Nenhuma disciplina encontrada na API para ${widget.materiaNome}');
+      }
+
+      // Buscar Baralhos/Flashcards da disciplina
+      int totalFlashcards = 0;
+      try {
+        final baralhos = await ApiService().obterBaralhos();
+        final meusBaralhos = baralhos.where((b) => (b['disciplina'] != null ? b['disciplina']['nome'] : '').toString().toLowerCase() == widget.materiaNome.toLowerCase());
+        for (var b in meusBaralhos) {
+          final cards = await ApiService().obterFlashcardsDoBaralho(b['id']);
+          totalFlashcards += cards.length;
+        }
+      } catch (_) {}
+
+      // Buscar Tarefas da disciplina
+      int pendentes = 0;
+      try {
+        final tarefas = await ApiService().obterTarefas();
+        final minhasTarefas = tarefas.where((t) => (t['disciplina'] != null ? t['disciplina']['nome'] : '').toString().toLowerCase() == widget.materiaNome.toLowerCase());
+        pendentes = minhasTarefas.length;
+      } catch (_) {}
+
+      // Buscar Módulos (Trilha)
+      List<UnidadeMateria> modulosCarregados = [];
+      try {
+        if (dIndex != -1) {
+          final disciplinaId = disciplinas[dIndex]['id'];
+          final modulosTrilha = await ApiService().obterModulosTrilha(disciplinaId);
+          for (var modulo in modulosTrilha) {
+            modulosCarregados.add(UnidadeMateria(
+              nome: modulo['nome'],
+              concluidas: 0, // Poderia vir do progresso
+              total: 10,
+              id: modulo['id'].toString(),
+            ));
+          }
+        }
+      } catch (e) {
+        print('ERRO AO CARREGAR MODULOS: $e');
+      }
+
+      if (mounted) {
+        setState(() {
+          materiaAtual = MateriaDetalhe(
+            nome: widget.materiaNome,
+            cor: corMateria,
+            progresso: 0, // Poderia vir das estatisticas
+            totalItens: 100,
+            flashcardsDisponiveis: totalFlashcards,
+            tarefasPendentes: pendentes,
+            unidades: modulosCarregados,
+          );
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override
@@ -420,56 +463,56 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
   }
 
   Widget _buildUnidadeCard(UnidadeMateria unidade) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: AppColors.cardBackground(context),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border(context)),
-      ),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Barra lateral de cor da matéria
-            Container(
-              width: 6,
-              decoration: BoxDecoration(
-                color: materiaAtual.cor,
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(12),
-                  bottomLeft: Radius.circular(12),
+    return GestureDetector(
+      onTap: () {
+        context.go('/exercicios?materia=${materiaAtual.nome}&modo=trilha&modulo_id=${unidade.id}');
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border(context)),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Barra lateral de cor da matéria
+              Container(
+                width: 6,
+                decoration: BoxDecoration(
+                  color: materiaAtual.cor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    bottomLeft: Radius.circular(12),
+                  ),
                 ),
               ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(
-                        unidade.nome,
-                        style: AppTextStyles.subtitulo(context, size: 15.0),
-                        semanticsLabel: 'Unidade: ${unidade.nome}',
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          unidade.nome,
+                          style: AppTextStyles.subtitulo(context, size: 15.0),
+                          semanticsLabel: 'Unidade: ${unidade.nome}',
+                        ),
                       ),
-                    ),
-                    Text(
-                      '${unidade.concluidas}/${unidade.total}',
-                      style: AppTextStyles.subtitulo(
-                        context,
-                        size: 15.0,
-                        color: materiaAtual.cor,
+                      Text(
+                        '${unidade.concluidas}/${unidade.total}',
+                        style: AppTextStyles.legenda(context, color: AppColors.textHint(context)),
+                        semanticsLabel: 'Progresso: ${unidade.concluidas} de ${unidade.total}',
                       ),
-                      semanticsLabel:
-                          '${unidade.concluidas} de ${unidade.total} concluídos',
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

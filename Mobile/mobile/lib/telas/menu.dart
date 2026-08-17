@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:mobile/servicos/api_service.dart';
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
 
 // ─────────────────────────────────────────────
 // Modelos de dados
-// 🔧 BACK-END: Essas classes receberão dados da API via fromJson()
 // ─────────────────────────────────────────────
 class Materia {
   final String nome;
@@ -56,8 +57,21 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  // 🔧 BACK-END: Substituir pelo nome real do usuário logado
-  final String nomeUsuario = 'João';
+  String nomeUsuario = 'Usuário';
+  List<Materia> materias = const [
+    Materia(
+      nome: 'Matemática',
+      cor: AppColors.matematica,
+      progresso: 10,
+      totalItens: 100,
+    ),
+    Materia(
+      nome: 'Português',
+      cor: AppColors.portugues,
+      progresso: 25,
+      totalItens: 100,
+    ),
+  ];
 
   // Controla se os cards de matérias estão expandidos (abertos)
   bool _materiasExpandidas = false;
@@ -82,57 +96,138 @@ class _MenuScreenState extends State<MenuScreen> {
   void initState() {
     super.initState();
     _gerarDiasDaSemana();
+    _carregarDadosDoServidor();
+  }
+
+  String _extrairPrimeiroNome(String nomeCompleto) {
+    final nomeLimpo = nomeCompleto.trim();
+    if (nomeLimpo.isEmpty) return 'Usuário';
+    return nomeLimpo.split(' ').first;
+  }
+
+  Future<void> _carregarDadosDoServidor() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rawName = prefs.getString('userName') ?? 'Usuário';
+    if (mounted) {
+      setState(() {
+        nomeUsuario = _extrairPrimeiroNome(rawName);
+      });
+    }
+
+    try {
+      final perfil = await ApiService().obterPerfilLogado();
+      if (perfil['nome'] != null && mounted) {
+        setState(() {
+          nomeUsuario = _extrairPrimeiroNome(perfil['nome'].toString());
+        });
+      }
+    } catch (_) {}
+
+
+    try {
+      final listaDisciplinas = await ApiService().obterDisciplinas();
+      if (mounted && listaDisciplinas.isNotEmpty) {
+        final coresMaterias = [
+          AppColors.matematica,
+          AppColors.portugues,
+          AppColors.destaque,
+          Colors.orange,
+          Colors.purple,
+        ];
+
+        final List<Materia> materiasCarregadas = [];
+        for (int i = 0; i < listaDisciplinas.length; i++) {
+          final item = listaDisciplinas[i];
+          materiasCarregadas.add(
+            Materia(
+              nome: item['nome'] ?? 'Matéria',
+              cor: coresMaterias[i % coresMaterias.length],
+              progresso: 10,
+              totalItens: 100,
+            ),
+          );
+        }
+
+
+        setState(() {
+          materias = materiasCarregadas;
+        });
+      }
+    } catch (_) {}
+
+    // Carrega flashcards reais
+    try {
+      final baralhos = await ApiService().obterBaralhos();
+      Map<String, int> contagemPorMateria = {};
+      for (var b in baralhos) {
+        String materia = b['disciplina'] != null ? b['disciplina']['nome'] : 'Outros';
+        final cards = await ApiService().obterFlashcardsDoBaralho(b['id']);
+        contagemPorMateria[materia] = (contagemPorMateria[materia] ?? 0) + cards.length;
+      }
+      
+      final cores = [AppColors.matematica, AppColors.portugues, AppColors.destaque, Colors.orange, Colors.purple];
+      int colorIndex = 0;
+      
+      final List<FlashcardResumo> novosFlashcards = [];
+      contagemPorMateria.forEach((materia, count) {
+        novosFlashcards.add(FlashcardResumo(
+          materia: materia,
+          cor: cores[colorIndex % cores.length],
+          quantidade: count,
+        ));
+        colorIndex++;
+      });
+      
+      if (mounted) {
+        setState(() {
+          flashcards = novosFlashcards;
+        });
+      }
+    } catch (_) {}
+
+    // Carrega tarefas reais para o calendário da semana
+    try {
+      final tarefas = await ApiService().obterTarefas();
+      _gerarDiasDaSemanaComTarefas(tarefas);
+    } catch (_) {}
   }
 
   void _gerarDiasDaSemana() {
+    _gerarDiasDaSemanaComTarefas([]);
+  }
+
+  void _gerarDiasDaSemanaComTarefas(List<dynamic> tarefas) {
     int diaDaSemana = hoje.weekday % 7;
     final inicioDaSemana = hoje.subtract(Duration(days: diaDaSemana));
 
-    eventosDaSemana = List.generate(7, (index) {
-      final dia = inicioDaSemana.add(Duration(days: index));
-      return {
-        'dia': dia.day.toString().padLeft(2, '0'),
-        'mes': dia.month.toString().padLeft(2, '0'),
-        'nomeDia': _nomesDias[dia.weekday % 7],
-        'isHoje':
-            dia.day == hoje.day &&
-            dia.month == hoje.month &&
-            dia.year == hoje.year,
-        // 🔧 BACK-END: Buscar eventos do dia na API
-        'eventos': <String>[],
-      };
-    });
+    if (mounted) {
+      setState(() {
+        eventosDaSemana = List.generate(7, (index) {
+          final dia = inicioDaSemana.add(Duration(days: index));
+          
+          final eventosNoDia = tarefas.where((t) {
+            final dataT = DateTime.parse(t['data_entrega'] ?? DateTime.now().toIso8601String());
+            return dataT.day == dia.day && dataT.month == dia.month && dataT.year == dia.year;
+          }).map((t) => t['titulo'].toString()).toList();
+
+          return {
+            'dia': dia.day.toString().padLeft(2, '0'),
+            'mes': dia.month.toString().padLeft(2, '0'),
+            'nomeDia': _nomesDias[dia.weekday % 7],
+            'isHoje':
+                dia.day == hoje.day &&
+                dia.month == hoje.month &&
+                dia.year == hoje.year,
+            'eventos': eventosNoDia,
+          };
+        });
+      });
+    }
   }
 
-  // 🔧 BACK-END: Buscar matérias do usuário na API
-  final List<Materia> materias = const [
-    Materia(
-      nome: 'Matemática',
-      cor: AppColors.matematica,
-      progresso: 10,
-      totalItens: 100,
-    ),
-    Materia(
-      nome: 'Português',
-      cor: AppColors.portugues,
-      progresso: 25,
-      totalItens: 100,
-    ),
-  ];
+  // Resumo de flashcards
+  List<FlashcardResumo> flashcards = [];
 
-  // 🔧 BACK-END: Buscar resumo de flashcards do usuário na API
-  final List<FlashcardResumo> flashcards = const [
-    FlashcardResumo(
-      materia: 'Matemática',
-      cor: AppColors.matematica,
-      quantidade: 8,
-    ),
-    FlashcardResumo(
-      materia: 'Português',
-      cor: AppColors.portugues,
-      quantidade: 12,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {

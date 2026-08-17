@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
+import 'package:mobile/servicos/api_service.dart';
 
 // ─────────────────────────────────────────────
 // Modelo de dados de um Evento
@@ -58,32 +59,9 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
   final List<String> _nomesDiasSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
   final List<String> _nomesDiasSemanaFull = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sab'];
 
-  // 🔧 BACK-END: Matérias do usuário virão da API
-  final List<Map<String, dynamic>> materias = [
-    {'nome': 'Matemática', 'cor': AppColors.matematica},
-    {'nome': 'Português', 'cor': AppColors.portugues},
-  ];
-
-  // 🔧 BACK-END: Buscar eventos do usuário na API
-  final List<Evento> eventos = [
-    Evento(
-      id: '1',
-      nome: 'Prova de Matemática',
-      descricao: 'Capítulos 1 ao 5',
-      data: DateTime.now(),
-      horarioInicio: const TimeOfDay(hour: 8, minute: 0),
-      horarioFim: const TimeOfDay(hour: 10, minute: 0),
-      materia: 'Matemática',
-      cor: AppColors.matematica,
-    ),
-    Evento(
-      id: '2',
-      nome: 'Lista de Português',
-      data: DateTime.now().add(const Duration(days: 2)),
-      materia: 'Português',
-      cor: AppColors.portugues,
-    ),
-  ];
+  List<Map<String, dynamic>> materias = [];
+  List<Evento> eventos = [];
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -91,6 +69,55 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
     _anoAtual = hoje.year;
     _diaSelecionado = hoje;
     _mesSelecionado = DateTime(hoje.year, hoje.month, 1);
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    try {
+      final api = ApiService();
+      final fetchedMaterias = await api.obterDisciplinas();
+      final fetchedEventos = await api.obterEventos();
+
+      if (mounted) {
+        setState(() {
+          materias = fetchedMaterias.map((m) => {
+            'id': m['id'],
+            'nome': m['nome'],
+            'cor': Color(int.parse((m['cor'] as String).replaceAll('#', '0x')))
+          }).toList();
+
+          eventos = fetchedEventos.map((e) {
+            final corStr = e['cor'] ?? '#3B82F6';
+            final corVal = Color(int.parse(corStr.replaceAll('#', '0x')));
+            final dtInicio = DateTime.parse(e['data_inicio']);
+            TimeOfDay? hInicio;
+            TimeOfDay? hFim;
+            if (e['data_inicio'] != null && dtInicio.hour != 0) {
+              hInicio = TimeOfDay.fromDateTime(dtInicio);
+            }
+            if (e['data_fim'] != null) {
+              hFim = TimeOfDay.fromDateTime(DateTime.parse(e['data_fim']));
+            }
+            
+            return Evento(
+              id: e['id'].toString(),
+              nome: e['titulo'],
+              descricao: e['descricao'],
+              data: dtInicio,
+              horarioInicio: hInicio,
+              horarioFim: hFim,
+              cor: corVal,
+            );
+          }).toList();
+          
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   List<Evento> _eventosNoDia(DateTime dia) {
@@ -119,6 +146,15 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background(context),
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.destaque),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background(context),
       floatingActionButton: FloatingActionButton(
@@ -861,28 +897,41 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (nomeController.text.isEmpty) return;
-                      setState(() {
-                        eventos.add(
-                          Evento(
-                            id: DateTime.now().millisecondsSinceEpoch.toString(),
-                            nome: nomeController.text,
-                            descricao: descricaoController.text.isEmpty ? null : descricaoController.text,
-                            data: dataCriacao,
-                            horarioInicio: horarioInicio,
-                            horarioFim: horarioFim,
-                            materia: materiaSelecionada,
-                            cor: materiaSelecionada != null
-                                ? AppColors.materiaCor(materiaSelecionada!)
-                                : AppColors.destaque,
-                          ),
+                      
+                      final titulo = nomeController.text;
+                      final descricao = descricaoController.text;
+                      final cor = materiaSelecionada != null 
+                          ? '#${AppColors.materiaCor(materiaSelecionada!).value.toRadixString(16).substring(2).toUpperCase()}'
+                          : '#3B82F6';
+                      
+                      String dataInicioStr = dataCriacao.toIso8601String();
+                      if (horarioInicio != null) {
+                        dataInicioStr = DateTime(dataCriacao.year, dataCriacao.month, dataCriacao.day, horarioInicio!.hour, horarioInicio!.minute).toIso8601String();
+                      }
+                      
+                      String dataFimStr = dataInicioStr;
+                      if (horarioFim != null) {
+                        dataFimStr = DateTime(dataCriacao.year, dataCriacao.month, dataCriacao.day, horarioFim!.hour, horarioFim!.minute).toIso8601String();
+                      }
+
+                      try {
+                        await ApiService().criarEvento(
+                          titulo: titulo,
+                          descricao: descricao,
+                          dataInicio: dataInicioStr,
+                          dataFim: dataFimStr,
+                          cor: cor,
                         );
-                        _diaSelecionado = dataCriacao;
-                        if (_mesSelecionado != null) {
-                          _mesSelecionado = DateTime(dataCriacao.year, dataCriacao.month, 1);
-                        }
-                      });
+                        
+                        // Recarrega os eventos da API
+                        _loadData();
+                      } catch (e) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Erro ao salvar evento: $e')),
+                        );
+                      }
                       Navigator.pop(context);
                     },
                     style: ElevatedButton.styleFrom(

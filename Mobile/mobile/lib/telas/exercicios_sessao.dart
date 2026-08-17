@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:mobile/servicos/accessibility_provider.dart';
 import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
+import 'package:mobile/servicos/api_service.dart';
 
 // Modelo de questão para a sessão local
 class Questao {
@@ -25,6 +26,7 @@ class ExerciciosSessaoScreen extends StatefulWidget {
   final String dificuldade;
   final int quantidade;
   final String modo;
+  final String? moduloId;
 
   const ExerciciosSessaoScreen({
     super.key,
@@ -33,6 +35,7 @@ class ExerciciosSessaoScreen extends StatefulWidget {
     required this.dificuldade,
     required this.quantidade,
     required this.modo,
+    this.moduloId,
   });
 
   @override
@@ -126,22 +129,63 @@ class _ExerciciosSessaoScreenState extends State<ExerciciosSessaoScreen> {
     ),
   ];
 
+  bool _isLoading = true;
+
   @override
   void initState() {
     super.initState();
+    _questoes = [];
     _inicializarQuestoes();
   }
 
-  void _inicializarQuestoes() {
-    // Escolhe a lista base
-    final listaBase = widget.materia.toLowerCase().contains('port')
-        ? _questoesPortugues
-        : _questoesMatematica;
+  Future<void> _inicializarQuestoes() async {
+    try {
+      final modoStr = widget.modo.toLowerCase();
+      if (modoStr == 'ia') {
+        final data = await ApiService().gerarQuestoesIA(
+          tema: widget.tema,
+          quantidade: widget.quantidade,
+          nivel: widget.dificuldade,
+        );
+        _mapearQuestoesJson(data);
+      } else if (modoStr == 'trilha' && widget.moduloId != null) {
+        final data = await ApiService().obterQuestoesModulo(int.parse(widget.moduloId!));
+        _mapearQuestoesJson(data);
+      } else {
+        // Fallback local caso precise
+        final listaBase = widget.materia.toLowerCase().contains('port')
+            ? _questoesPortugues
+            : _questoesMatematica;
+            
+        for (int i = 0; i < widget.quantidade; i++) {
+          _questoes.add(listaBase[i % listaBase.length]);
+        }
+      }
+    } catch (e) {
+      // Se falhar a IA ou Trilha, carrega o fallback de emergência pra não quebrar a tela
+      final listaBase = widget.materia.toLowerCase().contains('port')
+          ? _questoesPortugues
+          : _questoesMatematica;
+      for (int i = 0; i < widget.quantidade; i++) {
+        _questoes.add(listaBase[i % listaBase.length]);
+      }
+    }
 
-    // Gera a lista de questões com base na quantidade solicitada, duplicando se necessário
-    _questoes = [];
-    for (int i = 0; i < widget.quantidade; i++) {
-      _questoes.add(listaBase[i % listaBase.length]);
+    if (mounted) {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _mapearQuestoesJson(List<dynamic> data) {
+    for (var q in data) {
+      _questoes.add(Questao(
+        enunciado: q['enunciado'] ?? '',
+        alternativas: List<String>.from(q['alternativas'] ?? []),
+        alternativaCorreta: q['alternativa_correta'] ?? 0,
+        explicacaoIA: q['explicacao_ia'] ?? 'Sem explicação.',
+      ));
     }
   }
 
@@ -155,16 +199,43 @@ class _ExerciciosSessaoScreenState extends State<ExerciciosSessaoScreen> {
     });
   }
 
-  void _proximaQuestao() {
-    setState(() {
-      if (_indiceAtual < _questoes.length - 1) {
+  void _proximaQuestao() async {
+    if (_indiceAtual < _questoes.length - 1) {
+      setState(() {
         _indiceAtual++;
         _opcaoSelecionada = null;
         _respondida = false;
-      } else {
+      });
+    } else {
+      // Finaliza a sessão e salva no backend
+      setState(() {
         _concluida = true;
+      });
+
+      try {
+        final erros = _questoes.length - _acertos;
+        final xpGanho = _acertos * 10; // Exemplo: 10 XP por acerto
+
+        List<Map<String, dynamic>> historicoRespostas = [];
+        for (var q in _questoes) {
+          historicoRespostas.add({
+            'pergunta': q.enunciado,
+            'acertou': true, // Mock, poderia guardar estado por questao
+            'origem': 'simulado_local'
+          });
+        }
+
+        await ApiService().salvarSessaoExercicio(
+          tema: widget.tema,
+          modo: widget.modo.isNotEmpty ? widget.modo : 'local',
+          quantidadeQuestoes: _questoes.length,
+          respostas: historicoRespostas,
+          dificuldade: widget.dificuldade,
+        );
+      } catch (e) {
+        // Log ou ignore erro (o usuário ainda verá a tela de resultados)
       }
-    });
+    }
   }
 
   void _salvarComoFlashcard() {
@@ -199,6 +270,25 @@ class _ExerciciosSessaoScreenState extends State<ExerciciosSessaoScreen> {
   @override
   Widget build(BuildContext context) {
     final Color materiaCor = AppColors.materiaCor(widget.materia);
+
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppColors.background(context),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(color: AppColors.destaque),
+              const SizedBox(height: 20),
+              Text(
+                widget.modo == 'ia' ? "A IA está gerando questões para você..." : "Carregando questões...",
+                style: AppTextStyles.subtitulo(context),
+              )
+            ],
+          ),
+        ),
+      );
+    }
 
     if (_concluida) {
       return _buildTelaResultados(materiaCor);

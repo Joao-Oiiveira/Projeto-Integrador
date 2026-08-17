@@ -25,6 +25,10 @@ app.include_router(rotas_eventos.router, prefix="/eventos", tags=["Eventos"])
 app.include_router(rotas_exercicios.router, prefix="/exercicios", tags=["Exercícios"])
 app.include_router(rotas_notificacoes.router, prefix="/notificacoes", tags=["Notificações"])
 
+# Importa localmente a rota de trilhas para evitar erros se estiver fora de app.api
+from app.routers import trilha as rotas_trilha
+app.include_router(rotas_trilha.router, prefix="/trilha", tags=["Trilha e IA"])
+
 # 5. Rota raiz de teste
 @app.get("/")
 def read_root():
