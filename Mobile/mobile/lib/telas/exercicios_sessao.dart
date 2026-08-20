@@ -7,16 +7,20 @@ import 'package:mobile/servicos/api_service.dart';
 
 // Modelo de questão para a sessão local
 class Questao {
+  final int? id;
   final String enunciado;
   final List<String> alternativas;
   final int alternativaCorreta; // 0 a 4 (A a E)
   final String explicacaoIA;
+  final bool? acertou;
 
   const Questao({
+    this.id,
     required this.enunciado,
     required this.alternativas,
     required this.alternativaCorreta,
     required this.explicacaoIA,
+    this.acertou,
   });
 }
 
@@ -181,28 +185,67 @@ class _ExerciciosSessaoScreenState extends State<ExerciciosSessaoScreen> {
   void _mapearQuestoesJson(List<dynamic> data) {
     for (var q in data) {
       _questoes.add(Questao(
+        id: q['id'],
         enunciado: q['enunciado'] ?? '',
         alternativas: List<String>.from(q['alternativas'] ?? []),
         alternativaCorreta: q['alternativa_correta'] ?? 0,
         explicacaoIA: q['explicacao_ia'] ?? 'Sem explicação.',
+        acertou: q['acertou'],
       ));
+    }
+    
+    // Pula questoes ja acertadas se for trilha
+    if (widget.modo.toLowerCase() == 'trilha') {
+      int nextIndex = 0;
+      for (int i = 0; i < _questoes.length; i++) {
+        if (_questoes[i].acertou != true) {
+          nextIndex = i;
+          break;
+        }
+        if (i == _questoes.length - 1) {
+          nextIndex = i; // Todas concluidas
+        }
+      }
+      _indiceAtual = nextIndex;
+      
+      // Conta acertos pre-existentes
+      _acertos = _questoes.where((q) => q.acertou == true).length;
     }
   }
 
-  void _confirmarResposta() {
+  void _confirmarResposta() async {
     if (_opcaoSelecionada == null) return;
+    
+    bool isCorrect = _opcaoSelecionada == _questoes[_indiceAtual].alternativaCorreta;
+    
     setState(() {
       _respondida = true;
-      if (_opcaoSelecionada == _questoes[_indiceAtual].alternativaCorreta) {
+      if (isCorrect) {
         _acertos++;
       }
     });
+
+    if (widget.modo.toLowerCase() == 'trilha' && _questoes[_indiceAtual].id != null) {
+      try {
+        await ApiService().responderTrilhaQuestao(_questoes[_indiceAtual].id!, isCorrect);
+      } catch (e) {
+        print('Erro ao salvar no banco: $e');
+      }
+    }
   }
 
   void _proximaQuestao() async {
-    if (_indiceAtual < _questoes.length - 1) {
+    // Para trilha, pular pra próxima que NÃO está acertada, ou finalizar.
+    int proximoIndice = _indiceAtual + 1;
+    if (widget.modo.toLowerCase() == 'trilha') {
+      while (proximoIndice < _questoes.length && _questoes[proximoIndice].acertou == true) {
+        proximoIndice++;
+      }
+    }
+
+    if (proximoIndice < _questoes.length) {
       setState(() {
-        _indiceAtual++;
+        _indiceAtual = proximoIndice;
         _opcaoSelecionada = null;
         _respondida = false;
       });

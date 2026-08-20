@@ -7,6 +7,7 @@ class EventoBase(BaseModel):
     descricao: Optional[str] = None
     data_inicio: datetime
     data_fim: datetime
+    cor: Optional[str] = "#3B82F6"
     disciplina_id: Optional[int] = None
 
 class EventoCreate(EventoBase):

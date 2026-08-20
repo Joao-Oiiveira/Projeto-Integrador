@@ -138,16 +138,32 @@ class _MenuScreenState extends State<MenuScreen> {
         final List<Materia> materiasCarregadas = [];
         for (int i = 0; i < listaDisciplinas.length; i++) {
           final item = listaDisciplinas[i];
+          final discId = item['id'];
+          
+          int progressoAcertos = 0;
+          int progressoTotal = 100;
+          
+          try {
+            final modulosTrilha = await ApiService().obterModulosTrilha(discId);
+            final progressoLista = await ApiService().obterProgressoTrilha(discId);
+            
+            progressoTotal = modulosTrilha.length * 5; // Assumindo 5 por modulo
+            if (progressoTotal == 0) progressoTotal = 100;
+            
+            for (var p in progressoLista) {
+               progressoAcertos += (p['acertos'] as int? ?? 0);
+            }
+          } catch (_) {}
+
           materiasCarregadas.add(
             Materia(
               nome: item['nome'] ?? 'Matéria',
               cor: coresMaterias[i % coresMaterias.length],
-              progresso: 10,
-              totalItens: 100,
+              progresso: progressoAcertos,
+              totalItens: progressoTotal,
             ),
           );
         }
-
 
         setState(() {
           materias = materiasCarregadas;

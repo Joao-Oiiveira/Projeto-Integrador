@@ -6,7 +6,7 @@ class Disciplina(Base):
     __tablename__ = "disciplinas"
 
     id = Column(Integer, primary_key=True, index=True)
-    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=True)
     nome = Column(String(100), nullable=False)
     descricao = Column(Text, nullable=True)
     origem = Column(String(20), nullable=True, default="manual")

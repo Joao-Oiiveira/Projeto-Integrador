@@ -38,3 +38,14 @@ class ProgressoTrilha(Base):
 
     usuario = relationship("Usuario")
     modulo = relationship("TrilhaModulo")
+
+class TrilhaResposta(Base):
+    __tablename__ = "trilha_respostas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id", ondelete="CASCADE"), nullable=False)
+    questao_id = Column(Integer, ForeignKey("trilha_questoes.id", ondelete="CASCADE"), nullable=False)
+    acertou = Column(Boolean, nullable=False)
+
+    usuario = relationship("Usuario")
+    questao = relationship("TrilhaQuestao")

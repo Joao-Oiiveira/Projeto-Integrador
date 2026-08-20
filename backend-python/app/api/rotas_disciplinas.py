@@ -13,7 +13,11 @@ router = APIRouter()
 # 1. Listar Disciplinas
 @router.get("/", response_model=List[DisciplinaResponse])
 def listar_disciplinas(db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
-    return db.query(Disciplina).filter(Disciplina.usuario_id == usuario.id, Disciplina.ativo == True).all()
+    from sqlalchemy import or_
+    return db.query(Disciplina).filter(
+        or_(Disciplina.usuario_id == usuario.id, Disciplina.usuario_id == None),
+        Disciplina.ativo == True
+    ).all()
 
 # 2. Criar Disciplina
 @router.post("/", response_model=DisciplinaResponse, status_code=status.HTTP_201_CREATED)

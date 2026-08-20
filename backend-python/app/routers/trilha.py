@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List, Dict
 
 from app.core.database import get_db
-from app.models.trilha import TrilhaModulo, TrilhaQuestao, ProgressoTrilha
+from app.models.trilha import TrilhaModulo, TrilhaQuestao, ProgressoTrilha, TrilhaResposta
 from app.schemas.trilha import (
     TrilhaModuloResponse,
     TrilhaQuestaoResponse,
@@ -26,14 +26,26 @@ def listar_modulos(disciplina_id: int, db: Session = Depends(get_db)):
     modulos = db.query(TrilhaModulo).filter(TrilhaModulo.disciplina_id == disciplina_id).order_by(TrilhaModulo.ordem).all()
     return modulos
 
+from pydantic import BaseModel
+
+class ResponderTrilhaRequest(BaseModel):
+    questao_id: int
+    acertou: bool
+
 @router.get("/modulo/{modulo_id}/questoes")
-def listar_questoes_modulo(modulo_id: int, db: Session = Depends(get_db)):
+def listar_questoes_modulo(modulo_id: int, db: Session = Depends(get_db), usuario=Depends(obter_usuario_logado)):
     """Retorna as questões de um módulo específico da trilha."""
     questoes = db.query(TrilhaQuestao).filter(TrilhaQuestao.modulo_id == modulo_id).all()
     if not questoes:
         raise HTTPException(status_code=404, detail="Módulo não encontrado ou sem questões.")
     
-    # Parser manual por causa do String -> JSON
+    questoes_ids = [q.id for q in questoes]
+    respostas = db.query(TrilhaResposta).filter(
+        TrilhaResposta.usuario_id == usuario.id,
+        TrilhaResposta.questao_id.in_(questoes_ids)
+    ).all()
+    status_resp = {r.questao_id: r.acertou for r in respostas}
+    
     resultado = []
     for q in questoes:
         resultado.append({
@@ -42,9 +54,56 @@ def listar_questoes_modulo(modulo_id: int, db: Session = Depends(get_db)):
             "enunciado": q.enunciado,
             "alternativas": json.loads(q.alternativas),
             "alternativa_correta": q.alternativa_correta,
-            "explicacao_ia": q.explicacao_ia
+            "explicacao_ia": q.explicacao_ia,
+            "acertou": status_resp.get(q.id, None)
         })
     return resultado
+
+@router.post("/responder")
+def responder_trilha(req: ResponderTrilhaRequest, db: Session = Depends(get_db), usuario=Depends(obter_usuario_logado)):
+    questao = db.query(TrilhaQuestao).filter(TrilhaQuestao.id == req.questao_id).first()
+    if not questao:
+        raise HTTPException(status_code=404, detail="Questao nao encontrada")
+    
+    resposta = db.query(TrilhaResposta).filter(
+        TrilhaResposta.usuario_id == usuario.id,
+        TrilhaResposta.questao_id == req.questao_id
+    ).first()
+    
+    if not resposta:
+        resposta = TrilhaResposta(usuario_id=usuario.id, questao_id=req.questao_id, acertou=req.acertou)
+        db.add(resposta)
+    else:
+        resposta.acertou = req.acertou
+    
+    db.commit()
+    
+    questoes_modulo = db.query(TrilhaQuestao).filter(TrilhaQuestao.modulo_id == questao.modulo_id).all()
+    ids_questoes = [q.id for q in questoes_modulo]
+    total_questoes = len(ids_questoes)
+    
+    todas_respostas = db.query(TrilhaResposta).filter(
+        TrilhaResposta.usuario_id == usuario.id,
+        TrilhaResposta.questao_id.in_(ids_questoes)
+    ).all()
+    
+    acertos = sum(1 for r in todas_respostas if r.acertou)
+    concluido = (acertos == total_questoes)
+    
+    prog = db.query(ProgressoTrilha).filter(
+        ProgressoTrilha.usuario_id == usuario.id,
+        ProgressoTrilha.modulo_id == questao.modulo_id
+    ).first()
+    
+    if not prog:
+        prog = ProgressoTrilha(usuario_id=usuario.id, modulo_id=questao.modulo_id, acertos=acertos, concluido=concluido)
+        db.add(prog)
+    else:
+        prog.acertos = acertos
+        prog.concluido = concluido
+    
+    db.commit()
+    return {"status": "ok", "acertos": acertos, "concluido": concluido, "total": total_questoes}
 
 @router.get("/progresso/{disciplina_id}", response_model=List[ProgressoTrilhaResponse])
 def obter_progresso_trilha(

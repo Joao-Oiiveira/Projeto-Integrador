@@ -27,7 +27,9 @@ app.include_router(rotas_notificacoes.router, prefix="/notificacoes", tags=["Not
 
 # Importa localmente a rota de trilhas para evitar erros se estiver fora de app.api
 from app.routers import trilha as rotas_trilha
+from app.routers import estatisticas as rotas_estatisticas
 app.include_router(rotas_trilha.router, prefix="/trilha", tags=["Trilha e IA"])
+app.include_router(rotas_estatisticas.router, prefix="/estatisticas", tags=["Estatisticas"])
 
 # 5. Rota raiz de teste
 @app.get("/")

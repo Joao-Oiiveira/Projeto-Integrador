@@ -69,7 +69,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
       if (mounted) {
         setState(() {
           _ofensivaDias = stats['ofensiva_dias'] ?? 0;
-          _totalDisciplinas = stats['total_disciplinas'] ?? 0;
+          _totalDisciplinas = stats['disciplinas_ativas'] ?? 0;
           if (stats['conquistas'] != null) {
             _conquistas = stats['conquistas'];
           }

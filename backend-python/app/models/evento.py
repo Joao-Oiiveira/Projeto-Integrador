@@ -12,5 +12,6 @@ class Evento(Base):
     descricao = Column(Text, nullable=True)
     data_inicio = Column(DateTime, nullable=False)
     data_fim = Column(DateTime, nullable=False)
+    cor = Column(String(7), nullable=True, default="#3B82F6")
     data_criacao = Column(DateTime, default=func.now(), nullable=False)
     data_atualizacao = Column(DateTime, default=func.now(), onupdate=func.now(), nullable=False)

@@ -77,18 +77,21 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
       final api = ApiService();
       final fetchedMaterias = await api.obterDisciplinas();
       final fetchedEventos = await api.obterEventos();
+      final fetchedTarefas = await api.obterTarefas();
 
       if (mounted) {
         setState(() {
           materias = fetchedMaterias.map((m) => {
             'id': m['id'],
             'nome': m['nome'],
-            'cor': Color(int.parse((m['cor'] as String).replaceAll('#', '0x')))
+            'cor': Color(int.parse((m['cor'] ?? '#3B82F6').toString().replaceAll('#', '0xFF')))
           }).toList();
 
-          eventos = fetchedEventos.map((e) {
+          final List<Evento> listaEventos = [];
+          
+          for (var e in fetchedEventos) {
             final corStr = e['cor'] ?? '#3B82F6';
-            final corVal = Color(int.parse(corStr.replaceAll('#', '0x')));
+            final corVal = Color(int.parse(corStr.replaceAll('#', '0xFF')));
             final dtInicio = DateTime.parse(e['data_inicio']);
             TimeOfDay? hInicio;
             TimeOfDay? hFim;
@@ -99,7 +102,7 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
               hFim = TimeOfDay.fromDateTime(DateTime.parse(e['data_fim']));
             }
             
-            return Evento(
+            listaEventos.add(Evento(
               id: e['id'].toString(),
               nome: e['titulo'],
               descricao: e['descricao'],
@@ -107,13 +110,30 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
               horarioInicio: hInicio,
               horarioFim: hFim,
               cor: corVal,
-            );
-          }).toList();
+            ));
+          }
+
+          for (var t in fetchedTarefas) {
+            final dtEntrega = DateTime.parse(t['data_entrega'] ?? DateTime.now().toIso8601String());
+            listaEventos.add(Evento(
+              id: 'tarefa_${t['id']}',
+              nome: t['titulo'],
+              descricao: t['descricao'] ?? 'Tarefa',
+              data: dtEntrega,
+              horarioInicio: null,
+              horarioFim: null,
+              cor: Colors.orange, // Cor padrão para tarefas
+            ));
+          }
+
+          eventos = listaEventos;
           
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, stacktrace) {
+      print('Erro no _loadData do calendário: $e');
+      print(stacktrace);
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -628,7 +648,10 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
         color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(12),
         border: Border(
-          left: BorderSide(color: evento.cor, width: 4),
+          left: BorderSide(
+            color: evento.cor.value == 0 ? const Color(0xFF3B82F6) : evento.cor, 
+            width: 4,
+          ),
           top: BorderSide(color: AppColors.border(context)),
           bottom: BorderSide(color: AppColors.border(context)),
           right: BorderSide(color: AppColors.border(context)),
@@ -641,8 +664,8 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  evento.nome,
-                  style: AppTextStyles.subtitulo(context, size: 15.0),
+                  evento.nome.isEmpty ? 'Evento sem título' : evento.nome,
+                  style: AppTextStyles.subtitulo(context, size: 15.0).copyWith(color: Colors.white),
                 ),
                 if (evento.descricao != null) ...[
                   const SizedBox(height: 4),
