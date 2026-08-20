@@ -14,6 +14,8 @@ class Usuario(Base):
     data_criacao = Column(DateTime, default=func.now())
     data_atualizacao = Column(DateTime, default=func.now(), onupdate=func.now())
 
+    is_admin = Column(Boolean, nullable=False, default=False)
+    
     # Relacionamentos (uselist=False garante que é 1 para 1)
     perfil = relationship("PerfilUsuario", back_populates="usuario", uselist=False, cascade="all, delete-orphan")
     configuracoes = relationship("ConfiguracoesUsuario", back_populates="usuario", uselist=False, cascade="all, delete-orphan")

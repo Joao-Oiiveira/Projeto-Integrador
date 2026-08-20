@@ -65,6 +65,7 @@ class UsuarioResponse(BaseModel):
     nome: str
     email: EmailStr
     nivel: int = 1
+    is_admin: bool = False
     perfil: Optional[PerfilResponse] = None
     configuracoes: Optional[ConfiguracoesResponse] = None
     
