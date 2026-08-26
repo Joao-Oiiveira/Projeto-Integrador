@@ -25,7 +25,7 @@ const Input = ({ label, id, type = 'text', placeholder, value, onChange, ...prop
           py-3 
           focus:outline-none 
           focus:ring-2 
-          focus:ring-purple-500 
+          focus:ring-blue-600 
           border border-gray-200
           transition-all 
           placeholder-gray-400

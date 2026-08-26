@@ -26,11 +26,13 @@ const UsersList = () => {
   const carregarUsuarios = async () => {
     setCarregando(true)
     try {
+      // fetchUsuarios nunca lança erro de rede — sempre retorna array (API ou cache local)
       const lista = await fetchUsuarios(isOnline)
       setUsuarios(lista)
+      setErro('')
     } catch (error) {
-      console.error('Erro ao buscar usuários:', error)
-      setErro('Falha ao carregar a lista de usuários.')
+      console.error('[UsersList] Erro inesperado ao buscar usuários:', error)
+      setErro('Não foi possível carregar a lista de usuários.')
     } finally {
       setCarregando(false)
     }
@@ -54,7 +56,7 @@ const UsersList = () => {
   // Timer para limpar mensagens de sucesso
   useEffect(() => {
     if (sucesso) {
-      const timer = setTimeout(() => setSucesso(''), 4000)
+      const timer = setTimeout(() => setSucesso(''), 5000)
       return () => clearTimeout(timer)
     }
   }, [sucesso])
@@ -76,10 +78,17 @@ const UsersList = () => {
     setSalvandoSenha(true)
     setErro('')
     try {
-      await alterarSenha(senhaModal.usuario.id, novaSenha)
+      const { sincronizado } = await alterarSenha(senhaModal.usuario.id, novaSenha)
       setSenhaModal({ aberto: false, usuario: null })
       setNovaSenha('')
-      setSucesso(`Senha de "${senhaModal.usuario.nome}" alterada com sucesso!${!isOnline ? ' (Será sincronizada quando a internet voltar)' : ''}`)
+
+      if (sincronizado) {
+        // Operação executada na API imediatamente
+        setSucesso(`✅ Senha de "${senhaModal.usuario.nome}" alterada com sucesso!`)
+      } else {
+        // API indisponível: ficou na fila offline
+        setSucesso(`🕐 Servidor indisponível. Senha de "${senhaModal.usuario.nome}" salva na fila de sincronização.`)
+      }
     } catch (error) {
       console.error('Erro ao alterar senha:', error)
       setErro('Falha ao alterar a senha. Tente novamente.')
@@ -96,9 +105,18 @@ const UsersList = () => {
     setExcluindo(true)
     setErro('')
     try {
-      await excluirUsuario(excluirModal.usuario.id)
+      const { sincronizado } = await excluirUsuario(excluirModal.usuario.id)
+      const nomeUsuario = excluirModal.usuario.nome
       setExcluirModal({ aberto: false, usuario: null })
-      setSucesso(`Usuário "${excluirModal.usuario.nome}" removido com sucesso!${!isOnline ? ' (Será sincronizado quando a internet voltar)' : ''}`)
+
+      if (sincronizado) {
+        // Operação executada na API imediatamente
+        setSucesso(`✅ Usuário "${nomeUsuario}" removido com sucesso!`)
+      } else {
+        // API indisponível: ficou na fila offline
+        setSucesso(`🕐 Servidor indisponível. Exclusão de "${nomeUsuario}" salva na fila de sincronização.`)
+      }
+
       await carregarUsuarios()
     } catch (error) {
       console.error('Erro ao excluir usuário:', error)
@@ -116,22 +134,46 @@ const UsersList = () => {
     return partes[0][0].toUpperCase()
   }
 
-  // Cores de avatar baseado no nome (determinístico)
+  // Cores de avatar baseado no nome (determinístico) — paleta azul/slate
   const getAvatarColor = (nome) => {
     const cores = [
-      'bg-purple-100 text-purple-700',
       'bg-blue-100 text-blue-700',
+      'bg-sky-100 text-sky-700',
       'bg-emerald-100 text-emerald-700',
       'bg-orange-100 text-orange-700',
-      'bg-pink-100 text-pink-700',
       'bg-teal-100 text-teal-700',
+      'bg-slate-100 text-slate-700',
       'bg-indigo-100 text-indigo-700',
-      'bg-rose-100 text-rose-700',
+      'bg-cyan-100 text-cyan-700',
     ]
     if (!nome) return cores[0]
     let hash = 0
     for (let i = 0; i < nome.length; i++) hash = nome.charCodeAt(i) + ((hash << 5) - hash)
     return cores[Math.abs(hash) % cores.length]
+  }
+
+  // Determina estilo do toast: sucesso real vs. enfileirado
+  const getSucessoStyle = () => {
+    if (sucesso.startsWith('🕐')) {
+      return 'bg-orange-50 border-orange-200 text-orange-800'
+    }
+    return 'bg-emerald-50 border-emerald-200 text-emerald-800'
+  }
+
+  const getSucessoIconStyle = () => {
+    if (sucesso.startsWith('🕐')) {
+      return 'text-orange-500'
+    }
+    return 'text-emerald-500'
+  }
+
+  const getSucessoIconPath = () => {
+    if (sucesso.startsWith('🕐')) {
+      // Ícone de relógio/fila
+      return 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'
+    }
+    // Ícone de check
+    return 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z'
   }
 
   return (
@@ -140,8 +182,8 @@ const UsersList = () => {
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestão de Usuários</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-2xl font-bold text-slate-900">Gestão de Usuários</h1>
+          <p className="text-sm text-slate-500 mt-1">
             {carregando ? 'Carregando...' : `${usuarios.length} usuário(s) cadastrado(s)`}
           </p>
         </div>
@@ -155,7 +197,7 @@ const UsersList = () => {
           }
         `}>
           <span className={`w-2 h-2 rounded-full shrink-0 ${isOnline ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-          {isOnline ? 'Online' : 'Offline'}
+          {isOnline ? 'API Online' : 'API Offline'}
         </div>
       </div>
 
@@ -166,18 +208,18 @@ const UsersList = () => {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <span>
-            <strong className="font-semibold">Modo Offline.</strong> As ações de excluir e alterar senha serão enfileiradas e sincronizadas automaticamente quando a internet voltar.
+            <strong className="font-semibold">Servidor indisponível.</strong> As ações serão salvas na fila e sincronizadas quando a API voltar.
           </span>
         </div>
       )}
 
-      {/* Mensagem de sucesso */}
+      {/* Toast de sucesso / enfileirado */}
       {sucesso && (
-        <div className="flex items-center gap-3 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl px-5 py-3.5 text-sm animate-fade-in-up">
-          <svg className="w-5 h-5 shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <div className={`flex items-center gap-3 border rounded-2xl px-5 py-3.5 text-sm animate-fade-in-up ${getSucessoStyle()}`}>
+          <svg className={`w-5 h-5 shrink-0 ${getSucessoIconStyle()}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={getSucessoIconPath()} />
           </svg>
-          <span>{sucesso}</span>
+          <span>{sucesso.replace(/^[✅🕐]\s?/, '')}</span>
         </div>
       )}
 
@@ -207,7 +249,7 @@ const UsersList = () => {
             placeholder="Buscar por nome ou e-mail..."
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            className="w-full bg-gray-50 text-gray-900 rounded-2xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-purple-500 border border-gray-200 transition-all placeholder-gray-400"
+            className="w-full bg-slate-50 text-slate-900 rounded-2xl pl-12 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-600 border border-gray-200 transition-all placeholder-gray-400"
           />
         </div>
       </div>
@@ -216,7 +258,7 @@ const UsersList = () => {
       <div className="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
         
         {/* Header da tabela */}
-        <div className="hidden md:grid md:grid-cols-[2fr_2fr_1fr_1fr_1.2fr] gap-4 px-6 py-4 bg-gray-50 border-b border-gray-100 text-xs font-bold uppercase tracking-wider text-gray-500">
+        <div className="hidden md:grid md:grid-cols-[2fr_2fr_1fr_1fr_1.2fr] gap-4 px-6 py-4 bg-slate-50 border-b border-gray-100 text-xs font-bold uppercase tracking-wider text-slate-500">
           <span>Usuário</span>
           <span>E-mail</span>
           <span>Nível</span>
@@ -251,7 +293,7 @@ const UsersList = () => {
             {usuariosFiltrados.map((usuario, index) => (
               <div
                 key={usuario.id}
-                className="flex flex-col md:grid md:grid-cols-[2fr_2fr_1fr_1fr_1.2fr] gap-2 md:gap-4 px-6 py-4 hover:bg-gray-50/80 transition-colors animate-slide-in items-center"
+                className="flex flex-col md:grid md:grid-cols-[2fr_2fr_1fr_1fr_1.2fr] gap-2 md:gap-4 px-6 py-4 hover:bg-slate-50/80 transition-colors animate-slide-in items-center"
                 style={{ animationDelay: `${index * 40}ms` }}
               >
                 {/* Avatar + Nome */}
@@ -260,28 +302,28 @@ const UsersList = () => {
                     {getIniciais(usuario.nome)}
                   </div>
                   <div className="flex flex-col min-w-0">
-                    <span className="text-sm font-bold text-gray-900 truncate">{usuario.nome || 'Sem nome'}</span>
-                    <span className="text-xs text-gray-400 md:hidden truncate">{usuario.email}</span>
+                    <span className="text-sm font-bold text-slate-900 truncate">{usuario.nome || 'Sem nome'}</span>
+                    <span className="text-xs text-slate-400 md:hidden truncate">{usuario.email}</span>
                   </div>
                 </div>
 
                 {/* E-mail (apenas desktop) */}
-                <span className="hidden md:block text-sm text-gray-600 truncate">{usuario.email}</span>
+                <span className="hidden md:block text-sm text-slate-600 truncate">{usuario.email}</span>
 
                 {/* Nível */}
-                <span className="hidden md:block text-sm text-gray-600">{usuario.nivel || '—'}</span>
+                <span className="hidden md:block text-sm text-slate-600">{usuario.nivel || '—'}</span>
 
                 {/* Tipo (Admin/Estudante) */}
                 <div className="hidden md:block">
                   {usuario.is_admin ? (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 text-xs font-bold">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                       </svg>
                       Admin
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-50 text-blue-700 text-xs font-bold">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-sky-50 text-sky-700 text-xs font-bold">
                       <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
@@ -295,7 +337,7 @@ const UsersList = () => {
                   {/* Botão Alterar Senha */}
                   <button
                     onClick={() => handleAbrirSenha(usuario)}
-                    className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-purple-50 hover:text-purple-700 text-gray-600 rounded-xl text-xs font-bold transition-all"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 hover:bg-blue-50 hover:text-blue-700 text-gray-600 rounded-xl text-xs font-bold transition-all"
                     title="Alterar Senha"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -336,13 +378,13 @@ const UsersList = () => {
       >
         <div className="flex flex-col gap-5">
           {senhaModal.usuario && (
-            <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-2xl">
+            <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl">
               <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${getAvatarColor(senhaModal.usuario.nome)}`}>
                 {getIniciais(senhaModal.usuario.nome)}
               </div>
               <div>
-                <span className="text-sm font-bold text-gray-900">{senhaModal.usuario.nome}</span>
-                <p className="text-xs text-gray-500">{senhaModal.usuario.email}</p>
+                <span className="text-sm font-bold text-slate-900">{senhaModal.usuario.nome}</span>
+                <p className="text-xs text-slate-500">{senhaModal.usuario.email}</p>
               </div>
             </div>
           )}
@@ -369,9 +411,9 @@ const UsersList = () => {
           {!isOnline && (
             <div className="flex items-center gap-2 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl px-3 py-2 text-xs font-medium">
               <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Operação será enfileirada e sincronizada quando a internet voltar.
+              Servidor indisponível. A operação será salva na fila e sincronizada automaticamente.
             </div>
           )}
 
@@ -389,7 +431,7 @@ const UsersList = () => {
             <button
               onClick={handleSalvarSenha}
               disabled={salvandoSenha || !novaSenha.trim()}
-              className="flex-1 py-3 px-4 bg-gray-900 hover:bg-gray-800 text-white rounded-xl font-bold text-sm transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 py-3 px-4 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm transition-colors shadow-md disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {salvandoSenha ? (
                 <>
@@ -415,7 +457,7 @@ const UsersList = () => {
         title="Excluir Usuário?"
         message={
           excluirModal.usuario
-            ? `Tem certeza que deseja excluir "${excluirModal.usuario.nome}"? Esta ação não pode ser desfeita.${!isOnline ? ' A exclusão será sincronizada quando a internet voltar.' : ''}`
+            ? `Tem certeza que deseja excluir "${excluirModal.usuario.nome}"? Esta ação não pode ser desfeita.${!isOnline ? ' O servidor está indisponível — a exclusão será salva na fila e sincronizada automaticamente.' : ''}`
             : ''
         }
         confirmText="Sim, Excluir"

@@ -1,4 +1,4 @@
-// layouts/AdminLayout.jsx — Layout base com Sidebar + Header (identidade visual EduAcess Web)
+// layouts/AdminLayout.jsx — Layout base com Sidebar + Header (paleta Azul Corporativo/Slate)
 import React, { useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { logoutAdmin, getAdminUser } from '../services/authService'
@@ -31,12 +31,12 @@ const AdminLayout = () => {
   ]
 
   return (
-    <div className="flex h-screen bg-[#F4F7FE] text-gray-800 font-sans overflow-hidden">
+    <div className="flex h-screen bg-slate-50 text-slate-800 font-sans overflow-hidden">
 
       {/* Overlay mobile */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-gray-900/40 backdrop-blur-sm z-40 lg:hidden"
+          className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-40 lg:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -46,10 +46,10 @@ const AdminLayout = () => {
           ============================ */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 w-64 bg-[#F4F7FE]
+          fixed inset-y-0 left-0 z-50 w-64 bg-slate-50
           flex flex-col justify-between py-6 px-4 shrink-0
           transform transition-transform duration-300 ease-in-out
-          lg:relative lg:translate-x-0 border-r border-gray-200
+          lg:relative lg:translate-x-0 border-r border-slate-200
           ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full shadow-none'}
         `}
       >
@@ -57,15 +57,15 @@ const AdminLayout = () => {
           {/* Logo */}
           <div className="flex items-center justify-between px-4 mb-10">
             <div className="flex items-center gap-3">
-              <div className="bg-gray-900 text-white w-8 h-8 flex items-center justify-center rounded-lg font-bold">e.</div>
+              <div className="bg-slate-900 text-white w-8 h-8 flex items-center justify-center rounded-lg font-bold">e.</div>
               <div className="flex flex-col">
-                <span className="text-lg font-bold text-gray-900 leading-tight">EduAcess</span>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-purple-600">Admin</span>
+                <span className="text-lg font-bold text-slate-900 leading-tight">EduAcess</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-700">Admin</span>
               </div>
             </div>
             <button
               onClick={() => setIsSidebarOpen(false)}
-              className="lg:hidden p-2 text-gray-400 bg-gray-100 rounded-full"
+              className="lg:hidden p-2 text-slate-400 bg-slate-100 rounded-full"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -87,8 +87,8 @@ const AdminLayout = () => {
                   className={`
                     flex items-center gap-3 px-4 py-3 rounded-2xl font-medium transition-all
                     ${isActive
-                      ? 'bg-gray-900 text-white shadow-md'
-                      : 'text-gray-500 hover:bg-white hover:text-gray-900'
+                      ? 'bg-slate-900 text-white shadow-md'
+                      : 'text-slate-500 hover:bg-white hover:text-slate-900'
                     }
                   `}
                 >
@@ -123,12 +123,12 @@ const AdminLayout = () => {
       <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
         
         {/* Header */}
-        <header className="flex justify-between items-center py-4 px-4 sm:py-5 sm:px-8 shrink-0 bg-[#F4F7FE] lg:bg-transparent z-30">
+        <header className="flex justify-between items-center py-4 px-4 sm:py-5 sm:px-8 shrink-0 bg-slate-50 lg:bg-transparent z-30">
           <div className="flex items-center gap-2 sm:gap-3">
             {/* Menu hamburguer (mobile) */}
             <button
               onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-2.5 bg-white rounded-xl shadow-sm border border-gray-100 text-gray-600"
+              className="lg:hidden p-2.5 bg-white rounded-xl shadow-sm border border-slate-100 text-slate-600"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -136,32 +136,32 @@ const AdminLayout = () => {
             </button>
 
             {/* Título da página atual */}
-            <div className="hidden md:flex items-center gap-3 bg-white px-5 py-2.5 rounded-2xl shadow-sm border border-gray-100">
-              <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="hidden md:flex items-center gap-3 bg-white px-5 py-2.5 rounded-2xl shadow-sm border border-slate-100">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              <span className="font-medium text-gray-700 text-sm">Painel Administrativo</span>
+              <span className="font-medium text-slate-700 text-sm">Painel Administrativo</span>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             {/* Perfil + Logout */}
-            <div className="flex items-center gap-3 bg-white p-1 px-2 pr-4 rounded-full shadow-sm border border-gray-100">
-              <div className="w-8 h-8 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-sm">
+            <div className="flex items-center gap-3 bg-white p-1 px-2 pr-4 rounded-full shadow-sm border border-slate-100">
+              <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm">
                 {user?.nome ? user.nome.charAt(0).toUpperCase() : 'A'}
               </div>
               <div className="hidden sm:flex flex-col">
-                <span className="text-sm font-bold text-gray-900 leading-tight max-w-[120px] truncate">
+                <span className="text-sm font-bold text-slate-900 leading-tight max-w-[120px] truncate">
                   {user?.nome || 'Admin'}
                 </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-gray-400">Administrador</span>
+                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Administrador</span>
               </div>
             </div>
 
             {/* Botão de Logout */}
             <button
               onClick={handleLogout}
-              className="p-2.5 bg-white rounded-full shadow-sm border border-gray-100 text-gray-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all"
+              className="p-2.5 bg-white rounded-full shadow-sm border border-slate-100 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all"
               title="Sair"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
