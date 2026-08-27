@@ -91,7 +91,7 @@ const DashboardLayout = () => {
   const dataAtual = new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', weekday: 'long' }).format(new Date());
 
   return (
-    <div className="flex h-screen bg-[#F4F7FE] text-gray-800 font-sans dyslexia:font-opendyslexic overflow-hidden">
+    <div className="flex h-screen bg-[#F4F7FE] dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans dyslexia:font-opendyslexic overflow-hidden">
       
       <TTSReader />
 
@@ -139,7 +139,7 @@ const DashboardLayout = () => {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative">
+      <main className="flex-1 flex flex-col h-full overflow-hidden w-full relative bg-[#F4F7FE] dark:bg-gray-900">
         <header className="flex justify-between items-center py-4 px-4 sm:py-6 sm:px-8 shrink-0 bg-[#F4F7FE] dark:bg-gray-900 lg:bg-transparent z-30">
           <div className="flex items-center gap-2 sm:gap-3">
             <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2.5 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 text-gray-600 dark:text-gray-300">
@@ -239,7 +239,7 @@ const DashboardLayout = () => {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-8 custom-scrollbar w-full">
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-8 custom-scrollbar w-full bg-[#F4F7FE] dark:bg-gray-900">
           <Outlet />
         </div>
       </main>

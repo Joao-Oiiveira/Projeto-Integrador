@@ -42,30 +42,51 @@ export async function processSyncQueue() {
       // Marca como 'processando' para evitar duplicação
       await db.sync_queue.update(item.id, { status: 'processando' })
 
-      // Monta a URL do endpoint com base na entidade e ID
-      const url = `${API_BASE}/${item.entidade}/${item.entidade_id}${item.endpoint_sufixo || ''}`
+      // Monta a URL do endpoint:
+      // POST → sem entidade_id na URL (cria novo recurso)
+      // PUT/DELETE → inclui entidade_id na URL
+      const isPost = item.tipo === 'POST'
+      const url = isPost
+        ? `${API_BASE}/${item.entidade}${item.endpoint_sufixo || ''}`
+        : `${API_BASE}/${item.entidade}/${item.entidade_id}${item.endpoint_sufixo || ''}`
 
       // Monta as opções do fetch
       const opcoes = {
-        method: item.tipo, // 'PUT' ou 'DELETE'
+        method: item.tipo, // 'POST', 'PUT' ou 'DELETE'
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         }
       }
 
-      // Adiciona body apenas para PUT (DELETE não precisa)
-      if (item.tipo === 'PUT' && item.payload) {
+      // Adiciona body para POST e PUT (DELETE não precisa)
+      if ((item.tipo === 'POST' || item.tipo === 'PUT') && item.payload) {
         opcoes.body = JSON.stringify(item.payload)
       }
 
       const response = await fetch(url, opcoes)
 
-      if (response.ok || response.status === 204) {
+      if (response.ok || response.status === 201 || response.status === 204) {
         // Sucesso! Remove o item da fila
         await db.sync_queue.delete(item.id)
         processados++
         console.log(`[SyncEngine] ✅ ${item.tipo} ${url} — Sincronizado.`)
+
+        // Para POST: substitui o ID temporário negativo pelo ID real retornado
+        if (isPost && (response.ok || response.status === 201)) {
+          try {
+            const usuarioCriado = await response.json()
+            if (usuarioCriado?.id && item.entidade_id < 0) {
+              // Remove o registro com ID temporário
+              await db.usuarios_locais.delete(item.entidade_id)
+              // Insere com o ID real retornado pela API
+              await db.usuarios_locais.put(usuarioCriado)
+              console.log(`[SyncEngine] 🔄 ID temporário ${item.entidade_id} substituído pelo ID real ${usuarioCriado.id}`)
+            }
+          } catch (parseErr) {
+            console.warn('[SyncEngine] Não foi possível parsear resposta do POST para atualizar ID local.', parseErr)
+          }
+        }
       } else {
         // Erro do servidor (4xx, 5xx) — marca como erro mas não tenta de novo
         // automaticamente (pode ser um conflito de dados)

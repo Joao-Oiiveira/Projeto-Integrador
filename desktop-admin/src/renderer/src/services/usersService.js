@@ -86,6 +86,122 @@ export async function excluirUsuario(id) {
 }
 
 /**
+ * Cria um novo usuário.
+ *
+ * Modo Online  → Tenta POST na API. Se bem-sucedido, salva no cache local
+ *                com o ID real retornado e retorna o usuário criado.
+ * Modo Offline → Cria um ID temporário negativo (-Date.now()) como Optimistic UI,
+ *                salva no cache local e enfileira na sync_queue (tipo: 'POST').
+ *
+ * @param {Object} dados — { nome, email, senha, is_admin }
+ * @returns {Promise<{sincronizado: boolean, usuario: Object}>}
+ */
+export async function criarUsuario(dados) {
+  // Tenta salvar na API diretamente
+  try {
+    const token = getAdminToken()
+    const response = await fetch(`${API_BASE}/usuarios`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify(dados),
+      signal: AbortSignal.timeout(8000)
+    })
+
+    if (response.ok || response.status === 201) {
+      const usuarioCriado = await response.json()
+      // Salva no cache local com o ID real
+      await db.usuarios_locais.put(usuarioCriado)
+      return { sincronizado: true, usuario: usuarioCriado }
+    }
+
+    // Erro do servidor (ex: e-mail duplicado) — propaga o erro para o chamador
+    const errorData = await response.json().catch(() => ({}))
+    throw new Error(errorData.detail || `Erro HTTP ${response.status}`)
+  } catch (err) {
+    // Se for erro de validação/negócio do servidor, repropaga
+    if (err.message && !err.message.includes('fetch') && !err.message.includes('network') && !err.message.includes('abort') && !err.message.includes('NetworkError') && !err.message.includes('Failed to fetch') && !err.message.includes('timeout')) {
+      throw err
+    }
+
+    // Erro de REDE — Optimistic UI com ID temporário negativo
+    const idTemporario = -Date.now()
+    const usuarioLocal = {
+      id: idTemporario,
+      nome: dados.nome,
+      email: dados.email,
+      is_admin: dados.is_admin ?? false,
+      nivel: dados.is_admin ? 'admin' : 'estudante',
+      data_criacao: new Date().toISOString(),
+      _pendente_sync: true
+    }
+
+    // Salva no cache local com ID temporário
+    await db.usuarios_locais.put(usuarioLocal)
+
+    // Enfileira na sync_queue para POST quando a API voltar
+    await db.sync_queue.add({
+      tipo: 'POST',
+      entidade: 'usuarios',
+      entidade_id: idTemporario,
+      endpoint_sufixo: '',
+      payload: dados,
+      status: 'pendente',
+      timestamp: Date.now(),
+      tentativas: 0
+    })
+
+    console.warn('[usersService] Sem rede. Usuário salvo localmente com ID temporário:', idTemporario)
+    const resultado = await processSyncQueue()
+    return { sincronizado: resultado.processados > 0, usuario: usuarioLocal }
+  }
+}
+
+/**
+ * Edita um usuário existente.
+ *
+ * 1. Atualiza imediatamente o cache local (Optimistic UI).
+ * 2. Enfileira a operação PUT na sync_queue (payload sem a senha).
+ * 3. Tenta sincronizar agora (se online) ou aguarda reconexão.
+ *
+ * @param {number} id — ID do usuário a editar
+ * @param {Object} dados — { nome, email, is_admin } (sem senha)
+ * @returns {Promise<{sincronizado: boolean}>}
+ */
+export async function editarUsuario(id, dados) {
+  // Payload sem a senha (segurança: senha só é alterada via alterarSenha())
+  const { senha, ...payloadSemSenha } = dados
+
+  // Atualização otimista do cache local
+  const usuarioAtual = await db.usuarios_locais.get(id)
+  if (usuarioAtual) {
+    await db.usuarios_locais.put({
+      ...usuarioAtual,
+      ...payloadSemSenha,
+      nivel: payloadSemSenha.is_admin ? 'admin' : (usuarioAtual.nivel || 'estudante')
+    })
+  }
+
+  // Enfileira a operação PUT na sync_queue
+  await db.sync_queue.add({
+    tipo: 'PUT',
+    entidade: 'usuarios',
+    entidade_id: id,
+    endpoint_sufixo: '',
+    payload: payloadSemSenha,
+    status: 'pendente',
+    timestamp: Date.now(),
+    tentativas: 0
+  })
+
+  // Tenta processar agora
+  const resultado = await processSyncQueue()
+  return { sincronizado: resultado.processados > 0 }
+}
+
+/**
  * Altera a senha de um usuário.
  *
  * Não altera o cache local (senha é campo sensível, não armazenado).
