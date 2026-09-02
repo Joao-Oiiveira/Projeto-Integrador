@@ -48,3 +48,10 @@ app.include_router(rotas_estatisticas.router, prefix="/estatisticas", tags=["Est
 @app.get("/")
 def read_root():
     return {"mensagem": "Bem-vindo à API do EduAcess!"}
+
+# 6. Health check — usado pelo desktop-admin para verificar se a API está respondendo
+#    GET /health → { "status": "ok" }  (HTTP 200)
+#    Sem autenticação, sem dependências de banco — resposta rápida e leve.
+@app.get("/health", tags=["Sistema"])
+def health_check():
+    return {"status": "ok"}
