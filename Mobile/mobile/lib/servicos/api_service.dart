@@ -451,7 +451,7 @@ class ApiService {
       final response = await http.post(
         url,
         headers: await _obterHeaders(autenticado: true),
-        body: jsonEncode({'baralho_id': baralhoId, 'frente': frente, 'verso': verso}),
+        body: jsonEncode({'baralho_id': baralhoId, 'pergunta': frente, 'resposta': verso}),
       );
       if (response.statusCode == 201) return jsonDecode(utf8.decode(response.bodyBytes));
       throw HttpException('Falha ao criar flashcard.');

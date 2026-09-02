@@ -141,10 +141,7 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
   }
 
   void _gerarDiasDaSemana() {
-    final int diaDaSemana = hoje.weekday; // 1 = Segunda, ..., 7 = Domingo
-    // Ajuste para o Flutter: Domingo é 7, queremos que a semana comece no Domingo (0)
-    final int offset = diaDaSemana == 7 ? 0 : diaDaSemana;
-    final DateTime inicioDaSemana = hoje.subtract(Duration(days: offset));
+    final DateTime inicioDaSemana = hoje;
 
     diasDaSemana = List.generate(7, (index) {
       final dia = inicioDaSemana.add(Duration(days: index));
@@ -312,7 +309,7 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
         ),
         GestureDetector(
           onTap: () {
-            context.go('/calendario');
+            context.push('/calendario');
           },
           child: Container(
             padding: const EdgeInsets.all(8),

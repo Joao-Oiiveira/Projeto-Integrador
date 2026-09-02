@@ -44,6 +44,33 @@ def excluir_baralho(baralho_id: int, db: Session = Depends(get_db), usuario: Usu
     db.commit()
     return None
 
+@router.get("/baralhos/{baralho_id}/flashcards", response_model=List[FlashcardResponse])
+def listar_flashcards_do_baralho(baralho_id: int, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
+    flashcards = db.query(Flashcard).join(Baralho).filter(
+        Flashcard.baralho_id == baralho_id,
+        Baralho.usuario_id == usuario.id
+    ).all()
+    
+    resultado = []
+    for f in flashcards:
+        progresso = db.query(ProgressoFlashcard).filter(
+            ProgressoFlashcard.flashcard_id == f.id,
+            ProgressoFlashcard.usuario_id == usuario.id
+        ).first()
+        
+        resultado.append({
+            "id": f.id,
+            "baralho_id": f.baralho_id,
+            "pergunta": f.pergunta,
+            "resposta": f.resposta,
+            "acertos": progresso.acertos if progresso else 0,
+            "erros": progresso.erros if progresso else 0,
+            "proxima_revisao": progresso.proxima_revisao if progresso else None,
+            "data_criacao": f.data_criacao,
+            "data_atualizacao": f.data_atualizacao
+        })
+    return resultado
+
 # ==========================================
 # ROTAS DE FLASHCARDS
 # ==========================================

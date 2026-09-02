@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter/material.dart';
@@ -7,6 +8,8 @@ import 'package:mobile/tema/app_colors.dart';
 import 'package:mobile/tema/app_text_styles.dart';
 import 'package:mobile/telas/flashcard_menu.dart'; // Importa o modelo FlashcardDeck
 import 'package:mobile/servicos/api_service.dart';
+import 'package:mobile/servicos/accessibility_provider.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 
 class FlashcardRevisaoScreen extends StatefulWidget {
   final String materia;
@@ -30,19 +33,50 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
   final Map<int, bool> _starredCards =
       {}; // Guarda o estado da estrela localmente por index
 
+  final FlutterTts flutterTts = FlutterTts();
+
   @override
   void initState() {
     super.initState();
     _loadDeck();
+    _initTts();
+  }
+
+  void _initTts() async {
+    await flutterTts.setLanguage("pt-BR");
+  }
+
+  void _falarTexto(String texto) async {
+    if (accessibilityProvider.textToSpeechEnabled) { 
+      await flutterTts.stop();
+      await flutterTts.speak(texto);
+    }
+  }
+
+  String removeAccents(String str) {
+    var withDia = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
+    var withoutDia = 'AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz';
+    for (int i = 0; i < withDia.length; i++) {
+      str = str.replaceAll(withDia[i], withoutDia[i]);
+    }
+    return str;
   }
 
   Future<void> _loadDeck() async {
     try {
       final fetchedDecks = await ApiService().obterBaralhos();
+      
+      final disciplinas = await ApiService().obterDisciplinas();
+      final currentDisc = disciplinas.firstWhere(
+        (d) => removeAccents(d['nome'].toString().toLowerCase()) == removeAccents(widget.materia.toLowerCase()),
+        orElse: () => null,
+      );
+      final currentDiscId = currentDisc != null ? currentDisc['id'] : null;
+
       final targetBaralho = fetchedDecks.cast<Map<String, dynamic>?>().firstWhere(
         (d) => d != null && 
-               (d['disciplina'] != null ? d['disciplina']['nome'] : '').toString().toLowerCase() == widget.materia.toLowerCase() &&
-               d['nome'].toString().toLowerCase() == widget.deckNome.toLowerCase(),
+               d['disciplina_id'] == currentDiscId &&
+               removeAccents(d['nome'].toString().toLowerCase()) == removeAccents(widget.deckNome.toLowerCase()),
         orElse: () => null,
       );
 
@@ -59,11 +93,14 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
             _deck = FlashcardDeck(
               id: targetBaralho['id'],
               nome: targetBaralho['nome'],
-              materia: targetBaralho['disciplina'] != null ? targetBaralho['disciplina']['nome'] : '',
+              materia: widget.materia,
               cards: cardsList,
             );
             _isLoading = false;
           });
+          if (cardsList.isNotEmpty) {
+            _falarTexto(cardsList[0]['pergunta']!);
+          }
         }
       } else {
         if (mounted) {
@@ -83,12 +120,23 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
   }
 
   void _flipCard() {
+    HapticFeedback.selectionClick();
     setState(() {
       _isFront = !_isFront;
     });
+    if (_deck != null && _deck!.cards.isNotEmpty) {
+      final card = _deck!.cards[_currentIndex];
+      _falarTexto(_isFront ? card['pergunta']! : card['resposta']!);
+    }
   }
 
   void _responderCard(bool acertou) async {
+    if (acertou) {
+      HapticFeedback.lightImpact();
+    } else {
+      HapticFeedback.heavyImpact();
+    }
+    
     if (_deck == null) return;
 
     final card = _deck!.cards[_currentIndex];
@@ -111,6 +159,8 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
         _isFront = true; // Reseta para a frente
         _currentIndex++;
       });
+      final nextCard = _deck!.cards[_currentIndex];
+      _falarTexto(nextCard['pergunta']!);
     } else {
       _mostrarFimRevisao();
     }
@@ -309,7 +359,7 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 800),
+            duration: const Duration(milliseconds: 200),
             child: _isFront ? _buildTapHint() : _buildActionButtons(),
           ),
         ),
@@ -330,11 +380,16 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
                 ? const Color(0xFFFFFDF0) // Fundo Creme da Imagem 1
                 : const Color(0xFF001133), // Fundo Azul Escuro da Imagem 2
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black, width: 1.5),
+        border: Border.all(
+          color: accessibilityProvider.highContrast
+              ? (isFront ? Colors.black : Colors.white)
+              : AppColors.border(context),
+          width: accessibilityProvider.highContrast ? 2.5 : 1.0,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.12),
-            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
@@ -353,9 +408,9 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
               child: Icon(
                 starred ? Icons.star : Icons.star_border,
                 color:
-                    starred
-                        ? const Color(0xFFFFD700)
-                        : (isFront ? const Color(0xFF001133) : Colors.white),
+                  starred
+                      ? const Color(0xFFFFD700)
+                      : (isFront ? const Color(0xFF001133) : Colors.white),
                 size: 28,
               ),
             ),
@@ -428,11 +483,14 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE55D5D),
               foregroundColor: Colors.black,
-              elevation: 4,
-              shadowColor: Colors.black38,
+              elevation: 2,
+              shadowColor: Colors.black26,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Colors.black, width: 1.2),
+                side: BorderSide(
+                  color: accessibilityProvider.highContrast ? Colors.black : Colors.transparent, 
+                  width: 1.5
+                ),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
@@ -455,11 +513,14 @@ class _FlashcardRevisaoScreenState extends State<FlashcardRevisaoScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF5CCB75),
               foregroundColor: Colors.black,
-              elevation: 4,
-              shadowColor: Colors.black38,
+              elevation: 2,
+              shadowColor: Colors.black26,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: const BorderSide(color: Colors.black, width: 1.2),
+                side: BorderSide(
+                  color: accessibilityProvider.highContrast ? Colors.black : Colors.transparent, 
+                  width: 1.5
+                ),
               ),
               padding: const EdgeInsets.symmetric(vertical: 14),
             ),
@@ -506,9 +567,14 @@ class _FlipCardState extends State<FlipCard>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1500),
+      duration: Duration(milliseconds: accessibilityProvider.reduzirMovimento ? 1 : 500),
     );
-    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(_controller);
+    _animation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: accessibilityProvider.reduzirMovimento ? Curves.linear : Curves.easeInOutCubic,
+      ),
+    );
 
     if (!widget.isFront) {
       _controller.value = 1.0;

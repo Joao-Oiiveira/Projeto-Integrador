@@ -2,35 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class AccessibilityPreferences extends ChangeNotifier {
-  // ── Valores padrão ───────────────────────────
+  // ⚙️ Valores padrão
   double _fontSizeMultiplier = 1.0;
   bool _highContrast = false;
   bool _textToSpeechEnabled = false;
   bool _temaClaro = false;
   double _espacamentoLinhas = 1.5;
   bool _fonteDislexia = false;
+  bool _reduzirMovimento = false; // <-- NOVO
 
-  // ── Perfis Educacionais ───────────────────────
+  // 🧑‍🎓 Perfis Educacionais
   bool _dificuldadeLeitura = false;
   bool _tdah = false;
   bool _autismo = false;
   String _preferenciaConteudo = 'texto'; // 'visual', 'auditivo', 'texto'
 
-  // ── Getters ──────────────────────────────────
+  // 🔹 Getters
   double get fontSizeMultiplier => _fontSizeMultiplier;
   bool get highContrast => _highContrast;
   bool get textToSpeechEnabled => _textToSpeechEnabled;
   bool get temaClaro => _temaClaro;
   double get espacamentoLinhas => _espacamentoLinhas;
   bool get fonteDislexia => _fonteDislexia;
+  bool get reduzirMovimento => _reduzirMovimento; // <-- NOVO
 
   bool get dificuldadeLeitura => _dificuldadeLeitura;
   bool get tdah => _tdah;
   bool get autismo => _autismo;
   String get preferenciaConteudo => _preferenciaConteudo;
 
-  // ── Carrega configurações salvas ─────────────
-  // Chamado no main() antes de abrir o app
+  // 🔄 Carrega configurações salvas
   Future<void> carregarConfiguracoes() async {
     final prefs = await SharedPreferences.getInstance();
     _fontSizeMultiplier = prefs.getDouble('fontSizeMultiplier') ?? 1.0;
@@ -39,6 +40,7 @@ class AccessibilityPreferences extends ChangeNotifier {
     _temaClaro = prefs.getBool('temaClaro') ?? false;
     _espacamentoLinhas = prefs.getDouble('espacamentoLinhas') ?? 1.5;
     _fonteDislexia = prefs.getBool('fonteDislexia') ?? false;
+    _reduzirMovimento = prefs.getBool('reduzirMovimento') ?? false; // <-- NOVO
 
     _dificuldadeLeitura = prefs.getBool('dificuldadeLeitura') ?? false;
     _tdah = prefs.getBool('tdah') ?? false;
@@ -47,8 +49,7 @@ class AccessibilityPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Setters com salvamento automático ────────
-
+  // ✏️ Setters com salvamento automático
   void setFontSizeMultiplier(double value) async {
     if (value >= 0.8 && value <= 1.5) {
       _fontSizeMultiplier = value;
@@ -93,13 +94,19 @@ class AccessibilityPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
+  // <-- NOVO SETTER
+  void setReduzirMovimento(bool value) async {
+    _reduzirMovimento = value;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('reduzirMovimento', value);
+    notifyListeners();
+  }
+
   // Setters do Perfil Educacional com automações
   void setDificuldadeLeitura(bool value) async {
     _dificuldadeLeitura = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('dificuldadeLeitura', value);
-    
-    // Automação: se tem dificuldade de leitura, ativa a fonte OpenDyslexic
     if (value) {
       _fonteDislexia = true;
       await prefs.setBool('fonteDislexia', true);
@@ -118,8 +125,6 @@ class AccessibilityPreferences extends ChangeNotifier {
     _autismo = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('autismo', value);
-    
-    // Automação: se tem autismo/sensibilidade visual, ativa alto contraste
     if (value) {
       _highContrast = true;
       await prefs.setBool('highContrast', true);
@@ -131,8 +136,6 @@ class AccessibilityPreferences extends ChangeNotifier {
     _preferenciaConteudo = value;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('preferenciaConteudo', value);
-    
-    // Automação: se a preferência for áudio, ativa leitura de texto por voz
     if (value == 'auditivo') {
       _textToSpeechEnabled = true;
       await prefs.setBool('textToSpeechEnabled', true);
@@ -140,7 +143,7 @@ class AccessibilityPreferences extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Helper de cor com alto contraste ─────────
+  // 🎨 Helper de cor com alto contraste
   Color getContrastColor(Color original) {
     if (!_highContrast) return original;
     return original.withValues(alpha: 1.0);

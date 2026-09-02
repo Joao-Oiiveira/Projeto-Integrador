@@ -61,7 +61,7 @@ def _gerar_questoes_com_groq(tema: str, dificuldade: str, quantidade: int):
     }
     
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "openai/gpt-oss-120b",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2
     }
@@ -131,7 +131,7 @@ def gerar_flashcards_ia(tema: str, dificuldade: str, quantidade: int):
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
     payload = {
-        "model": "llama-3.3-70b-versatile",
+        "model": "openai/gpt-oss-120b",
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.3
     }

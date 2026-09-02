@@ -19,6 +19,7 @@ class _PerfilScreenState extends State<PerfilScreen> {
   int _nivelUsuario = 1;
   int _ofensivaDias = 0;
   int _totalDisciplinas = 0;
+  List<String> _materiasSelecionadas = [];
   List<dynamic> _conquistas = [];
   List<dynamic> _progressoDisciplinas = [];
 
@@ -64,12 +65,19 @@ class _PerfilScreenState extends State<PerfilScreen> {
       }
     } catch (_) {}
 
+    final selecoes = prefs.getStringList('materias_selecionadas') ?? [];
+    if (mounted) {
+      setState(() {
+        _materiasSelecionadas = selecoes;
+        _totalDisciplinas = selecoes.length;
+      });
+    }
+
     try {
       final stats = await ApiService().obterEstatisticas();
       if (mounted) {
         setState(() {
           _ofensivaDias = stats['ofensiva_dias'] ?? 0;
-          _totalDisciplinas = stats['disciplinas_ativas'] ?? 0;
           if (stats['conquistas'] != null) {
             _conquistas = stats['conquistas'];
           }
@@ -468,31 +476,38 @@ class _PerfilScreenState extends State<PerfilScreen> {
                     ],
                   ),
                   const SizedBox(height: 20),
-
-                  // Disciplinas ativas com a porcentagem feita
-                  _buildDisciplinaDialogItem(
-                    nome: 'Matemática',
-                    abreviacao: 'M',
-                    cor: AppColors.matematica,
-                    porcentagemConcluida: 0.75, // 75% feito
-                    estatisticas: '75% concluído',
-                    onTapIr: () {
-                      Navigator.pop(context);
-                      context.go('/materia/Matemática');
-                    },
-                  ),
-                  const Divider(),
-                  _buildDisciplinaDialogItem(
-                    nome: 'Português',
-                    abreviacao: 'P',
-                    cor: AppColors.portugues,
-                    porcentagemConcluida: 0.45, // 45% feito
-                    estatisticas: '45% concluído',
-                    onTapIr: () {
-                      Navigator.pop(context);
-                      context.go('/materia/Português');
-                    },
-                  ),
+                  // Disciplinas ativas
+                  if (_materiasSelecionadas.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Text('Nenhuma disciplina selecionada.', style: TextStyle(color: Colors.grey)),
+                    )
+                  else
+                    ..._materiasSelecionadas.asMap().entries.map((entry) {
+                      final index = entry.key;
+                      final nome = entry.value;
+                      
+                      // Buscando progresso na variável _progressoDisciplinas se existir
+                      double porcentagem = 0.0;
+                      // Lógica de progresso real viria do backend, usando mockup visual
+                      
+                      return Column(
+                        children: [
+                          if (index > 0) const Divider(),
+                          _buildDisciplinaDialogItem(
+                            nome: nome,
+                            abreviacao: nome.isNotEmpty ? nome[0].toUpperCase() : 'M',
+                            cor: AppColors.materiaCor(nome),
+                            porcentagemConcluida: 0.0, // Mock, poderia usar _progressoDisciplinas
+                            estatisticas: 'Acessar trilha',
+                            onTapIr: () {
+                              Navigator.pop(context);
+                              context.go('/materia/$nome');
+                            },
+                          ),
+                        ],
+                      );
+                    }),
                   const SizedBox(height: 24),
 
                   // Botões inferiores

@@ -90,8 +90,6 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
           final List<Evento> listaEventos = [];
           
           for (var e in fetchedEventos) {
-            final corStr = e['cor'] ?? '#3B82F6';
-            final corVal = Color(int.parse(corStr.replaceAll('#', '0xFF')));
             final dtInicio = DateTime.parse(e['data_inicio']);
             TimeOfDay? hInicio;
             TimeOfDay? hFim;
@@ -101,11 +99,14 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
             if (e['data_fim'] != null) {
               hFim = TimeOfDay.fromDateTime(DateTime.parse(e['data_fim']));
             }
+            final corStr = (e['cor'] ?? '#3B82F6').toString();
+            final corLimpa = corStr.startsWith('#') ? corStr.substring(1) : corStr;
+            final corVal = Color(int.parse('0xFF$corLimpa'));
             
             listaEventos.add(Evento(
               id: e['id'].toString(),
-              nome: e['titulo'],
-              descricao: e['descricao'],
+              nome: e['titulo']?.toString() ?? 'Evento sem título',
+              descricao: e['descricao']?.toString(),
               data: dtInicio,
               horarioInicio: hInicio,
               horarioFim: hFim,
@@ -201,7 +202,7 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () => context.go('/calendarioMenu'),
+                onTap: () => context.pop(),
                 child: Icon(
                   Icons.arrow_back,
                   color: AppColors.textPrimary(context),
@@ -403,9 +404,7 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () {
-                  setState(() => _mesSelecionado = null);
-                },
+                onTap: () => context.pop(),
                 child: Icon(
                   Icons.arrow_back,
                   color: AppColors.textPrimary(context),
@@ -643,29 +642,32 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
   Widget _buildEventoCard(Evento evento) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(
-            color: evento.cor.value == 0 ? const Color(0xFF3B82F6) : evento.cor, 
-            width: 4,
-          ),
-          top: BorderSide(color: AppColors.border(context)),
-          bottom: BorderSide(color: AppColors.border(context)),
-          right: BorderSide(color: AppColors.border(context)),
-        ),
+        border: Border.all(color: AppColors.border(context)),
       ),
-      child: Row(
-        children: [
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              left: BorderSide(
+                color: (evento.cor.alpha == 0 || evento.cor == Colors.transparent) ? const Color(0xFF3B82F6) : evento.cor, 
+                width: 4,
+              ),
+            ),
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  evento.nome.isEmpty ? 'Evento sem título' : evento.nome,
-                  style: AppTextStyles.subtitulo(context, size: 15.0).copyWith(color: Colors.white),
+                  evento.nome.trim().isEmpty ? 'Evento sem título' : evento.nome,
+                  style: const TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.w600),
                 ),
                 if (evento.descricao != null) ...[
                   const SizedBox(height: 4),
@@ -714,6 +716,8 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
             ),
         ],
       ),
+      ), // ClipRRect closing
+      ), // Container closing
     );
   }
 

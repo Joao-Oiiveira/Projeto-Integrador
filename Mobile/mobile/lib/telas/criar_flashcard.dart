@@ -31,13 +31,30 @@ class _CriarFlashcardScreenState extends State<CriarFlashcardScreen> {
     _loadDeck();
   }
 
+  String removeAccents(String str) {
+    var withDia = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
+    var withoutDia = 'AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz';
+    for (int i = 0; i < withDia.length; i++) {
+      str = str.replaceAll(withDia[i], withoutDia[i]);
+    }
+    return str;
+  }
+
   Future<void> _loadDeck() async {
     try {
       final fetchedDecks = await ApiService().obterBaralhos();
+      
+      final disciplinas = await ApiService().obterDisciplinas();
+      final currentDisc = disciplinas.firstWhere(
+        (d) => removeAccents(d['nome'].toString().toLowerCase()) == removeAccents(widget.materia.toLowerCase()),
+        orElse: () => null,
+      );
+      final currentDiscId = currentDisc != null ? currentDisc['id'] : null;
+
       final targetBaralho = fetchedDecks.cast<Map<String, dynamic>?>().firstWhere(
         (d) => d != null && 
-               (d['disciplina'] != null ? d['disciplina']['nome'] : '').toString().toLowerCase() == widget.materia.toLowerCase() &&
-               d['nome'].toString().toLowerCase() == widget.deckNome.toLowerCase(),
+               d['disciplina_id'] == currentDiscId &&
+               removeAccents(d['nome'].toString().toLowerCase()) == removeAccents(widget.deckNome.toLowerCase()),
         orElse: () => null,
       );
 
@@ -54,12 +71,13 @@ class _CriarFlashcardScreenState extends State<CriarFlashcardScreen> {
             _deck = FlashcardDeck(
               id: targetBaralho['id'],
               nome: targetBaralho['nome'],
-              materia: targetBaralho['disciplina'] != null ? targetBaralho['disciplina']['nome'] : '',
+              materia: widget.materia,
               cards: cardsList,
             );
             _isLoading = false;
           });
         }
+
       } else {
         if (mounted) {
           setState(() {

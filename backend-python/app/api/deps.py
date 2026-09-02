@@ -30,3 +30,12 @@ def get_usuario_atual(db: Session = Depends(get_db), token: str = Depends(oauth2
         raise credentials_exception
         
     return usuario
+
+# NOVA FUNÇÃO DE ADMIN (Encostada no canto esquerdo)
+def get_admin_atual(usuario_atual: Usuario = Depends(get_usuario_atual)):
+    if not usuario_atual.is_admin:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso negado. Privilégios de administrador necessários."
+        )
+    return usuario_atual
