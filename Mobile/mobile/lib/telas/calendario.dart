@@ -77,19 +77,18 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
       final api = ApiService();
       final fetchedMaterias = await api.obterDisciplinas();
       final fetchedEventos = await api.obterEventos();
-      final fetchedTarefas = await api.obterTarefas();
 
       if (mounted) {
         setState(() {
           materias = fetchedMaterias.map((m) => {
             'id': m['id'],
             'nome': m['nome'],
-            'cor': Color(int.parse((m['cor'] ?? '#3B82F6').toString().replaceAll('#', '0xFF')))
+            'cor': Color(int.parse((m['cor'] as String).replaceAll('#', '0x')))
           }).toList();
 
-          final List<Evento> listaEventos = [];
-          
-          for (var e in fetchedEventos) {
+          eventos = fetchedEventos.map((e) {
+            final corStr = e['cor'] ?? '#3B82F6';
+            final corVal = Color(int.parse(corStr.replaceAll('#', '0x')));
             final dtInicio = DateTime.parse(e['data_inicio']);
             TimeOfDay? hInicio;
             TimeOfDay? hFim;
@@ -99,42 +98,22 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
             if (e['data_fim'] != null) {
               hFim = TimeOfDay.fromDateTime(DateTime.parse(e['data_fim']));
             }
-            final corStr = (e['cor'] ?? '#3B82F6').toString();
-            final corLimpa = corStr.startsWith('#') ? corStr.substring(1) : corStr;
-            final corVal = Color(int.parse('0xFF$corLimpa'));
             
-            listaEventos.add(Evento(
+            return Evento(
               id: e['id'].toString(),
-              nome: e['titulo']?.toString() ?? 'Evento sem título',
-              descricao: e['descricao']?.toString(),
+              nome: e['titulo'],
+              descricao: e['descricao'],
               data: dtInicio,
               horarioInicio: hInicio,
               horarioFim: hFim,
               cor: corVal,
-            ));
-          }
-
-          for (var t in fetchedTarefas) {
-            final dtEntrega = DateTime.parse(t['data_entrega'] ?? DateTime.now().toIso8601String());
-            listaEventos.add(Evento(
-              id: 'tarefa_${t['id']}',
-              nome: t['titulo'],
-              descricao: t['descricao'] ?? 'Tarefa',
-              data: dtEntrega,
-              horarioInicio: null,
-              horarioFim: null,
-              cor: Colors.orange, // Cor padrão para tarefas
-            ));
-          }
-
-          eventos = listaEventos;
+            );
+          }).toList();
           
           _isLoading = false;
         });
       }
-    } catch (e, stacktrace) {
-      print('Erro no _loadData do calendário: $e');
-      print(stacktrace);
+    } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
       }
@@ -202,7 +181,7 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () => context.pop(),
+                onTap: () => context.go('/calendarioMenu'),
                 child: Icon(
                   Icons.arrow_back,
                   color: AppColors.textPrimary(context),
@@ -404,7 +383,9 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                onTap: () => context.pop(),
+                onTap: () {
+                  setState(() => _mesSelecionado = null);
+                },
                 child: Icon(
                   Icons.arrow_back,
                   color: AppColors.textPrimary(context),
@@ -642,32 +623,26 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
   Widget _buildEventoCard(Evento evento) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.cardBackground(context),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border(context)),
+        border: Border(
+          left: BorderSide(color: evento.cor, width: 4),
+          top: BorderSide(color: AppColors.border(context)),
+          bottom: BorderSide(color: AppColors.border(context)),
+          right: BorderSide(color: AppColors.border(context)),
+        ),
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          decoration: BoxDecoration(
-            border: Border(
-              left: BorderSide(
-                color: (evento.cor.alpha == 0 || evento.cor == Colors.transparent) ? const Color(0xFF3B82F6) : evento.cor, 
-                width: 4,
-              ),
-            ),
-          ),
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            children: [
+      child: Row(
+        children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  evento.nome.trim().isEmpty ? 'Evento sem título' : evento.nome,
-                  style: const TextStyle(color: Colors.white, fontSize: 16.0, fontWeight: FontWeight.w600),
+                  evento.nome,
+                  style: AppTextStyles.subtitulo(context, size: 15.0),
                 ),
                 if (evento.descricao != null) ...[
                   const SizedBox(height: 4),
@@ -716,8 +691,6 @@ class _CalendarioMensalScreenState extends State<CalendarioMensalScreen> {
             ),
         ],
       ),
-      ), // ClipRRect closing
-      ), // Container closing
     );
   }
 

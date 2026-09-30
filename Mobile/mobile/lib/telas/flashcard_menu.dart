@@ -57,34 +57,12 @@ class _FlashcardMenuScreenState extends State<FlashcardMenuScreen> {
     _loadDecks();
   }
 
-  String removeAccents(String str) {
-    var withDia = 'ÀÁÂÃÄÅàáâãäåÒÓÔÕÕÖØòóôõöøÈÉÊËèéêëðÇçÐÌÍÎÏìíîïÙÚÛÜùúûüÑñŠšŸÿýŽž';
-    var withoutDia = 'AAAAAAaaaaaaOOOOOOOooooooEEEEeeeeeCcDIIIIiiiiUUUUuuuuNnSsYyyZz';
-    for (int i = 0; i < withDia.length; i++) {
-      str = str.replaceAll(withDia[i], withoutDia[i]);
-    }
-    return str;
-  }
-
   Future<void> _loadDecks() async {
     try {
       final fetchedDecks = await ApiService().obterBaralhos();
       List<FlashcardDeck> loadedDecks = [];
       
-      // Buscamos todas as disciplinas para mapear o disciplina_id
-      final disciplinas = await ApiService().obterDisciplinas();
-      final currentDisc = disciplinas.firstWhere(
-        (d) => removeAccents(d['nome'].toString().toLowerCase()) == removeAccents(widget.materia.toLowerCase()),
-        orElse: () => null,
-      );
-      final currentDiscId = currentDisc != null ? currentDisc['id'] : null;
-
       for (var b in fetchedDecks) {
-        // Se o deck não for dessa disciplina, já ignoramos para poupar chamadas de cartas
-        if (b['disciplina_id'] != currentDiscId && currentDiscId != null) {
-          continue;
-        }
-
         // Obter cartões de cada baralho
         final fetchedCards = await ApiService().obterFlashcardsDoBaralho(b['id']);
         final cardsList = fetchedCards.map((c) => {
@@ -96,10 +74,15 @@ class _FlashcardMenuScreenState extends State<FlashcardMenuScreen> {
         loadedDecks.add(FlashcardDeck(
           id: b['id'],
           nome: b['nome'],
-          materia: widget.materia, // já sabemos que é a matéria correta
+          materia: b['disciplina'] != null ? b['disciplina']['nome'] : '',
           cards: cardsList,
         ));
       }
+
+      // Filtra decks por matéria
+      loadedDecks = loadedDecks
+          .where((deck) => deck.materia.toLowerCase() == widget.materia.toLowerCase())
+          .toList();
 
       if (mounted) {
         setState(() {
@@ -176,7 +159,7 @@ class _FlashcardMenuScreenState extends State<FlashcardMenuScreen> {
                               : Colors.black,
                     ),
                     decoration: InputDecoration(
-                      labelText: 'Nome do Grupo', // Alterado de Materia para Nome do Grupo
+                      labelText: 'Materia', // Label exato da Imagem 2
                       labelStyle: TextStyle(
                         color:
                             Theme.of(context).brightness == Brightness.dark
@@ -295,14 +278,9 @@ class _FlashcardMenuScreenState extends State<FlashcardMenuScreen> {
   void _criarNovoGrupo(String nome) async {
     setState(() => _isLoading = true);
     try {
-      final disciplinas = await ApiService().obterDisciplinas();
-      final disc = disciplinas.firstWhere(
-        (d) => removeAccents(d['nome'].toString().toLowerCase()) == removeAccents(widget.materia.toLowerCase()),
-        orElse: () => null,
-      );
-      
-      final discId = disc != null ? disc['id'] : null;
-      await ApiService().criarBaralho(nome: nome, disciplinaId: discId);
+      // Aqui teríamos que achar o disciplina_id baseado em widget.materia
+      // Por simplificação, o backend suporta criar baralho só com nome (e disciplina_id opcional)
+      await ApiService().criarBaralho(nome: nome);
       await _loadDecks(); // Recarrega com IDs reais da API
     } catch (e) {
       if (mounted) {
@@ -313,43 +291,6 @@ class _FlashcardMenuScreenState extends State<FlashcardMenuScreen> {
       }
     }
   }
-
-  void _excluirGrupo(FlashcardDeck deck) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Excluir Grupo'),
-        content: Text('Tem certeza que deseja excluir o grupo "${deck.nome}"? Todas as cartas serão apagadas.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              setState(() => _isLoading = true);
-              try {
-                if (deck.id != null) {
-                  await ApiService().excluirBaralho(deck.id!);
-                  await _loadDecks();
-                }
-              } catch (e) {
-                if (mounted) {
-                  setState(() => _isLoading = false);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Erro ao excluir: $e')),
-                  );
-                }
-              }
-            },
-            child: const Text('Excluir', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
-    );
-  }
-
 
   @override
   Widget build(BuildContext context) {
@@ -406,9 +347,9 @@ class _FlashcardMenuScreenState extends State<FlashcardMenuScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // ── BOTÃO ADICIONAR (+) ──
+                    // ── BOTÃO ADICIONAR (+) conforme Imagem 1 ──
                     Align(
-                      alignment: Alignment.center,
+                      alignment: Alignment.centerLeft,
                       child: IconButton(
                         iconSize: 36,
                         icon: const Icon(
@@ -483,26 +424,13 @@ class _FlashcardMenuScreenState extends State<FlashcardMenuScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          deck.nome,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black, // Letras pretas conforme a Imagem 1
-                          ),
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete_outline, color: Colors.black87),
-                        onPressed: () => _excluirGrupo(deck),
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                      ),
-                    ],
+                  Text(
+                    deck.nome,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black, // Letras pretas conforme a Imagem 1
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(

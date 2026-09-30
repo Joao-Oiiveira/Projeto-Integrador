@@ -57,9 +57,21 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
-  String nomeUsuario = 'Visitante';
-  List<Materia> todasAsMaterias = [];
-  List<Materia> materias = [];
+  String nomeUsuario = 'Usuário';
+  List<Materia> materias = const [
+    Materia(
+      nome: 'Matemática',
+      cor: AppColors.matematica,
+      progresso: 10,
+      totalItens: 100,
+    ),
+    Materia(
+      nome: 'Português',
+      cor: AppColors.portugues,
+      progresso: 25,
+      totalItens: 100,
+    ),
+  ];
 
   // Controla se os cards de matérias estão expandidos (abertos)
   bool _materiasExpandidas = false;
@@ -115,9 +127,6 @@ class _MenuScreenState extends State<MenuScreen> {
     try {
       final listaDisciplinas = await ApiService().obterDisciplinas();
       if (mounted && listaDisciplinas.isNotEmpty) {
-        final prefs = await SharedPreferences.getInstance();
-        final List<String> selecionadas = prefs.getStringList('materias_selecionadas') ?? [];
-        
         final coresMaterias = [
           AppColors.matematica,
           AppColors.portugues,
@@ -126,42 +135,23 @@ class _MenuScreenState extends State<MenuScreen> {
           Colors.purple,
         ];
 
-        final List<Materia> todas = [];
+        final List<Materia> materiasCarregadas = [];
         for (int i = 0; i < listaDisciplinas.length; i++) {
           final item = listaDisciplinas[i];
-          final discId = item['id'];
-          
-          int progressoAcertos = 0;
-          int progressoTotal = 100;
-          
-          try {
-            final modulosTrilha = await ApiService().obterModulosTrilha(discId);
-            final progressoLista = await ApiService().obterProgressoTrilha(discId);
-            
-            progressoTotal = modulosTrilha.length * 5; // Assumindo 5 por modulo
-            if (progressoTotal == 0) progressoTotal = 100;
-            
-            for (var p in progressoLista) {
-               progressoAcertos += (p['acertos'] as int? ?? 0);
-            }
-          } catch (_) {}
-
-          todas.add(
+          materiasCarregadas.add(
             Materia(
               nome: item['nome'] ?? 'Matéria',
               cor: coresMaterias[i % coresMaterias.length],
-              progresso: progressoAcertos,
-              totalItens: progressoTotal,
+              progresso: 10,
+              totalItens: 100,
             ),
           );
         }
 
-        if (mounted) {
-          setState(() {
-            todasAsMaterias = todas;
-            materias = todas.where((m) => selecionadas.contains(m.nome)).toList();
-          });
-        }
+
+        setState(() {
+          materias = materiasCarregadas;
+        });
       }
     } catch (_) {}
 
@@ -207,7 +197,8 @@ class _MenuScreenState extends State<MenuScreen> {
   }
 
   void _gerarDiasDaSemanaComTarefas(List<dynamic> tarefas) {
-    final inicioDaSemana = hoje;
+    int diaDaSemana = hoje.weekday % 7;
+    final inicioDaSemana = hoje.subtract(Duration(days: diaDaSemana));
 
     if (mounted) {
       setState(() {
@@ -266,29 +257,9 @@ class _MenuScreenState extends State<MenuScreen> {
               const SizedBox(height: 28),
 
               // ── Matérias (cards empilhados) ──────────
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  GestureDetector(
-                    onTap: () => setState(() => _materiasExpandidas = !_materiasExpandidas),
-                    child: Row(
-                      children: [
-                        Text(
-                          'Matérias',
-                          style: AppTextStyles.subtitulo(context, size: 18.0),
-                        ),
-                        Icon(
-                          _materiasExpandidas ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                          color: AppColors.textPrimary(context),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.add_circle, color: AppColors.destaque, size: 28),
-                    onPressed: _abrirPopupSelecionarMaterias,
-                  ),
-                ],
+              Text(
+                'Matérias',
+                style: AppTextStyles.subtitulo(context, size: 18.0),
               ),
               const SizedBox(height: 12),
               _buildCardsEmpilhados(
@@ -306,20 +277,9 @@ class _MenuScreenState extends State<MenuScreen> {
               const SizedBox(height: 28),
 
               // ── Flashcards (cards empilhados) ────────
-              GestureDetector(
-                onTap: () => setState(() => _flashcardsExpandidos = !_flashcardsExpandidos),
-                child: Row(
-                  children: [
-                    Text(
-                      'Flashcards',
-                      style: AppTextStyles.subtitulo(context, size: 18.0),
-                    ),
-                    Icon(
-                      _flashcardsExpandidos ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                      color: AppColors.textPrimary(context),
-                    ),
-                  ],
-                ),
+              Text(
+                'Flashcards',
+                style: AppTextStyles.subtitulo(context, size: 18.0),
               ),
               const SizedBox(height: 12),
               _buildCardsEmpilhados(
@@ -450,59 +410,6 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  void _abrirPopupSelecionarMaterias() {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        return StatefulBuilder(
-          builder: (context, setStateDialog) {
-            return AlertDialog(
-              backgroundColor: AppColors.background(context),
-              title: Text('Minhas Matérias', style: AppTextStyles.titulo(context, size: 20)),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: todasAsMaterias.length,
-                  itemBuilder: (context, index) {
-                    final materia = todasAsMaterias[index];
-                    final selecionada = materias.any((m) => m.nome == materia.nome);
-                    return CheckboxListTile(
-                      title: Text(materia.nome, style: AppTextStyles.corpo(context)),
-                      value: selecionada,
-                      activeColor: AppColors.destaque,
-                      onChanged: (bool? val) async {
-                        if (val == true) {
-                          materias.add(materia);
-                        } else {
-                          materias.removeWhere((m) => m.nome == materia.nome);
-                        }
-                        setStateDialog(() {});
-                        
-                        final prefs = await SharedPreferences.getInstance();
-                        final listNomes = materias.map((m) => m.nome).toList();
-                        await prefs.setStringList('materias_selecionadas', listNomes);
-                        
-                        // Atualiza tela principal
-                        setState(() {});
-                      },
-                    );
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Fechar', style: TextStyle(color: AppColors.destaque)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-
   // ── Widget: Cards Empilhados ─────────────────
   Widget _buildCardsEmpilhados({
     required int itens,
@@ -518,8 +425,8 @@ class _MenuScreenState extends State<MenuScreen> {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeOutQuart,
+        duration: const Duration(milliseconds: 1000),
+        curve: Curves.easeInOut,
         height: expandido ? (cardHeight + 12) * itens : altureFechado,
         child: Stack(
           clipBehavior: Clip.none,
@@ -527,8 +434,8 @@ class _MenuScreenState extends State<MenuScreen> {
             final reverseIndex = itens - 1 - index;
 
             return AnimatedPositioned(
-              duration: const Duration(milliseconds: 500),
-              curve: Curves.easeOutQuart,
+              duration: const Duration(milliseconds: 1000),
+              curve: Curves.easeInOut,
               top:
                   expandido
                       ? reverseIndex * (cardHeight + 12)
@@ -536,7 +443,7 @@ class _MenuScreenState extends State<MenuScreen> {
               left: 0,
               right: 0,
               child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 350),
+                duration: const Duration(milliseconds: 300),
                 opacity: 1.0,
                 child:
                     expandido
@@ -552,22 +459,28 @@ class _MenuScreenState extends State<MenuScreen> {
 
   // ── Widget: Card de Matéria FECHADO ──────────
   Widget _buildMateriaCardFechado(Materia materia) {
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: materia.cor.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            materia.nome,
-            style: AppTextStyles.titulo(context, size: 18.0, color: Colors.white),
-          ),
-          _buildProgressoCircular(materia.progresso),
-        ],
+    return GestureDetector(
+      onTap: () async {
+        setState(() => _materiasExpandidas = true);
+        await Future.delayed(const Duration(milliseconds: 1000));
+      },
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: materia.cor.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              materia.nome,
+              style: AppTextStyles.titulo(context, size: 18.0, color: Colors.white),
+            ),
+            _buildProgressoCircular(materia.progresso),
+          ],
+        ),
       ),
     );
   }
@@ -575,7 +488,8 @@ class _MenuScreenState extends State<MenuScreen> {
   // ── Widget: Card de Matéria ABERTO ───────────
   Widget _buildMateriaCard(Materia materia) {
     return GestureDetector(
-      onTap: () {
+      onTap: () async {
+        await Future.delayed(const Duration(milliseconds: 150));
         if (mounted) context.go('/materia/${materia.nome}');
       },
       child: Container(
@@ -611,26 +525,31 @@ class _MenuScreenState extends State<MenuScreen> {
 
   // ── Widget: Card de Flashcard FECHADO ────────
   Widget _buildFlashcardCardFechado(FlashcardResumo flash) {
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: flash.cor.withValues(alpha: 0.9),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            flash.materia,
-            style: AppTextStyles.subtitulo(context, size: 16.0, color: Colors.white),
-          ),
-          Text(
-            'Flashcards: ${flash.quantidade}',
-            style: AppTextStyles.legenda(context, color: Colors.white70),
-          ),
-        ],
+    return GestureDetector(
+      onTap: () {
+        context.go('/flashcard-menu/${flash.materia}');
+      },
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: flash.cor.withValues(alpha: 0.9),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              flash.materia,
+              style: AppTextStyles.subtitulo(context, size: 16.0, color: Colors.white),
+            ),
+            Text(
+              'Flashcards: ${flash.quantidade}',
+              style: AppTextStyles.legenda(context, color: Colors.white70),
+            ),
+          ],
+        ),
       ),
     );
   }

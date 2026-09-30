@@ -25,18 +25,16 @@ class MateriaDetalhe {
 }
 
 class UnidadeMateria {
-  final String id;
   final String nome;
   final int concluidas;
   final int total;
-  final bool bloqueado;
+  final String id;
 
-  UnidadeMateria({
-    this.id = '',
+  const UnidadeMateria({
     required this.nome,
     required this.concluidas,
     required this.total,
-    this.bloqueado = false,
+    this.id = '',
   });
 }
 
@@ -123,49 +121,17 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
 
       // Buscar Módulos (Trilha)
       List<UnidadeMateria> modulosCarregados = [];
-      int progressoGeralAcertos = 0;
-      int progressoGeralTotal = 0;
       try {
         if (dIndex != -1) {
           final disciplinaId = disciplinas[dIndex]['id'];
           final modulosTrilha = await ApiService().obterModulosTrilha(disciplinaId);
-          final progressoLista = await ApiService().obterProgressoTrilha(disciplinaId);
-          
-          Map<String, dynamic> progressoMap = {};
-          for (var p in progressoLista) {
-            progressoMap[p['modulo_id'].toString()] = p;
-          }
-
-          bool anteriorConcluido = true;
           for (var modulo in modulosTrilha) {
-            final modId = modulo['id'].toString();
-            int concluidas = 0;
-            int total = 5; // Default fallback
-            
-            try {
-              final questoes = await ApiService().obterQuestoesModulo(modulo['id']);
-              total = questoes.length;
-            } catch (_) {}
-            
-            if (progressoMap.containsKey(modId)) {
-              concluidas = progressoMap[modId]['acertos'] ?? 0;
-            }
-            
-            progressoGeralAcertos += concluidas;
-            progressoGeralTotal += total;
-
-            bool bloqueado = !anteriorConcluido;
-            bool atualConcluido = concluidas >= total && total > 0;
-            
             modulosCarregados.add(UnidadeMateria(
               nome: modulo['nome'],
-              concluidas: concluidas,
-              total: total,
-              id: modId,
-              bloqueado: bloqueado,
+              concluidas: 0, // Poderia vir do progresso
+              total: 10,
+              id: modulo['id'].toString(),
             ));
-            
-            anteriorConcluido = atualConcluido;
           }
         }
       } catch (e) {
@@ -174,15 +140,10 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
 
       if (mounted) {
         setState(() {
-          int porcentagemMat = 0;
-          if (progressoGeralTotal > 0) {
-            porcentagemMat = ((progressoGeralAcertos / progressoGeralTotal) * 100).toInt();
-          }
-          
           materiaAtual = MateriaDetalhe(
             nome: widget.materiaNome,
             cor: corMateria,
-            progresso: porcentagemMat,
+            progresso: 0, // Poderia vir das estatisticas
             totalItens: 100,
             flashcardsDisponiveis: totalFlashcards,
             tarefasPendentes: pendentes,
@@ -503,33 +464,31 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
 
   Widget _buildUnidadeCard(UnidadeMateria unidade) {
     return GestureDetector(
-      onTap: unidade.bloqueado ? null : () {
-        context.go('/exercicios/sessao?materia=${materiaAtual.nome}&modo=trilha&modulo_id=${unidade.id}&tema=${unidade.nome}');
+      onTap: () {
+        context.go('/exercicios?materia=${materiaAtual.nome}&modo=trilha&modulo_id=${unidade.id}');
       },
-      child: Opacity(
-        opacity: unidade.bloqueado ? 0.5 : 1.0,
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          decoration: BoxDecoration(
-            color: AppColors.cardBackground(context),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border(context)),
-          ),
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Barra lateral de cor da matéria
-                Container(
-                  width: 6,
-                  decoration: BoxDecoration(
-                    color: unidade.bloqueado ? Colors.grey : materiaAtual.cor,
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(12),
-                      bottomLeft: Radius.circular(12),
-                    ),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: AppColors.cardBackground(context),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border(context)),
+        ),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Barra lateral de cor da matéria
+              Container(
+                width: 6,
+                decoration: BoxDecoration(
+                  color: materiaAtual.cor,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    bottomLeft: Radius.circular(12),
                   ),
                 ),
+              ),
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -543,11 +502,6 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
                           semanticsLabel: 'Unidade: ${unidade.nome}',
                         ),
                       ),
-                      if (unidade.bloqueado)
-                        const Padding(
-                          padding: EdgeInsets.only(right: 8.0),
-                          child: Icon(Icons.lock, size: 16, color: Colors.grey),
-                        ),
                       Text(
                         '${unidade.concluidas}/${unidade.total}',
                         style: AppTextStyles.legenda(context, color: AppColors.textHint(context)),
@@ -560,7 +514,6 @@ class _MateriaDetalheScreenState extends State<MateriaDetalheScreen> {
             ],
           ),
         ),
-      ),
       ),
     );
   }

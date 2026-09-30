@@ -269,7 +269,7 @@ class ApiService {
 
   /// Criar tarefa (POST /tarefas/)
   Future<Map<String, dynamic>> criarTarefa({
-    int? disciplinaId,
+    required int disciplinaId,
     required String titulo,
     required String descricao,
     required String dataEntrega,
@@ -451,7 +451,7 @@ class ApiService {
       final response = await http.post(
         url,
         headers: await _obterHeaders(autenticado: true),
-        body: jsonEncode({'baralho_id': baralhoId, 'pergunta': frente, 'resposta': verso}),
+        body: jsonEncode({'baralho_id': baralhoId, 'frente': frente, 'verso': verso}),
       );
       if (response.statusCode == 201) return jsonDecode(utf8.decode(response.bodyBytes));
       throw HttpException('Falha ao criar flashcard.');
@@ -591,42 +591,6 @@ class ApiService {
     } catch (e) {
       if (e is HttpException) rethrow;
       throw HttpException('Erro de conexão ao buscar questões da trilha.');
-    }
-  }
-
-  Future<Map<String, dynamic>> responderTrilhaQuestao(int questaoId, bool acertou) async {
-    final url = Uri.parse('$baseUrl/trilha/responder');
-    try {
-      final response = await http.post(
-        url,
-        headers: await _obterHeaders(autenticado: true),
-        body: jsonEncode({
-          'questao_id': questaoId,
-          'acertou': acertou,
-        }),
-      );
-      if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes));
-      }
-      throw HttpException('Erro ao responder questão');
-    } catch (e) {
-      throw HttpException('Erro de conexão ao responder trilha');
-    }
-  }
-
-  Future<List<dynamic>> obterProgressoTrilha(int disciplinaId) async {
-    final url = Uri.parse('$baseUrl/trilha/progresso/$disciplinaId');
-    try {
-      final response = await http.get(
-        url,
-        headers: await _obterHeaders(autenticado: true),
-      );
-      if (response.statusCode == 200) {
-        return jsonDecode(utf8.decode(response.bodyBytes)) as List<dynamic>;
-      }
-      return [];
-    } catch (e) {
-      return [];
     }
   }
 

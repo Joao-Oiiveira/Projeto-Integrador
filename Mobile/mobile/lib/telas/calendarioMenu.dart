@@ -97,35 +97,15 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
   Future<void> _loadData() async {
     try {
       final fetchedTarefas = await ApiService().obterTarefas();
-      final fetchedEventos = await ApiService().obterEventos();
-      
       if (mounted) {
         setState(() {
-          final List<Tarefa> lista = [];
-          
-          // Adiciona as tarefas
-          for (var t in fetchedTarefas) {
-            lista.add(Tarefa(
-              id: t['id'].toString(),
-              titulo: t['titulo'],
-              materia: t['disciplina'] != null ? t['disciplina']['nome'] : null,
-              data: DateTime.parse(t['data_entrega'] ?? DateTime.now().toIso8601String()),
-              concluida: t['status'] == 'concluida',
-            ));
-          }
-          
-          // Adiciona os eventos como "tarefas" para aparecerem na lista
-          for (var e in fetchedEventos) {
-            lista.add(Tarefa(
-              id: 'evento_${e['id']}',
-              titulo: e['titulo'],
-              materia: 'Evento',
-              data: DateTime.parse(e['data_inicio'] ?? DateTime.now().toIso8601String()),
-              concluida: false, // Eventos não tem checkbox de concluído por padrão
-            ));
-          }
-          
-          tarefas = lista;
+          tarefas = fetchedTarefas.map((t) => Tarefa(
+            id: t['id'].toString(),
+            titulo: t['titulo'],
+            materia: t['disciplina'] != null ? t['disciplina']['nome'] : null,
+            data: DateTime.parse(t['data_entrega'] ?? DateTime.now().toIso8601String()),
+            concluida: t['status'] == 'concluida',
+          )).toList();
           
           _gerarDiasDaSemana();
           _isLoading = false;
@@ -141,7 +121,10 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
   }
 
   void _gerarDiasDaSemana() {
-    final DateTime inicioDaSemana = hoje;
+    final int diaDaSemana = hoje.weekday; // 1 = Segunda, ..., 7 = Domingo
+    // Ajuste para o Flutter: Domingo é 7, queremos que a semana comece no Domingo (0)
+    final int offset = diaDaSemana == 7 ? 0 : diaDaSemana;
+    final DateTime inicioDaSemana = hoje.subtract(Duration(days: offset));
 
     diasDaSemana = List.generate(7, (index) {
       final dia = inicioDaSemana.add(Duration(days: index));
@@ -270,13 +253,6 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _mostrarBottomSheetCriarTarefa(context);
-        },
-        backgroundColor: AppColors.destaque,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
     );
   }
 
@@ -309,7 +285,7 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
         ),
         GestureDetector(
           onTap: () {
-            context.push('/calendario');
+            context.go('/calendario');
           },
           child: Container(
             padding: const EdgeInsets.all(8),
@@ -462,29 +438,12 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
       ),
       child: Row(
         children: [
-          // Checkbox customizado ou ícone de evento
-          tarefa.id.startsWith('evento_')
-          ? Padding(
-              padding: const EdgeInsets.only(right: 4.0),
-              child: Icon(Icons.event, color: AppColors.destaque, size: 24),
-            )
-          : GestureDetector(
-            onTap: () async {
-              final novoStatus = !tarefa.concluida;
+          // Checkbox customizado
+          GestureDetector(
+            onTap: () {
               setState(() {
-                tarefa.concluida = novoStatus;
+                tarefa.concluida = !tarefa.concluida;
               });
-              try {
-                await ApiService().atualizarStatusTarefa(
-                  int.parse(tarefa.id),
-                  novoStatus ? 'concluida' : 'pendente',
-                );
-              } catch (e) {
-                // Revert on error
-                setState(() {
-                  tarefa.concluida = !novoStatus;
-                });
-              }
             },
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -492,21 +451,24 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
               height: 24,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: tarefa.concluida ? AppColors.destaque : Colors.transparent,
+                color:
+                    tarefa.concluida ? AppColors.destaque : Colors.transparent,
                 border: Border.all(
-                  color: tarefa.concluida
-                      ? AppColors.destaque
-                      : AppColors.textHint(context),
+                  color:
+                      tarefa.concluida
+                          ? AppColors.destaque
+                          : AppColors.textHint(context),
                   width: 2,
                 ),
               ),
-              child: tarefa.concluida
-                  ? Icon(
-                      Icons.check,
-                      color: AppColors.background(context),
-                      size: 14,
-                    )
-                  : null,
+              child:
+                  tarefa.concluida
+                      ? Icon(
+                        Icons.check,
+                        color: AppColors.background(context),
+                        size: 14,
+                      )
+                      : null,
             ),
           ),
 
@@ -614,105 +576,6 @@ class _CalendarioMenuScreenState extends State<CalendarioMenuScreen> {
           color: AppColors.textSecondary(context),
         ),
       ),
-    );
-  }
-
-  void _mostrarBottomSheetCriarTarefa(BuildContext context) {
-    final TextEditingController tituloController = TextEditingController();
-    final TextEditingController descricaoController = TextEditingController();
-    DateTime dataEscolhida = DateTime.now();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: AppColors.cardBackground(context),
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Nova Tarefa', style: AppTextStyles.titulo(context, size: 20)),
-                    const SizedBox(height: 20),
-                    TextField(
-                      controller: tituloController,
-                      decoration: InputDecoration(
-                        labelText: 'Título da tarefa',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: descricaoController,
-                      decoration: InputDecoration(
-                        labelText: 'Descrição',
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ListTile(
-                      contentPadding: EdgeInsets.zero,
-                      title: Text('Data de entrega', style: AppTextStyles.corpo(context)),
-                      subtitle: Text('${dataEscolhida.day}/${dataEscolhida.month}/${dataEscolhida.year}'),
-                      trailing: const Icon(Icons.calendar_today, color: AppColors.destaque),
-                      onTap: () async {
-                        final dt = await showDatePicker(
-                          context: context,
-                          initialDate: dataEscolhida,
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime(2030),
-                        );
-                        if (dt != null) {
-                          setModalState(() => dataEscolhida = dt);
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 24),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.destaque,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                        ),
-                        onPressed: () async {
-                          if (tituloController.text.isEmpty) return;
-                          Navigator.pop(context);
-                          
-                          try {
-                            await ApiService().criarTarefa(
-                              titulo: tituloController.text,
-                              descricao: descricaoController.text,
-                              dataEntrega: dataEscolhida.toIso8601String(),
-                              disciplinaId: null, // Pode adicionar Dropdown de disciplina dps
-                            );
-                            _loadData();
-                          } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Erro ao criar: $e')),
-                            );
-                          }
-                        },
-                        child: const Text('Criar', style: TextStyle(color: Colors.white, fontSize: 16)),
-                      ),
-                    )
-                  ],
-                ),
-              ),
-            );
-          }
-        );
-      },
     );
   }
 }
