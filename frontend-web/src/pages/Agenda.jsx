@@ -21,6 +21,7 @@ const Agenda = () => {
 
   // Estados do Modal de Evento
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [error, setError] = useState('');
   const [editandoId, setEditandoId] = useState(null); // NOVO: Controle de edição
   const [novoEvento, setNovoEvento] = useState({ titulo: '', descricao: '', data_inicio: '', data_fim: '', disciplina_id: '' });
 
@@ -67,12 +68,14 @@ const Agenda = () => {
 
   // NOVO: Funções de abrir modais
   const abrirModalNovo = () => {
+    setError('');
     setEditandoId(null);
     setNovoEvento({ titulo: '', descricao: '', data_inicio: '', data_fim: '', disciplina_id: '' });
     setIsModalOpen(true);
   };
 
   const abrirModalEdicao = (evento) => {
+    setError('');
     setEditandoId(evento.id);
     setNovoEvento({
       titulo: evento.titulo,
@@ -87,8 +90,15 @@ const Agenda = () => {
   // ATUALIZADO: Lida com Criação e Edição
   const handleSalvarEvento = async (e) => {
     e.preventDefault();
-    if (!novoEvento.titulo || !novoEvento.data_inicio) {
-      alert("Preencha os campos obrigatórios (Título e Data de Início).");
+    setError('');
+
+    if (!novoEvento.titulo.trim() || !novoEvento.data_inicio) {
+      setError("Preencha os campos obrigatórios (Título e Data de Início).");
+      return;
+    }
+
+    if (novoEvento.data_fim && novoEvento.data_fim < novoEvento.data_inicio) {
+      setError("A data de término não pode ser anterior à data de início.");
       return;
     }
     
@@ -101,7 +111,7 @@ const Agenda = () => {
       await carregarDados();
       setIsModalOpen(false);
     } catch (error) {
-      alert(error.message);
+      setError(error.message || "Erro ao salvar evento.");
     }
   };
 
@@ -292,6 +302,7 @@ const Agenda = () => {
       {/* MODAL DE CRIAÇÃO / EDIÇÃO */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editandoId ? "Editar Evento" : "Agendar Novo Evento"}>
         <form onSubmit={handleSalvarEvento} className="flex flex-col gap-4">
+          {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
           <Input id="titulo" label="Título do Evento *" placeholder="Ex: Feira de Ciências" value={novoEvento.titulo} onChange={e => setNovoEvento({...novoEvento, titulo: e.target.value})} />
           
           <div className="flex flex-col gap-1.5 w-full">

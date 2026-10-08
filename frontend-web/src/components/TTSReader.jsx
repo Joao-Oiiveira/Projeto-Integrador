@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAccessibility } from '../contexts/AccessibilityContext';
 
-const TTSReader = () => {
+const TTSReader = ({ forceShow = false }) => {
   const { configuracoes } = useAccessibility();
   const [isReading, setIsReading] = useState(false);
 
@@ -14,7 +14,7 @@ const TTSReader = () => {
     };
   }, []);
 
-  if (!configuracoes.leitura_texto) return null;
+  if (!configuracoes.leitura_texto && !forceShow) return null;
 
   const toggleReading = () => {
     if (isReading) {

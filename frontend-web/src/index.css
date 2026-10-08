@@ -8,6 +8,17 @@
   }
 }
 
+@font-face {
+  font-family: 'OpenDyslexic';
+  src: url('https://cdn.jsdelivr.net/npm/opendyslexic@3.0.0/woff/OpenDyslexic-Regular.woff') format('woff');
+  font-weight: normal;
+  font-style: normal;
+}
+
+.dislexia-mode, .dislexia-mode * {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+}
+
 /* ==========================================
    ANIMAÇÕES
    ========================================== */

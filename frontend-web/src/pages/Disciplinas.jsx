@@ -17,6 +17,7 @@ const CORES_DISPONIVEIS = [
 const Disciplinas = () => {
   const [disciplinas, setDisciplinas] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [error, setError] = useState('');
   const [editandoId, setEditandoId] = useState(null);
   const [formData, setFormData] = useState({ nome: '', descricao: '' });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
@@ -39,12 +40,14 @@ const Disciplinas = () => {
   }, []);
 
   const abrirModalNova = () => {
+    setError('');
     setEditandoId(null);
     setFormData({ nome: '', descricao: '' });
     setIsModalOpen(true);
   };
 
   const abrirModalEdicao = (disciplina) => {
+    setError('');
     setEditandoId(disciplina.id);
     setFormData({ nome: disciplina.nome, descricao: disciplina.descricao || '' });
     setIsModalOpen(true);
@@ -52,8 +55,10 @@ const Disciplinas = () => {
 
   const handleSalvar = async (e) => {
     e.preventDefault();
+    setError('');
+
     if (!formData.nome.trim()) {
-      alert("O nome da disciplina é obrigatório.");
+      setError("O nome da disciplina é obrigatório.");
       return;
     }
 
@@ -66,7 +71,7 @@ const Disciplinas = () => {
       await carregarDados();
       setIsModalOpen(false);
     } catch (error) {
-      alert(error.message);
+      setError(error.message || "Erro ao salvar disciplina.");
     }
   };
 
@@ -235,6 +240,7 @@ const Disciplinas = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editandoId ? "Editar Disciplina" : "Nova Disciplina"}>
         <form onSubmit={handleSalvar} className="flex flex-col gap-4">
+          {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
           <Input id="nome" label="Nome da Disciplina *" placeholder="Ex: Matemática, História..." value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />
           
           <div className="flex flex-col gap-1.5 w-full">

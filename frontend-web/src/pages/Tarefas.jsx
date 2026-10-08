@@ -10,6 +10,7 @@ const Tarefas = () => {
   const [tarefas, setTarefas] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [error, setError] = useState('');
   const [editandoId, setEditandoId] = useState(null);
   const [filtroAtivo, setFiltroAtivo] = useState('todas');
 
@@ -45,12 +46,14 @@ const Tarefas = () => {
   }, []);
 
   const abrirModalNovo = () => {
+    setError('');
     setEditandoId(null);
     setNovaTarefa({ titulo: '', descricao: '', data_entrega: '', disciplina_id: '' });
     setIsModalOpen(true);
   };
 
   const abrirModalEdicao = (tarefa) => {
+    setError('');
     setEditandoId(tarefa.id);
     setNovaTarefa({
       titulo: tarefa.titulo,
@@ -63,13 +66,15 @@ const Tarefas = () => {
 
   const handleSalvarTarefa = async (e) => {
     e.preventDefault();
-    if (!novaTarefa.titulo || !novaTarefa.disciplina_id || !novaTarefa.data_entrega) {
-      alert("Preencha os campos obrigatórios (Título, Disciplina e Data)");
+    setError('');
+
+    if (!novaTarefa.titulo.trim() || !novaTarefa.disciplina_id || !novaTarefa.data_entrega) {
+      setError("Preencha todos os campos obrigatórios (Título, Disciplina e Data)");
       return;
     }
 
     if (novaTarefa.data_entrega < hojeString) {
-      alert("Não é possível definir uma data de entrega no passado.");
+      setError("Não é possível definir uma data de entrega no passado.");
       return;
     }
 
@@ -82,7 +87,7 @@ const Tarefas = () => {
       await carregarDados(); 
       setIsModalOpen(false);
     } catch (error) {
-      alert(error.message);
+      setError(error.message || "Erro ao salvar tarefa.");
     }
   };
 
@@ -252,6 +257,7 @@ const Tarefas = () => {
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editandoId ? "Editar Tarefa" : "Criar Nova Tarefa"}>
         <form onSubmit={handleSalvarTarefa} className="flex flex-col gap-4">
+          {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
           <Input id="titulo" label="Título da Tarefa *" placeholder="Ex: Resolver lista de exercícios" value={novaTarefa.titulo} onChange={e => setNovaTarefa({...novaTarefa, titulo: e.target.value})} />
           
           <div className="flex flex-col gap-1.5 w-full">

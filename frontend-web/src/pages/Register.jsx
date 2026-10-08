@@ -15,6 +15,17 @@ const Register = () => {
     e.preventDefault();
     setError('');
 
+    if (!nome.trim() || !email.trim() || !password.trim()) {
+      setError('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Por favor, insira um e-mail válido.');
+      return;
+    }
+
     // Validação rigorosa da senha
     if (password.length < 8 || !/\d/.test(password) || !/[A-Z]/.test(password)) {
       setError("A senha deve ter no mínimo 8 caracteres, uma letra maiúscula e um número.");

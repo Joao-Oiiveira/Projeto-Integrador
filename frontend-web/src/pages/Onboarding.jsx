@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import Checkbox from '../components/Checkbox';
+import TTSReader from '../components/TTSReader';
 import { saveOnboardingDataAPI, getLoggedUser } from '../services/auth';
 
 const Onboarding = () => {
@@ -16,6 +17,7 @@ const Onboarding = () => {
 
   const user = getLoggedUser();
   const [nome, setNome] = useState(user?.nome || '');
+  const [error, setError] = useState('');
   
   // Estado limpo: apenas as opções utilizadas
   const [perfil, setPerfil] = useState({
@@ -30,6 +32,15 @@ const Onboarding = () => {
     tema_escuro: false,
     fonte_dislexia: false,
   });
+
+  useEffect(() => {
+    const html = document.documentElement;
+    html.style.fontSize = `${configuracoes.tamanho_fonte}px`;
+    if (configuracoes.tema_escuro) html.classList.add('dark');
+    else html.classList.remove('dark');
+    if (configuracoes.fonte_dislexia) html.classList.add('dislexia-mode');
+    else html.classList.remove('dislexia-mode');
+  }, [configuracoes]);
 
   const handlePerfilChange = (campo) => {
     setPerfil((prev) => {
@@ -56,36 +67,40 @@ const Onboarding = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+
     if (!nome.trim()) {
-      alert("Por favor, preencha seu nome.");
+      setError("Por favor, preencha seu nome.");
       return;
     }
 
     try {
       await saveOnboardingDataAPI(nome, perfil, configuracoes);
       window.location.href = '/dashboard'; 
-    } catch (error) {
-      alert(error.message || "Erro ao salvar dados.");
+    } catch (err) {
+      setError(err.message || "Erro ao salvar dados.");
     }
   };
 
   return (
     // Fundo alterado para Light Mode
-    <div className="min-h-screen bg-[#F4F7FE] text-gray-900 p-6 md:p-12 flex justify-center items-center">
+    <div className="min-h-screen bg-[#F4F7FE] dark:bg-gray-900 text-gray-900 dark:text-white p-6 md:p-12 flex justify-center items-center">
+      <TTSReader forceShow={true} />
       {/* Card alterado para branco com bordas sutis */}
-      <div className="w-full max-w-3xl bg-white rounded-[2rem] p-8 md:p-12 shadow-xl border border-gray-100">
+      <div className="w-full max-w-3xl bg-white dark:bg-gray-800 rounded-[2rem] p-8 md:p-12 shadow-xl border border-gray-100 dark:border-gray-700">
         
         <div className="mb-10 text-center">
           <h1 className="text-3xl font-bold mb-3 text-purple-600">Bem-vindo ao EduAcess</h1>
-          <p className="text-gray-500 text-sm md:text-base">
+          <p className="text-gray-500 dark:text-gray-400 text-sm md:text-base">
             Para personalizar sua experiência, precisamos conhecer um pouco mais sobre você e suas necessidades de aprendizado.
           </p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-10">
+          {error && <p className="text-red-500 text-sm font-medium text-center bg-red-50 dark:bg-red-900/20 p-3 rounded-xl">{error}</p>}
           
           <section className="flex flex-col gap-4">
-            <h2 className="text-xl font-bold text-gray-800 border-b border-gray-100 pb-2">1. Dados Básicos</h2>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 border-b border-gray-100 dark:border-gray-700 pb-2">1. Dados Básicos</h2>
             <Input 
               id="nome" 
               label="Como gostaria de ser chamado?" 
@@ -96,7 +111,7 @@ const Onboarding = () => {
           </section>
 
           <section className="flex flex-col gap-4">
-            <h2 className="text-xl font-bold text-gray-800 border-b border-gray-100 pb-2">2. Perfil de Aprendizagem</h2>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 border-b border-gray-100 dark:border-gray-700 pb-2">2. Perfil de Aprendizagem</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Checkbox id="tdah" label="Tenho TDAH" description="Ajuda a reduzir distrações na interface" checked={perfil.tdah} onChange={() => handlePerfilChange('tdah')} />
               <Checkbox id="autismo" label="Estou no Espectro Autista" description="Interfaces mais previsíveis e sem poluição" checked={perfil.autismo} onChange={() => handlePerfilChange('autismo')} />
@@ -105,7 +120,7 @@ const Onboarding = () => {
           </section>
 
           <section className="flex flex-col gap-4">
-            <h2 className="text-xl font-bold text-gray-800 border-b border-gray-100 pb-2">3. Acessibilidade</h2>
+            <h2 className="text-xl font-bold text-gray-800 dark:text-gray-100 border-b border-gray-100 dark:border-gray-700 pb-2">3. Acessibilidade</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               
               <Checkbox id="tema_escuro" label="Tema Escuro (Dark Mode)" description="Reduz o brilho e descansa a visão" checked={configuracoes.tema_escuro} onChange={() => handleConfiguracoesChange('tema_escuro')} />
@@ -113,10 +128,10 @@ const Onboarding = () => {
               <Checkbox id="leitura_texto" label="Leitura de Texto (Text-to-Speech)" description="Ativa o botão de ler textos em voz alta" checked={configuracoes.leitura_texto} onChange={() => handleConfiguracoesChange('leitura_texto')} />
               
               {/* Select adaptado para Light Mode */}
-              <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-gray-200 bg-gray-50">
-                <label className="text-sm font-medium text-gray-700">Tamanho da Fonte (Base)</label>
+              <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+                <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Tamanho da Fonte (Base)</label>
                 <select 
-                  className="bg-white text-gray-900 rounded-md p-2 mt-1 focus:ring-2 focus:ring-purple-500 border border-gray-200 outline-none cursor-pointer shadow-sm"
+                  className="bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-md p-2 mt-1 focus:ring-2 focus:ring-purple-500 border border-gray-200 dark:border-gray-700 outline-none cursor-pointer shadow-sm"
                   value={configuracoes.tamanho_fonte}
                   onChange={(e) => setConfiguracoes(prev => ({...prev, tamanho_fonte: Number(e.target.value)}))}
                 >

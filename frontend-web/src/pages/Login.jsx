@@ -14,6 +14,17 @@ const Login = () => {
     e.preventDefault();
     setError('');
 
+    if (!email.trim() || !password.trim()) {
+      setError('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError('Por favor, insira um e-mail válido.');
+      return;
+    }
+
     try {
       const user = await loginAPI(email, password);
       

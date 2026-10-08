@@ -6,6 +6,8 @@ import { getLoggedUser, saveOnboardingDataAPI } from '../services/auth';
 const Configuracoes = () => {
   const [nome, setNome] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
   useEffect(() => {
     const user = getLoggedUser();
@@ -14,17 +16,23 @@ const Configuracoes = () => {
 
   const handleSalvar = async (e) => {
     e.preventDefault();
-    if (!nome.trim()) return alert("O nome não pode ficar vazio.");
+    setError('');
+    setSuccess('');
+
+    if (!nome.trim()) {
+      setError("O nome não pode ficar vazio.");
+      return;
+    }
     
     setLoading(true);
     try {
       const user = getLoggedUser();
       // Envia o novo nome, mantendo o perfil e as configurações intactas
       await saveOnboardingDataAPI(nome, user.perfil || user.perfil_usuario, user.configuracoes);
-      alert("Nome atualizado com sucesso!");
-      window.location.reload(); // Recarrega para atualizar o nome no Header
+      setSuccess("Nome atualizado com sucesso!");
+      setTimeout(() => window.location.reload(), 1500); // Recarrega para atualizar o nome no Header
     } catch (error) {
-      alert("Erro ao atualizar perfil.");
+      setError("Erro ao atualizar perfil.");
     } finally {
       setLoading(false);
     }
@@ -42,6 +50,8 @@ const Configuracoes = () => {
       <div className="bg-white dark:bg-gray-800 p-8 rounded-[2rem] shadow-sm border border-gray-100 dark:border-gray-700">
         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Meu Perfil</h2>
         <form onSubmit={handleSalvar} className="flex flex-col gap-4">
+          {error && <p className="text-red-500 text-sm">{error}</p>}
+          {success && <p className="text-green-500 text-sm">{success}</p>}
           <Input 
             id="nome" 
             label="Nome de Exibição" 
