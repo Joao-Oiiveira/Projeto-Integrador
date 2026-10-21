@@ -16,6 +16,7 @@ const Configuracoes = () => {
 
   const handleSalvar = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
     setSuccess('');
 
@@ -56,11 +57,15 @@ const Configuracoes = () => {
             id="nome" 
             label="Nome de Exibição" 
             value={nome} 
+            disabled={loading}
             onChange={(e) => setNome(e.target.value)} 
           />
           <Button 
             type="submit" 
-            text={loading ? "Salvando..." : "Salvar Alterações"} 
+            text="Salvar Alterações" 
+            isLoading={loading}
+            loadingText="Salvando..."
+            disabled={loading}
             className="w-full sm:w-auto self-end mt-2 bg-purple-600 hover:bg-purple-700 text-white border-none px-8" 
           />
         </form>

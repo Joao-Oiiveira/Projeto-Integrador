@@ -9,10 +9,12 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
 
     if (!email.trim() || !password.trim()) {
@@ -26,6 +28,7 @@ const Login = () => {
       return;
     }
 
+    setLoading(true);
     try {
       const user = await loginAPI(email, password);
       
@@ -37,6 +40,8 @@ const Login = () => {
     } catch (err) {
       const classified = classifyError(err, 'login');
       setError(formatUserMessage(classified));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,16 +61,44 @@ const Login = () => {
           <form onSubmit={handleLogin} className="flex flex-col gap-5">
             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
-            <Input id="email" label="E-mail" type="email" placeholder="seuemail@exemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <Input id="password" label="Senha" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <Input 
+              id="email" 
+              label="E-mail" 
+              type="email" 
+              placeholder="seuemail@exemplo.com" 
+              value={email} 
+              disabled={loading}
+              onChange={(e) => setEmail(e.target.value)} 
+            />
+            <Input 
+              id="password" 
+              label="Senha" 
+              type="password" 
+              placeholder="••••••••" 
+              value={password} 
+              disabled={loading}
+              onChange={(e) => setPassword(e.target.value)} 
+            />
 
             <div className="flex items-center gap-2 mt-1 mb-4">
               {/* Checkbox em tons claros */}
-              <input type="checkbox" id="remember" className="w-4 h-4 rounded border-gray-300 bg-white text-purple-600 focus:ring-purple-500" />
+              <input 
+                type="checkbox" 
+                id="remember" 
+                disabled={loading}
+                className="w-4 h-4 rounded border-gray-300 bg-white text-purple-600 focus:ring-purple-500" 
+              />
               <label htmlFor="remember" className="text-sm text-gray-600 cursor-pointer">Lembrar de mim</label>
             </div>
 
-            <Button type="submit" text="Entrar" className="w-full bg-blue-600 hover:bg-blue-700 text-white border-none shadow-sm whitespace-nowrap" />
+            <Button 
+              type="submit" 
+              text="Entrar" 
+              isLoading={loading}
+              loadingText="Entrando..."
+              disabled={loading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white border-none shadow-sm whitespace-nowrap" 
+            />
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-8">

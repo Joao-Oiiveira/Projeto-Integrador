@@ -28,6 +28,7 @@ const Input = ({ label, id, type = "text", placeholder, value, onChange, ...prop
           border border-gray-200 dark:border-gray-700
           transition-all 
           placeholder-gray-400 dark:placeholder-gray-500
+          disabled:opacity-60 disabled:cursor-not-allowed
         "
       />
     </div>

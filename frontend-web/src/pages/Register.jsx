@@ -10,10 +10,12 @@ const Register = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setError('');
 
     if (!nome.trim() || !email.trim() || !password.trim()) {
@@ -33,12 +35,15 @@ const Register = () => {
       return;
     }
 
+    setLoading(true);
     try {
       await registerAPI(nome, email, password);
       navigate('/onboarding');
     } catch (err) {
       const classified = classifyError(err, 'register');
       setError(formatUserMessage(classified));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,16 +60,47 @@ const Register = () => {
           <form onSubmit={handleRegister} className="flex flex-col gap-5">
             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
 
-            <Input id="nome" label="Nome Completo" type="text" placeholder="Seu nome" value={nome} onChange={(e) => setNome(e.target.value)} />
-            <Input id="email" label="E-mail" type="email" placeholder="seuemail@exemplo.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input 
+              id="nome" 
+              label="Nome Completo" 
+              type="text" 
+              placeholder="Seu nome" 
+              value={nome} 
+              disabled={loading}
+              onChange={(e) => setNome(e.target.value)} 
+            />
+            <Input 
+              id="email" 
+              label="E-mail" 
+              type="email" 
+              placeholder="seuemail@exemplo.com" 
+              value={email} 
+              disabled={loading}
+              onChange={(e) => setEmail(e.target.value)} 
+            />
             
             {/* Wrapper adicionado para manter o texto de ajuda colado ao Input */}
             <div>
-              <Input id="password" label="Senha" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <Input 
+                id="password" 
+                label="Senha" 
+                type="password" 
+                placeholder="••••••••" 
+                value={password} 
+                disabled={loading}
+                onChange={(e) => setPassword(e.target.value)} 
+              />
               <p className="text-xs text-gray-400 mt-1.5 ml-1">Mínimo de 8 caracteres, 1 número e 1 letra maiúscula</p>
             </div>
 
-            <Button type="submit" text="Cadastrar" className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white border-none shadow-sm whitespace-nowrap" />
+            <Button 
+              type="submit" 
+              text="Cadastrar" 
+              isLoading={loading}
+              loadingText="Cadastrando..."
+              disabled={loading}
+              className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white border-none shadow-sm whitespace-nowrap" 
+            />
           </form>
 
           <p className="text-center text-sm text-gray-500 mt-8">

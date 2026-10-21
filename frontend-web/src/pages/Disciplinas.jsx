@@ -24,6 +24,8 @@ const Disciplinas = () => {
   const [editandoId, setEditandoId] = useState(null);
   const [formData, setFormData] = useState({ nome: '', descricao: '' });
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
+  const [salvando, setSalvando] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
 
   // Estados e Ref para a Importação
   const [isImporting, setIsImporting] = useState(false);
@@ -59,6 +61,7 @@ const Disciplinas = () => {
 
   const handleSalvar = async (e) => {
     e.preventDefault();
+    if (salvando) return;
     setError('');
 
     if (!formData.nome.trim()) {
@@ -66,16 +69,22 @@ const Disciplinas = () => {
       return;
     }
 
+    setSalvando(true);
     try {
       if (editandoId) {
         await atualizarDisciplinaAPI(editandoId, formData);
+        addToast({ type: 'success', message: 'Disciplina atualizada com sucesso.' });
       } else {
         await criarDisciplinaAPI(formData);
+        addToast({ type: 'success', message: 'Disciplina criada com sucesso.' });
       }
       await carregarDados();
       setIsModalOpen(false);
     } catch (error) {
-      setError(error.message || "Erro ao salvar disciplina.");
+      const classified = classifyError(error, 'salvarDisciplina');
+      setError(formatUserMessage(classified));
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -87,6 +96,8 @@ const Disciplinas = () => {
   };
 
   const confirmarExclusao = async () => {
+    if (excluindo) return;
+    setExcluindo(true);
     try {
       await excluirDisciplinaAPI(confirmModal.id);
       await carregarDados();
@@ -96,6 +107,8 @@ const Disciplinas = () => {
       const classified = classifyError(error, 'excluirDisciplina');
       addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
       setConfirmModal({ isOpen: false, id: null });
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -261,7 +274,14 @@ const Disciplinas = () => {
             ></textarea>
           </div>
 
-          <Button type="submit" text={editandoId ? "Salvar Alterações" : "Criar Disciplina"} className="w-full mt-4 bg-purple-600 hover:bg-purple-700 border-none text-white" />
+          <Button 
+            type="submit" 
+            text={editandoId ? "Salvar Alterações" : "Criar Disciplina"} 
+            isLoading={salvando}
+            loadingText="Salvando..."
+            disabled={salvando}
+            className="w-full mt-4 bg-purple-600 hover:bg-purple-700 border-none text-white" 
+          />
         </form>
       </Modal>
 
@@ -270,7 +290,9 @@ const Disciplinas = () => {
         title="Excluir Disciplina"
         message="Tem certeza que deseja excluir esta disciplina? Esta ação não poderá ser desfeita e pode afetar tarefas vinculadas a ela."
         confirmText="Excluir Disciplina"
-        onCancel={() => setConfirmModal({ isOpen: false, id: null })}
+        isLoading={excluindo}
+        loadingText="Excluindo..."
+        onCancel={() => !excluindo && setConfirmModal({ isOpen: false, id: null })}
         onConfirm={confirmarExclusao}
       />
     </div>

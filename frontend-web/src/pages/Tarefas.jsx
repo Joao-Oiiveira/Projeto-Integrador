@@ -19,6 +19,8 @@ const Tarefas = () => {
 
   // NOVO: Estado para o Modal de Confirmação
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
+  const [salvando, setSalvando] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
 
   const [novaTarefa, setNovaTarefa] = useState({
     titulo: '',
@@ -70,6 +72,7 @@ const Tarefas = () => {
 
   const handleSalvarTarefa = async (e) => {
     e.preventDefault();
+    if (salvando) return;
     setError('');
 
     if (!novaTarefa.titulo.trim() || !novaTarefa.disciplina_id || !novaTarefa.data_entrega) {
@@ -82,16 +85,22 @@ const Tarefas = () => {
       return;
     }
 
+    setSalvando(true);
     try {
       if (editandoId) {
         await atualizarTarefa(editandoId, novaTarefa);
+        addToast({ type: 'success', message: 'Tarefa atualizada com sucesso.' });
       } else {
         await criarTarefa(novaTarefa);
+        addToast({ type: 'success', message: 'Tarefa criada com sucesso.' });
       }
       await carregarDados(); 
       setIsModalOpen(false);
     } catch (error) {
-      setError(error.message || "Erro ao salvar tarefa.");
+      const classified = classifyError(error, 'salvarTarefa');
+      setError(formatUserMessage(classified));
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -103,6 +112,8 @@ const Tarefas = () => {
   };
 
   const confirmarExclusao = async () => {
+    if (excluindo) return;
+    setExcluindo(true);
     try {
       await excluirTarefa(confirmModal.id);
       await carregarDados();
@@ -112,6 +123,8 @@ const Tarefas = () => {
       const classified = classifyError(error, 'excluirTarefa');
       addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
       setConfirmModal({ isOpen: false, id: null });
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -287,7 +300,14 @@ const Tarefas = () => {
             </div>
           </div>
 
-          <Button type="submit" text={editandoId ? "Salvar Alterações" : "Criar Tarefa"} className="w-full mt-4 bg-purple-600 hover:bg-purple-700 border-none text-white" />
+          <Button 
+            type="submit" 
+            text={editandoId ? "Salvar Alterações" : "Criar Tarefa"} 
+            isLoading={salvando}
+            loadingText="Salvando..."
+            disabled={salvando}
+            className="w-full mt-4 bg-purple-600 hover:bg-purple-700 border-none text-white" 
+          />
         </form>
       </Modal>
 
@@ -297,7 +317,9 @@ const Tarefas = () => {
         title="Excluir Tarefa"
         message="Tem certeza que deseja excluir esta tarefa? Esta ação não poderá ser desfeita."
         confirmText="Excluir Tarefa"
-        onCancel={() => setConfirmModal({ isOpen: false, id: null })}
+        isLoading={excluindo}
+        loadingText="Excluindo..."
+        onCancel={() => !excluindo && setConfirmModal({ isOpen: false, id: null })}
         onConfirm={confirmarExclusao}
       />
     </div>

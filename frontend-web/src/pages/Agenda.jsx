@@ -30,6 +30,8 @@ const Agenda = () => {
 
   // NOVO: Estados do Modal de Confirmação
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
+  const [salvando, setSalvando] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
 
   const carregarDados = async () => {
     try {
@@ -94,6 +96,7 @@ const Agenda = () => {
   // ATUALIZADO: Lida com Criação e Edição
   const handleSalvarEvento = async (e) => {
     e.preventDefault();
+    if (salvando) return;
     setError('');
 
     if (!novoEvento.titulo.trim() || !novoEvento.data_inicio) {
@@ -106,16 +109,22 @@ const Agenda = () => {
       return;
     }
     
+    setSalvando(true);
     try {
       if (editandoId) {
         await atualizarEvento(editandoId, novoEvento);
+        addToast({ type: 'success', message: 'Evento atualizado com sucesso.' });
       } else {
         await criarEvento(novoEvento);
+        addToast({ type: 'success', message: 'Evento agendado com sucesso.' });
       }
       await carregarDados();
       setIsModalOpen(false);
     } catch (error) {
-      setError(error.message || "Erro ao salvar evento.");
+      const classified = classifyError(error, 'salvarEvento');
+      setError(formatUserMessage(classified));
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -125,6 +134,8 @@ const Agenda = () => {
   };
 
   const confirmarExclusao = async () => {
+    if (excluindo) return;
+    setExcluindo(true);
     try {
       await excluirEvento(confirmModal.id);
       await carregarDados();
@@ -134,6 +145,8 @@ const Agenda = () => {
       const classified = classifyError(error, 'excluirEvento');
       addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
       setConfirmModal({ isOpen: false, id: null });
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -330,7 +343,14 @@ const Agenda = () => {
             <Input id="data_fim" label="Fim" type="datetime-local" value={novoEvento.data_fim} onChange={e => setNovoEvento({...novoEvento, data_fim: e.target.value})} />
           </div>
 
-          <Button type="submit" text={editandoId ? "Salvar Alterações" : "Agendar Evento"} className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white border-none" />
+          <Button 
+            type="submit" 
+            text={editandoId ? "Salvar Alterações" : "Agendar Evento"} 
+            isLoading={salvando}
+            loadingText="Salvando..."
+            disabled={salvando}
+            className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white border-none" 
+          />
         </form>
       </Modal>
 
@@ -340,7 +360,9 @@ const Agenda = () => {
         title="Excluir Evento"
         message="Tem certeza que deseja excluir este evento? Esta ação não poderá ser desfeita."
         confirmText="Excluir Evento"
-        onCancel={() => setConfirmModal({ isOpen: false, id: null })}
+        isLoading={excluindo}
+        loadingText="Excluindo..."
+        onCancel={() => !excluindo && setConfirmModal({ isOpen: false, id: null })}
         onConfirm={confirmarExclusao}
       />
 

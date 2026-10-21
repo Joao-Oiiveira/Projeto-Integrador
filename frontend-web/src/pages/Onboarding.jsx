@@ -65,8 +65,11 @@ const Onboarding = () => {
     setConfiguracoes((prev) => ({ ...prev, [campo]: !prev[campo] }));
   };
 
+  const [salvando, setSalvando] = useState(false);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (salvando) return;
     setError('');
 
     if (!nome.trim()) {
@@ -74,11 +77,14 @@ const Onboarding = () => {
       return;
     }
 
+    setSalvando(true);
     try {
       await saveOnboardingDataAPI(nome, perfil, configuracoes);
       window.location.href = '/dashboard'; 
     } catch (err) {
       setError(err.message || "Erro ao salvar dados.");
+    } finally {
+      setSalvando(false);
     }
   };
 
@@ -144,7 +150,14 @@ const Onboarding = () => {
           </section>
 
           {/* Botão atualizado para roxo padrão */}
-          <Button type="submit" text="Concluir e Ir para o Dashboard" className="mt-4 py-4 text-lg bg-purple-600 hover:bg-purple-700 text-white border-none" />
+          <Button 
+            type="submit" 
+            text="Concluir e Ir para o Dashboard" 
+            isLoading={salvando}
+            loadingText="Salvando perfil..."
+            disabled={salvando}
+            className="mt-4 py-4 text-lg bg-purple-600 hover:bg-purple-700 text-white border-none" 
+          />
         </form>
 
       </div>

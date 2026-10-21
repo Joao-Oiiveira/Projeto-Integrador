@@ -41,6 +41,9 @@ const Flashcards = () => {
   const [formFlashcard, setFormFlashcard] = useState({ pergunta: '', resposta: '' });
   const [formIA, setFormIA] = useState({ tema: '', dificuldade: 'médio', quantidade: 5 });
   const [loadingIA, setLoadingIA] = useState(false);
+  const [salvandoBaralho, setSalvandoBaralho] = useState(false);
+  const [salvandoCard, setSalvandoCard] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
 
   const carregarDados = async () => {
     try {
@@ -139,6 +142,7 @@ const Flashcards = () => {
   // ==========================================
   const handleGerarIA = async (e) => {
     e.preventDefault();
+    if (loadingIA) return;
     if (!formIA.tema.trim()) {
       addToast({ type: 'warning', title: 'Campo obrigatório', message: 'Por favor, informe um tema para a IA gerar os flashcards.', action: null });
       return;
@@ -150,6 +154,7 @@ const Flashcards = () => {
       await carregarDados();
       setModalIAOpen(false);
       setFormIA({ tema: '', dificuldade: 'médio', quantidade: 5 });
+      addToast({ type: 'success', message: 'Flashcards gerados com sucesso!' });
     } catch (error) {
       const classified = classifyError(error, 'gerarFlashcardsIA');
       addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
@@ -173,18 +178,27 @@ const Flashcards = () => {
   };
   const salvarBaralho = async (e) => {
     e.preventDefault();
+    if (salvandoBaralho) return;
     if (!formBaralho.nome || !formBaralho.disciplina_id) {
       addToast({ type: 'warning', title: 'Campos incompletos', message: 'Preencha o nome e a disciplina do baralho antes de continuar.', action: null });
       return;
     }
+    setSalvandoBaralho(true);
     try {
-      if (editandoId) await atualizarBaralho(editandoId, formBaralho); 
-      else await criarBaralho(formBaralho);
+      if (editandoId) {
+        await atualizarBaralho(editandoId, formBaralho); 
+        addToast({ type: 'success', message: 'Baralho atualizado com sucesso.' });
+      } else {
+        await criarBaralho(formBaralho);
+        addToast({ type: 'success', message: 'Baralho criado com sucesso.' });
+      }
       await carregarDados(); 
       setModalBaralhoOpen(false);
     } catch (error) {
       const classified = classifyError(error, 'salvarBaralho');
       addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
+    } finally {
+      setSalvandoBaralho(false);
     }
   };
   const apagarBaralho = (e, id) => {
@@ -199,18 +213,27 @@ const Flashcards = () => {
   };
   const salvarFlashcard = async (e) => {
     e.preventDefault();
+    if (salvandoCard) return;
     if (!formFlashcard.pergunta || !formFlashcard.resposta) {
       addToast({ type: 'warning', title: 'Campos incompletos', message: 'Preencha a pergunta e a resposta antes de continuar.', action: null });
       return;
     }
+    setSalvandoCard(true);
     try {
-      if (editandoId) await atualizarFlashcard(editandoId, formFlashcard); 
-      else await criarFlashcard({ ...formFlashcard, baralho_id: baralhoSelecionado.id });
+      if (editandoId) {
+        await atualizarFlashcard(editandoId, formFlashcard); 
+        addToast({ type: 'success', message: 'Flashcard atualizado com sucesso.' });
+      } else {
+        await criarFlashcard({ ...formFlashcard, baralho_id: baralhoSelecionado.id });
+        addToast({ type: 'success', message: 'Flashcard criado com sucesso.' });
+      }
       await carregarDados(); 
       setModalFlashcardOpen(false);
     } catch (error) {
       const classified = classifyError(error, 'salvarFlashcard');
       addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
+    } finally {
+      setSalvandoCard(false);
     }
   };
   const apagarFlashcard = (id) => { 
@@ -218,6 +241,8 @@ const Flashcards = () => {
   };
 
   const confirmarExclusao = async () => {
+    if (excluindo) return;
+    setExcluindo(true);
     try {
       if (confirmModal.tipo === 'baralho') {
         await excluirBaralho(confirmModal.id);
@@ -231,6 +256,8 @@ const Flashcards = () => {
       const classified = classifyError(error, 'confirmarExclusaoFlashcard');
       addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
       setConfirmModal({ isOpen: false, id: null, tipo: '' });
+    } finally {
+      setExcluindo(false);
     }
   };
 
@@ -430,7 +457,14 @@ const Flashcards = () => {
                 <option value={20}>20 Cartas</option>
               </select>
             </div>
-            <Button type="submit" text={loadingIA ? "Gerando..." : "Gerar Cartas ✨"} disabled={loadingIA} className="w-full mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white border-none" />
+            <Button 
+              type="submit" 
+              text="Gerar Cartas ✨" 
+              isLoading={loadingIA} 
+              loadingText="Gerando..." 
+              disabled={loadingIA} 
+              className="w-full mt-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white border-none" 
+            />
           </form>
         </Modal>
 
@@ -444,7 +478,14 @@ const Flashcards = () => {
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Verso (Resposta) *</label>
               <textarea className="w-full bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white rounded-lg px-4 py-3 focus:ring-2 focus:ring-purple-500 border border-gray-200 dark:border-gray-700 outline-none resize-none h-24" placeholder="Ex: É a organela responsável pela respiração celular." value={formFlashcard.resposta} onChange={e => setFormFlashcard({...formFlashcard, resposta: e.target.value})}></textarea>
             </div>
-            <Button type="submit" text={editandoId ? "Salvar" : "Criar Carta"} className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white border-none" />
+            <Button 
+              type="submit" 
+              text={editandoId ? "Salvar" : "Criar Carta"} 
+              isLoading={salvandoCard}
+              loadingText="Salvando..."
+              disabled={salvandoCard}
+              className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white border-none" 
+            />
           </form>
         </Modal>
 
@@ -457,7 +498,9 @@ const Flashcards = () => {
               : "Deseja realmente excluir este flashcard? Esta ação não poderá ser desfeita."
           }
           confirmText="Excluir"
-          onCancel={() => setConfirmModal({ isOpen: false, id: null, tipo: '' })}
+          isLoading={excluindo}
+          loadingText="Excluindo..."
+          onCancel={() => !excluindo && setConfirmModal({ isOpen: false, id: null, tipo: '' })}
           onConfirm={confirmarExclusao}
         />
       </>
@@ -546,7 +589,14 @@ const Flashcards = () => {
               {disciplinas.map(d => <option key={d.id} value={d.id}>{d.nome}</option>)}
             </select>
           </div>
-          <Button type="submit" text={editandoId ? "Salvar" : "Criar Baralho"} className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white border-none" />
+          <Button 
+            type="submit" 
+            text={editandoId ? "Salvar" : "Criar Baralho"} 
+            isLoading={salvandoBaralho}
+            loadingText="Salvando..."
+            disabled={salvandoBaralho}
+            className="w-full mt-2 bg-purple-600 hover:bg-purple-700 text-white border-none" 
+          />
         </form>
       </Modal>
 
@@ -559,7 +609,9 @@ const Flashcards = () => {
             : "Deseja realmente excluir este flashcard? Esta ação não poderá ser desfeita."
         }
         confirmText="Excluir"
-        onCancel={() => setConfirmModal({ isOpen: false, id: null, tipo: '' })}
+        isLoading={excluindo}
+        loadingText="Excluindo..."
+        onCancel={() => !excluindo && setConfirmModal({ isOpen: false, id: null, tipo: '' })}
         onConfirm={confirmarExclusao}
       />
     </>
