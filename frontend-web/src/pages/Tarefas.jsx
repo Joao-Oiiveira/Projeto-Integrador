@@ -5,8 +5,11 @@ import Input from '../components/Input';
 import ConfirmModal from '../components/ConfirmModal'; // NOVO: Importação do Modal de Confirmação
 import { obterTarefas, criarTarefa, atualizarStatusTarefa, atualizarTarefa, excluirTarefa } from '../services/tarefas';
 import { obterDisciplinasAPI } from '../services/disciplinas';
+import { useToast } from '../contexts/ToastContext';
+import { classifyError } from '../utils/errorHandler';
 
 const Tarefas = () => {
+  const { addToast } = useToast();
   const [tarefas, setTarefas] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,7 +40,8 @@ const Tarefas = () => {
       setTarefas(tarefasData);
       setDisciplinas(disciplinasData);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      const classified = classifyError(error, 'carregarTarefas');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
     }
   };
 
@@ -103,8 +107,11 @@ const Tarefas = () => {
       await excluirTarefa(confirmModal.id);
       await carregarDados();
       setConfirmModal({ isOpen: false, id: null });
+      addToast({ type: 'success', message: 'Tarefa excluída com sucesso.' });
     } catch (error) {
-      alert(error.message);
+      const classified = classifyError(error, 'excluirTarefa');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
+      setConfirmModal({ isOpen: false, id: null });
     }
   };
 
@@ -113,7 +120,8 @@ const Tarefas = () => {
       await atualizarStatusTarefa(id, novoStatus);
       await carregarDados();
     } catch (error) {
-      alert(error.message);
+      const classified = classifyError(error, 'moverTarefa');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
     }
   };
 

@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AccessibilityProvider } from './contexts/AccessibilityContext';
+import { ToastProvider } from './contexts/ToastContext';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Onboarding from './pages/Onboarding';
@@ -14,27 +15,29 @@ import Configuracoes from './pages/Configuracoes';
 
 function App() {
   return (
-    // Envelopando toda a aplicação com o Contexto de Acessibilidade
+    // Envelopando toda a aplicação com o Contexto de Acessibilidade e Toast global
     <AccessibilityProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Navigate to="/login" replace />} /> 
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/onboarding" element={<Onboarding />} />
+      <ToastProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/login" replace />} /> 
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/onboarding" element={<Onboarding />} />
 
-          {/* Rotas protegidas (Envelopadas pelo Layout) */}
-          <Route element={<DashboardLayout />}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/tarefas" element={<Tarefas />} />
-            <Route path="/disciplinas" element={<Disciplinas />} />
-            <Route path="/flashcards" element={<Flashcards />} />
-            <Route path="/calendario" element={<Agenda />} />
-            <Route path="/exercicios" element={<Exercicios />} />
-            <Route path="/configuracoes" element={<Configuracoes />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
+            {/* Rotas protegidas (Envelopadas pelo Layout) */}
+            <Route element={<DashboardLayout />}>
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/tarefas" element={<Tarefas />} />
+              <Route path="/disciplinas" element={<Disciplinas />} />
+              <Route path="/flashcards" element={<Flashcards />} />
+              <Route path="/calendario" element={<Agenda />} />
+              <Route path="/exercicios" element={<Exercicios />} />
+              <Route path="/configuracoes" element={<Configuracoes />} />
+            </Route>
+          </Routes>
+        </BrowserRouter>
+      </ToastProvider>
     </AccessibilityProvider>
   );
 }

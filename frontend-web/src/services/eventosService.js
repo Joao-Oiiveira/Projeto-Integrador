@@ -1,9 +1,15 @@
+import { throwIfNotOk } from '../utils/errorHandler';
+
 const API_URL = 'http://127.0.0.1:8000/eventos';
 const TOKEN_KEY = '@EduAcess:token';
 
 const getHeaders = () => {
   const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) throw new Error("Usuário não autenticado");
+  if (!token) {
+    const err = new Error("Usuário não autenticado");
+    err.statusCode = 401;
+    throw err;
+  }
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
@@ -12,7 +18,7 @@ const getHeaders = () => {
 
 export const obterEventos = async () => {
   const response = await fetch(API_URL, { headers: getHeaders() });
-  if (!response.ok) throw new Error("Erro ao buscar eventos");
+  await throwIfNotOk(response, "Não foi possível carregar os eventos. Tente novamente.");
   return await response.json();
 };
 
@@ -28,10 +34,8 @@ export const criarEvento = async (dados) => {
       disciplina_id: dados.disciplina_id ? Number(dados.disciplina_id) : null
     })
   });
-  
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.detail || "Erro ao criar evento");
-  return data;
+  await throwIfNotOk(response, "Não foi possível criar o evento. Tente novamente.");
+  return await response.json();
 };
 
 export const excluirEvento = async (id) => {
@@ -39,13 +43,16 @@ export const excluirEvento = async (id) => {
     method: 'DELETE',
     headers: getHeaders()
   });
-  
-  if (!response.ok) throw new Error("Erro ao excluir evento");
+  await throwIfNotOk(response, "Não foi possível excluir o evento. Tente novamente.");
 };
 
 export const atualizarEvento = async (id, dadosAtualizados) => {
   const token = localStorage.getItem('@EduAcess:token');
-  if (!token) throw new Error("Usuário não autenticado");
+  if (!token) {
+    const err = new Error("Usuário não autenticado");
+    err.statusCode = 401;
+    throw err;
+  }
 
   const response = await fetch(`http://127.0.0.1:8000/eventos/${id}`, {
     method: 'PUT',
@@ -61,9 +68,5 @@ export const atualizarEvento = async (id, dadosAtualizados) => {
       disciplina_id: dadosAtualizados.disciplina_id ? Number(dadosAtualizados.disciplina_id) : null
     })
   });
-  
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.detail || "Erro ao atualizar evento");
-  }
+  await throwIfNotOk(response, "Não foi possível atualizar o evento. Tente novamente.");
 };

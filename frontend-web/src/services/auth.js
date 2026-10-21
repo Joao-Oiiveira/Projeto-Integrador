@@ -1,4 +1,5 @@
 // services/auth.js
+import { throwIfNotOk } from '../utils/errorHandler';
 
 const API_URL = 'http://127.0.0.1:8000/auth';
 const TOKEN_KEY = '@EduAcess:token';
@@ -6,7 +7,11 @@ const USER_KEY = '@EduAcess:loggedUser';
 
 // 1. Função de Cadastro (Registro)
 export const registerAPI = async (nome, email, senha) => {
-  if (!nome || !email || !senha) throw new Error("Preencha todos os campos.");
+  if (!nome || !email || !senha) {
+    const err = new Error("Preencha todos os campos.");
+    err.statusCode = 400;
+    throw err;
+  }
 
   const response = await fetch(`${API_URL}/registrar`, {
     method: 'POST',
@@ -14,11 +19,9 @@ export const registerAPI = async (nome, email, senha) => {
     body: JSON.stringify({ nome, email, senha })
   });
 
-  const data = await response.json();
+  await throwIfNotOk(response, "Não foi possível concluir o cadastro. Tente novamente.");
 
-  if (!response.ok) {
-    throw new Error(data.detail || "Erro ao cadastrar usuário.");
-  }
+  const data = await response.json();
 
   // Salva o token e os dados na sessão
   localStorage.setItem(TOKEN_KEY, data.access_token);
@@ -29,7 +32,11 @@ export const registerAPI = async (nome, email, senha) => {
 
 // 2. Função de Autenticação (Login)
 export const loginAPI = async (email, senha) => {
-  if (!email || !senha) throw new Error("Preencha todos os campos.");
+  if (!email || !senha) {
+    const err = new Error("Preencha todos os campos.");
+    err.statusCode = 400;
+    throw err;
+  }
 
   const response = await fetch(`${API_URL}/login`, {
     method: 'POST',
@@ -37,11 +44,9 @@ export const loginAPI = async (email, senha) => {
     body: JSON.stringify({ email, senha })
   });
 
-  const data = await response.json();
+  await throwIfNotOk(response, "E-mail ou senha incorretos. Verifique e tente novamente.");
 
-  if (!response.ok) {
-    throw new Error(data.detail || "E-mail ou senha incorretos.");
-  }
+  const data = await response.json();
 
   localStorage.setItem(TOKEN_KEY, data.access_token);
   localStorage.setItem(USER_KEY, JSON.stringify(data.usuario));
@@ -58,7 +63,11 @@ export const getLoggedUser = () => {
 // 4. Salvar dados do Onboarding
 export const saveOnboardingDataAPI = async (nomeAtualizado, perfil, configuracoes) => {
   const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) throw new Error("Usuário não autenticado.");
+  if (!token) {
+    const err = new Error("Usuário não autenticado.");
+    err.statusCode = 401;
+    throw err;
+  }
 
   const response = await fetch(`${API_URL}/onboarding`, {
     method: 'POST',
@@ -73,11 +82,9 @@ export const saveOnboardingDataAPI = async (nomeAtualizado, perfil, configuracoe
     })
   });
 
-  const data = await response.json();
+  await throwIfNotOk(response, "Não foi possível salvar as preferências. Tente novamente.");
 
-  if (!response.ok) {
-    throw new Error(data.detail || "Erro ao salvar dados.");
-  }
+  const data = await response.json();
 
   // Atualiza a sessão com os dados retornados do banco
   localStorage.setItem(USER_KEY, JSON.stringify(data));

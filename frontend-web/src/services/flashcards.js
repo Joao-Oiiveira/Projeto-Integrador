@@ -1,16 +1,22 @@
+import { throwIfNotOk } from '../utils/errorHandler';
+
 const API_URL = 'http://127.0.0.1:8000/estudos';
 const TOKEN_KEY = '@EduAcess:token';
 
 const getHeaders = () => {
   const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) throw new Error("Usuário não autenticado");
+  if (!token) {
+    const err = new Error("Usuário não autenticado");
+    err.statusCode = 401;
+    throw err;
+  }
   return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
 };
 
 // --- BARALHOS ---
 export const obterBaralhos = async () => {
   const response = await fetch(`${API_URL}/baralhos`, { headers: getHeaders() });
-  if (!response.ok) throw new Error("Erro ao buscar baralhos");
+  await throwIfNotOk(response, "Não foi possível carregar os baralhos. Tente novamente.");
   return await response.json();
 };
 
@@ -19,9 +25,8 @@ export const criarBaralho = async (dados) => {
     method: 'POST', headers: getHeaders(),
     body: JSON.stringify({ nome: dados.nome, disciplina_id: dados.disciplina_id ? Number(dados.disciplina_id) : null })
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.detail || "Erro ao criar baralho");
-  return data;
+  await throwIfNotOk(response, "Não foi possível criar o baralho. Tente novamente.");
+  return await response.json();
 };
 
 export const atualizarBaralho = async (id, dadosAtualizados) => {
@@ -29,18 +34,18 @@ export const atualizarBaralho = async (id, dadosAtualizados) => {
     method: 'PUT', headers: getHeaders(),
     body: JSON.stringify({ nome: dadosAtualizados.nome, disciplina_id: dadosAtualizados.disciplina_id ? Number(dadosAtualizados.disciplina_id) : null })
   });
-  if (!response.ok) throw new Error("Erro ao atualizar baralho");
+  await throwIfNotOk(response, "Não foi possível atualizar o baralho. Tente novamente.");
 };
 
 export const excluirBaralho = async (id) => {
   const response = await fetch(`${API_URL}/baralhos/${id}`, { method: 'DELETE', headers: getHeaders() });
-  if (!response.ok) throw new Error("Erro ao excluir baralho");
+  await throwIfNotOk(response, "Não foi possível excluir o baralho. Tente novamente.");
 };
 
 // --- FLASHCARDS ---
 export const obterTodosFlashcards = async () => {
   const response = await fetch(`${API_URL}/flashcards`, { headers: getHeaders() });
-  if (!response.ok) throw new Error("Erro ao buscar flashcards");
+  await throwIfNotOk(response, "Não foi possível carregar os flashcards. Tente novamente.");
   return await response.json();
 };
 
@@ -49,9 +54,8 @@ export const criarFlashcard = async (dados) => {
     method: 'POST', headers: getHeaders(),
     body: JSON.stringify({ baralho_id: Number(dados.baralho_id), pergunta: dados.pergunta, resposta: dados.resposta })
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.detail || "Erro ao criar carta");
-  return data;
+  await throwIfNotOk(response, "Não foi possível criar o flashcard. Tente novamente.");
+  return await response.json();
 };
 
 export const atualizarFlashcard = async (id, dadosAtualizados) => {
@@ -59,12 +63,12 @@ export const atualizarFlashcard = async (id, dadosAtualizados) => {
     method: 'PUT', headers: getHeaders(),
     body: JSON.stringify({ pergunta: dadosAtualizados.pergunta, resposta: dadosAtualizados.resposta })
   });
-  if (!response.ok) throw new Error("Erro ao atualizar carta");
+  await throwIfNotOk(response, "Não foi possível atualizar o flashcard. Tente novamente.");
 };
 
 export const excluirFlashcard = async (id) => {
   const response = await fetch(`${API_URL}/flashcards/${id}`, { method: 'DELETE', headers: getHeaders() });
-  if (!response.ok) throw new Error("Erro ao excluir carta");
+  await throwIfNotOk(response, "Não foi possível excluir o flashcard. Tente novamente.");
 };
 
 // --- ESTUDO ---
@@ -73,7 +77,7 @@ export const registrarResultadoEstudo = async (flashcardId, acertou) => {
     method: 'POST', headers: getHeaders(),
     body: JSON.stringify({ acertou })
   });
-  if (!response.ok) throw new Error("Erro ao registrar estudo");
+  await throwIfNotOk(response, "Não foi possível registrar o resultado do estudo.");
 };
 
 export const gerarFlashcardsIA = async (baralhoId, tema, dificuldade, quantidade) => {
@@ -83,6 +87,6 @@ export const gerarFlashcardsIA = async (baralhoId, tema, dificuldade, quantidade
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
     body: JSON.stringify({ tema, dificuldade, quantidade: Number(quantidade) })
   });
-  if (!response.ok) throw new Error("Erro ao gerar flashcards com IA");
+  await throwIfNotOk(response, "Não foi possível gerar flashcards com IA. Tente novamente.");
   return await response.json();
 };

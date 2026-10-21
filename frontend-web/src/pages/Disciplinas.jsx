@@ -4,6 +4,8 @@ import Button from '../components/Button';
 import Input from '../components/Input';
 import ConfirmModal from '../components/ConfirmModal';
 import { obterDisciplinasAPI, criarDisciplinaAPI, atualizarDisciplinaAPI, excluirDisciplinaAPI } from '../services/disciplinas';
+import { useToast } from '../contexts/ToastContext';
+import { classifyError } from '../utils/errorHandler';
 
 const CORES_DISPONIVEIS = [
   'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', 
@@ -15,6 +17,7 @@ const CORES_DISPONIVEIS = [
 ];
 
 const Disciplinas = () => {
+  const { addToast } = useToast();
   const [disciplinas, setDisciplinas] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState('');
@@ -31,7 +34,8 @@ const Disciplinas = () => {
       const dados = await obterDisciplinasAPI();
       setDisciplinas(dados);
     } catch (error) {
-      console.error(error);
+      const classified = classifyError(error, 'carregarDisciplinas');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
     }
   };
 
@@ -87,8 +91,11 @@ const Disciplinas = () => {
       await excluirDisciplinaAPI(confirmModal.id);
       await carregarDados();
       setConfirmModal({ isOpen: false, id: null });
+      addToast({ type: 'success', message: 'Disciplina excluída com sucesso.' });
     } catch (error) {
-      alert(error.message); 
+      const classified = classifyError(error, 'excluirDisciplina');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
+      setConfirmModal({ isOpen: false, id: null });
     }
   };
 
@@ -126,10 +133,11 @@ const Disciplinas = () => {
           }
         }
 
-        alert(`${importadas} disciplina(s) importada(s) com sucesso!`);
+        addToast({ type: 'success', message: `${importadas} disciplina(s) importada(s) com sucesso!` });
         await carregarDados();
       } catch (error) {
-        alert("Erro ao importar: " + (error.message || "Formato de arquivo inválido."));
+        const classified = classifyError(error, 'importarDisciplinas');
+        addToast({ type: 'error', title: classified.title, message: classified.message || 'Formato de arquivo inválido.', action: classified.action });
       } finally {
         setIsImporting(false);
         if (fileInputRef.current) fileInputRef.current.value = ''; 
@@ -137,7 +145,7 @@ const Disciplinas = () => {
     };
 
     reader.onerror = () => {
-      alert("Erro ao ler o arquivo.");
+      addToast({ type: 'error', title: 'Erro ao ler arquivo', message: 'Não foi possível ler o arquivo selecionado.', action: 'Verifique se o arquivo não está corrompido e tente novamente.' });
       setIsImporting(false);
     };
 

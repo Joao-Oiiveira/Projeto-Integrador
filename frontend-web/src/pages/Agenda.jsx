@@ -4,6 +4,8 @@ import Input from '../components/Input';
 import Modal from '../components/Modal';
 import ConfirmModal from '../components/ConfirmModal'; // NOVO: Importando o modal de confirmação
 import { getDaysInMonth, formatToDateString, isSameDay } from '../utils/calendarUtils';
+import { useToast } from '../contexts/ToastContext';
+import { classifyError } from '../utils/errorHandler';
 
 // Services
 import { obterTarefas } from '../services/tarefas'; 
@@ -11,6 +13,7 @@ import { obterEventos, criarEvento, excluirEvento, atualizarEvento } from '../se
 import { obterDisciplinasAPI } from '../services/disciplinas'; 
 
 const Agenda = () => {
+  const { addToast } = useToast();
   const [tarefas, setTarefas] = useState([]);
   const [eventos, setEventos] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
@@ -39,7 +42,8 @@ const Agenda = () => {
       setEventos(eventosData);
       setDisciplinas(disciplinasData);
     } catch (error) {
-      console.error("Erro ao carregar dados da agenda:", error);
+      const classified = classifyError(error, 'carregarAgenda');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
     }
   };
 
@@ -125,8 +129,11 @@ const Agenda = () => {
       await excluirEvento(confirmModal.id);
       await carregarDados();
       setConfirmModal({ isOpen: false, id: null });
+      addToast({ type: 'success', message: 'Evento excluído com sucesso.' });
     } catch (error) {
-      alert(error.message);
+      const classified = classifyError(error, 'excluirEvento');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
+      setConfirmModal({ isOpen: false, id: null });
     }
   };
 

@@ -1,9 +1,15 @@
+import { throwIfNotOk } from '../utils/errorHandler';
+
 const API_URL = 'http://127.0.0.1:8000/disciplinas';
 const TOKEN_KEY = '@EduAcess:token';
 
 const getHeaders = () => {
   const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) throw new Error("Usuário não autenticado");
+  if (!token) {
+    const err = new Error("Usuário não autenticado");
+    err.statusCode = 401;
+    throw err;
+  }
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
@@ -12,7 +18,7 @@ const getHeaders = () => {
 
 export const obterDisciplinasAPI = async () => {
   const response = await fetch(API_URL, { headers: getHeaders() });
-  if (!response.ok) throw new Error("Erro ao buscar disciplinas");
+  await throwIfNotOk(response, "Não foi possível carregar as disciplinas. Tente novamente.");
   return await response.json();
 };
 
@@ -22,9 +28,8 @@ export const criarDisciplinaAPI = async (dados) => {
     headers: getHeaders(),
     body: JSON.stringify(dados)
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.detail || "Erro ao criar disciplina");
-  return data;
+  await throwIfNotOk(response, "Não foi possível criar a disciplina. Tente novamente.");
+  return await response.json();
 };
 
 export const atualizarDisciplinaAPI = async (id, dadosAtualizados) => {
@@ -33,9 +38,8 @@ export const atualizarDisciplinaAPI = async (id, dadosAtualizados) => {
     headers: getHeaders(),
     body: JSON.stringify(dadosAtualizados)
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.detail || "Erro ao atualizar disciplina");
-  return data;
+  await throwIfNotOk(response, "Não foi possível atualizar a disciplina. Tente novamente.");
+  return await response.json();
 };
 
 export const excluirDisciplinaAPI = async (id) => {
@@ -43,9 +47,5 @@ export const excluirDisciplinaAPI = async (id) => {
     method: 'DELETE',
     headers: getHeaders()
   });
-  
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.detail || "Erro ao excluir disciplina");
-  }
+  await throwIfNotOk(response, "Não foi possível excluir a disciplina. Tente novamente.");
 };

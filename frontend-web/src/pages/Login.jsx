@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { loginAPI } from '../services/auth';
+import { classifyError, formatUserMessage } from '../utils/errorHandler';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -34,7 +35,8 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (err) {
-      setError(err.message);
+      const classified = classifyError(err, 'login');
+      setError(formatUserMessage(classified));
     }
   };
 

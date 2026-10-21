@@ -4,6 +4,8 @@ import Modal from '../components/Modal';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { obterDisciplinasAPI } from '../services/disciplinas';
+import { useToast } from '../contexts/ToastContext';
+import { classifyError } from '../utils/errorHandler';
 import { 
   obterBaralhos, criarBaralho, atualizarBaralho, excluirBaralho,
   obterTodosFlashcards, criarFlashcard, atualizarFlashcard, excluirFlashcard,
@@ -11,6 +13,7 @@ import {
 } from '../services/flashcards';
 
 const Flashcards = () => {
+  const { addToast } = useToast();
   const [disciplinas, setDisciplinas] = useState([]);
   const [baralhos, setBaralhos] = useState([]);
   const [todosFlashcards, setTodosFlashcards] = useState([]);
@@ -50,7 +53,8 @@ const Flashcards = () => {
       setBaralhos(barData);
       setTodosFlashcards(flashData);
     } catch (error) {
-      console.error("Erro ao carregar dados:", error);
+      const classified = classifyError(error, 'carregarFlashcards');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
     }
   };
 
@@ -81,7 +85,7 @@ const Flashcards = () => {
 
   const iniciarEstudo = (baralhoTarget, flashcardsDoBaralho) => {
     if (flashcardsDoBaralho.length === 0) {
-      alert("Nenhuma carta disponível para este modo de estudo.");
+      addToast({ type: 'warning', title: 'Baralho vazio', message: 'Nenhuma carta disponível para este modo de estudo.', action: 'Adicione cartas ao baralho antes de estudar.' });
       return;
     }
     setBaralhoSelecionado(baralhoTarget);
@@ -135,7 +139,10 @@ const Flashcards = () => {
   // ==========================================
   const handleGerarIA = async (e) => {
     e.preventDefault();
-    if (!formIA.tema.trim()) { alert("Por favor, informe um tema para a IA."); return; }
+    if (!formIA.tema.trim()) {
+      addToast({ type: 'warning', title: 'Campo obrigatório', message: 'Por favor, informe um tema para a IA gerar os flashcards.', action: null });
+      return;
+    }
     
     setLoadingIA(true);
     try {
@@ -144,7 +151,8 @@ const Flashcards = () => {
       setModalIAOpen(false);
       setFormIA({ tema: '', dificuldade: 'médio', quantidade: 5 });
     } catch (error) {
-      alert(error.message || "Erro ao gerar cartas.");
+      const classified = classifyError(error, 'gerarFlashcardsIA');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
     } finally {
       setLoadingIA(false);
     }
@@ -154,7 +162,10 @@ const Flashcards = () => {
   // FUNÇÕES CRUD
   // ==========================================
   const abrirModalNovoBaralho = () => {
-    if (disciplinas.length === 0) { alert("Crie uma Disciplina primeiro!"); return; }
+    if (disciplinas.length === 0) {
+      addToast({ type: 'warning', title: 'Nenhuma disciplina', message: 'Você precisa criar uma disciplina antes de adicionar um baralho.', action: 'Acesse a página Disciplinas e crie uma.' });
+      return;
+    }
     setEditandoId(null); setFormBaralho({ nome: '', disciplina_id: '' }); setModalBaralhoOpen(true);
   };
   const abrirModalEditarBaralho = (e, baralho) => {
@@ -162,13 +173,19 @@ const Flashcards = () => {
   };
   const salvarBaralho = async (e) => {
     e.preventDefault();
-    if (!formBaralho.nome || !formBaralho.disciplina_id) { alert("Preencha todos os campos."); return; }
+    if (!formBaralho.nome || !formBaralho.disciplina_id) {
+      addToast({ type: 'warning', title: 'Campos incompletos', message: 'Preencha o nome e a disciplina do baralho antes de continuar.', action: null });
+      return;
+    }
     try {
       if (editandoId) await atualizarBaralho(editandoId, formBaralho); 
       else await criarBaralho(formBaralho);
       await carregarDados(); 
       setModalBaralhoOpen(false);
-    } catch (error) { alert(error.message); }
+    } catch (error) {
+      const classified = classifyError(error, 'salvarBaralho');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
+    }
   };
   const apagarBaralho = (e, id) => {
     e.stopPropagation(); 
@@ -182,13 +199,19 @@ const Flashcards = () => {
   };
   const salvarFlashcard = async (e) => {
     e.preventDefault();
-    if (!formFlashcard.pergunta || !formFlashcard.resposta) { alert("Preencha pergunta e resposta."); return; }
+    if (!formFlashcard.pergunta || !formFlashcard.resposta) {
+      addToast({ type: 'warning', title: 'Campos incompletos', message: 'Preencha a pergunta e a resposta antes de continuar.', action: null });
+      return;
+    }
     try {
       if (editandoId) await atualizarFlashcard(editandoId, formFlashcard); 
       else await criarFlashcard({ ...formFlashcard, baralho_id: baralhoSelecionado.id });
       await carregarDados(); 
       setModalFlashcardOpen(false);
-    } catch (error) { alert(error.message); }
+    } catch (error) {
+      const classified = classifyError(error, 'salvarFlashcard');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
+    }
   };
   const apagarFlashcard = (id) => { 
     setConfirmModal({ isOpen: true, id: id, tipo: 'flashcard' });
@@ -203,8 +226,11 @@ const Flashcards = () => {
       }
       await carregarDados(); 
       setConfirmModal({ isOpen: false, id: null, tipo: '' });
+      addToast({ type: 'success', message: 'Item excluído com sucesso.' });
     } catch (error) {
-      alert(error.message);
+      const classified = classifyError(error, 'confirmarExclusaoFlashcard');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
+      setConfirmModal({ isOpen: false, id: null, tipo: '' });
     }
   };
 

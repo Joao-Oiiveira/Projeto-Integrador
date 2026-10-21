@@ -1,3 +1,5 @@
+import { throwIfNotOk } from '../utils/errorHandler';
+
 const API_URL = 'http://127.0.0.1:8000/exercicios';
 const TOKEN_KEY = '@EduAcess:token';
 
@@ -7,7 +9,11 @@ const getToken = () => localStorage.getItem(TOKEN_KEY);
 // Rota 1: Iniciar Sessão
 export const iniciarSessaoExercicios = async (dados) => {
   const token = getToken();
-  if (!token) throw new Error("Usuário não autenticado.");
+  if (!token) {
+    const err = new Error("Usuário não autenticado.");
+    err.statusCode = 401;
+    throw err;
+  }
 
   const response = await fetch(`${API_URL}/sessao`, {
     method: 'POST',
@@ -23,11 +29,8 @@ export const iniciarSessaoExercicios = async (dados) => {
     })
   });
 
-  const data = await response.json();
-  if (!response.ok) {
-    throw new Error(data.detail || "Erro ao buscar questões. Tente novamente.");
-  }
-  return data;
+  await throwIfNotOk(response, "Não foi possível buscar as questões. Tente novamente.");
+  return await response.json();
 };
 
 // Rota 2: Responder Questão (Salvar histórico em background)
@@ -52,23 +55,27 @@ export const responderQuestaoAPI = async (sessaoId, dados) => {
     });
 
     if (!response.ok) {
-      console.error("Erro ao salvar resposta no background.");
+      console.error("[EduAcess][responderQuestaoAPI] Erro ao salvar resposta em background.", response.status);
     }
   } catch (error) {
-    console.error("Falha na comunicação ao salvar resposta:", error);
+    console.error("[EduAcess][responderQuestaoAPI] Falha na comunicação ao salvar resposta:", error);
   }
 };
 
 // Rota 3: Obter Relatório de Desempenho
 export const obterRelatorioExercicios = async () => {
   const token = getToken();
-  if (!token) throw new Error("Usuário não autenticado.");
+  if (!token) {
+    const err = new Error("Usuário não autenticado.");
+    err.statusCode = 401;
+    throw err;
+  }
 
   const response = await fetch(`${API_URL}/relatorio`, {
     method: 'GET',
     headers: { 'Authorization': `Bearer ${token}` }
   });
 
-  if (!response.ok) throw new Error("Erro ao buscar relatório.");
+  await throwIfNotOk(response, "Não foi possível carregar o relatório. Tente novamente.");
   return await response.json();
 };

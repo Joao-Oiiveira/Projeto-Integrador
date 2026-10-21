@@ -1,11 +1,16 @@
 // services/tarefas.js
+import { throwIfNotOk } from '../utils/errorHandler';
 
 const API_URL = 'http://127.0.0.1:8000/tarefas';
 const TOKEN_KEY = '@EduAcess:token';
 
 const getHeaders = () => {
   const token = localStorage.getItem(TOKEN_KEY);
-  if (!token) throw new Error("Usuário não autenticado");
+  if (!token) {
+    const err = new Error("Usuário não autenticado");
+    err.statusCode = 401;
+    throw err;
+  }
   return {
     'Content-Type': 'application/json',
     'Authorization': `Bearer ${token}`
@@ -14,7 +19,7 @@ const getHeaders = () => {
 
 export const obterTarefas = async () => {
   const response = await fetch(API_URL, { headers: getHeaders() });
-  if (!response.ok) throw new Error("Erro ao buscar tarefas");
+  await throwIfNotOk(response, "Não foi possível carregar as tarefas. Tente novamente.");
   return await response.json();
 };
 
@@ -29,9 +34,8 @@ export const criarTarefa = async (dados) => {
       disciplina_id: dados.disciplina_id ? Number(dados.disciplina_id) : null
     })
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.detail || "Erro ao criar tarefa");
-  return data;
+  await throwIfNotOk(response, "Não foi possível criar a tarefa. Tente novamente.");
+  return await response.json();
 };
 
 export const atualizarTarefa = async (id, dadosAtualizados) => {
@@ -45,9 +49,8 @@ export const atualizarTarefa = async (id, dadosAtualizados) => {
       disciplina_id: dadosAtualizados.disciplina_id ? Number(dadosAtualizados.disciplina_id) : null
     })
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.detail || "Erro ao atualizar tarefa");
-  return data;
+  await throwIfNotOk(response, "Não foi possível atualizar a tarefa. Tente novamente.");
+  return await response.json();
 };
 
 export const atualizarStatusTarefa = async (id, novoStatus) => {
@@ -56,9 +59,8 @@ export const atualizarStatusTarefa = async (id, novoStatus) => {
     headers: getHeaders(),
     body: JSON.stringify({ status: novoStatus })
   });
-  const data = await response.json();
-  if (!response.ok) throw new Error(data.detail || "Erro ao atualizar status");
-  return data;
+  await throwIfNotOk(response, "Não foi possível atualizar o status da tarefa. Tente novamente.");
+  return await response.json();
 };
 
 export const excluirTarefa = async (id) => {
@@ -66,8 +68,5 @@ export const excluirTarefa = async (id) => {
     method: 'DELETE',
     headers: getHeaders()
   });
-  if (!response.ok) {
-    const data = await response.json();
-    throw new Error(data.detail || "Erro ao excluir tarefa");
-  }
+  await throwIfNotOk(response, "Não foi possível excluir a tarefa. Tente novamente.");
 };

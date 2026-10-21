@@ -4,9 +4,12 @@ import { obterTarefas } from '../services/tarefas';
 import { obterDisciplinasAPI } from '../services/disciplinas';
 import { obterEventos } from '../services/eventosService';
 import { criarNotificacao } from '../services/notificacoes';
+import { useToast } from '../contexts/ToastContext';
+import { classifyError } from '../utils/errorHandler';
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [tarefas, setTarefas] = useState([]);
   const [disciplinas, setDisciplinas] = useState([]);
 
@@ -43,7 +46,8 @@ const Dashboard = () => {
         }
 
       } catch (error) {
-        console.error("Erro ao carregar dados do dashboard:", error);
+        const classified = classifyError(error, 'carregarDashboard');
+        addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
       }
     };
 

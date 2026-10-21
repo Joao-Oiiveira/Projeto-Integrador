@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import { iniciarSessaoExercicios, responderQuestaoAPI, obterRelatorioExercicios } from '../services/exercicios';
+import { useToast } from '../contexts/ToastContext';
+import { classifyError } from '../utils/errorHandler';
 
 const Exercicios = () => {
   // Estados de Fluxo: 'config', 'loading', 'resolucao', 'resumo'
   const [fluxo, setFluxo] = useState('config');
   const [abaAtiva, setAbaAtiva] = useState('simulado'); // 'simulado' ou 'desempenho'
+  const { addToast } = useToast();
   
   // Estado 1: Configuração
   const [config, setConfig] = useState({
@@ -41,7 +44,8 @@ const Exercicios = () => {
       const data = await obterRelatorioExercicios();
       setRelatorio(data);
     } catch (error) {
-      console.error("Erro ao carregar relatório:", error);
+      const classified = classifyError(error, 'carregarRelatorio');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
     } finally {
       setLoadingRelatorio(false);
     }
@@ -57,7 +61,7 @@ const Exercicios = () => {
     try {
       const dadosSessao = await iniciarSessaoExercicios(config);
       if (!dadosSessao.questoes || dadosSessao.questoes.length === 0) {
-        alert("Nenhuma questão encontrada para este tema.");
+        addToast({ type: 'warning', title: 'Nenhuma questão encontrada', message: 'Não encontramos questões para o tema informado.', action: 'Tente um tema diferente ou remova os filtros.' });
         setFluxo('config');
         return;
       }
@@ -69,7 +73,8 @@ const Exercicios = () => {
       setRespondido(false);
       setFluxo('resolucao');
     } catch (error) {
-      alert(error.message);
+      const classified = classifyError(error, 'iniciarSessaoExercicios');
+      addToast({ type: 'error', title: classified.title, message: classified.message, action: classified.action });
       setFluxo('config');
     }
   };
