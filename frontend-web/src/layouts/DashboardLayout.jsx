@@ -5,6 +5,7 @@ import { useAccessibility } from '../contexts/AccessibilityContext';
 import Modal from '../components/Modal';
 import Checkbox from '../components/Checkbox';
 import TTSReader from '../components/TTSReader';
+import TextSpacingControls from '../components/TextSpacingControls';
 import { obterNotificacoes, marcarComoLida, marcarTodasComoLidas } from '../services/notificacoes';
 
 const DashboardLayout = () => {
@@ -259,6 +260,10 @@ const DashboardLayout = () => {
                 <option value={24}>Extra Grande (24px)</option>
               </select>
             </div>
+            <TextSpacingControls
+              configuracoes={configuracoes}
+              onChange={(novasConfigs) => updateAccessibility(novasConfigs)}
+            />
           </div>
         </div>
       </Modal>

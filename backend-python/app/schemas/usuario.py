@@ -42,6 +42,9 @@ class ConfiguracoesUpdate(BaseModel):
     leitura_texto: bool = False
     tema_escuro: bool = False
     fonte_dislexia: bool = False
+    espacamento_linhas: Optional[str] = "padrao"
+    espacamento_letras: Optional[str] = "padrao"
+    espacamento_palavras: Optional[str] = "padrao"
 
 class OnboardingUpdate(BaseModel):
     nome: str

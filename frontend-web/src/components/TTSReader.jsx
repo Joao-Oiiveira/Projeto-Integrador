@@ -21,11 +21,11 @@ const TTSReader = ({ forceShow = false }) => {
       window.speechSynthesis.cancel();
       setIsReading(false);
     } else {
-      const mainContent = document.querySelector('main');
+      const mainContent = document.querySelector('main') || document.querySelector('form') || document.querySelector('#root') || document.body;
       if (!mainContent) return;
 
-      // INTELIGÊNCIA: Pega apenas títulos (h1 a h4) e parágrafos (p)
-      const elementos = mainContent.querySelectorAll('h1, h2, h3, h4, p');
+      // INTELIGÊNCIA: Pega títulos (h1 a h4), parágrafos (p) e rótulos (label)
+      const elementos = mainContent.querySelectorAll('h1, h2, h3, h4, p, label');
       
       // Junta o texto separando por ponto para o robô respirar
       let textToRead = Array.from(elementos)
@@ -51,6 +51,7 @@ const TTSReader = ({ forceShow = false }) => {
 
   return (
     <button
+      type="button"
       onClick={toggleReading}
       className={`fixed bottom-6 right-6 z-50 p-4 rounded-full shadow-2xl transition-all flex items-center justify-center gap-2 font-bold text-sm
         ${isReading ? 'bg-red-500 hover:bg-red-600 text-white animate-pulse' : 'bg-purple-600 hover:bg-purple-700 text-white hover:scale-105'}`}

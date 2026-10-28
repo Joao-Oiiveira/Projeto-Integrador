@@ -44,5 +44,8 @@ class ConfiguracoesUsuario(Base):
     # NOVOS CAMPOS
     tema_escuro = Column(Boolean, default=False)
     fonte_dislexia = Column(Boolean, default=False)
+    espacamento_linhas = Column(String(20), default="padrao")
+    espacamento_letras = Column(String(20), default="padrao")
+    espacamento_palavras = Column(String(20), default="padrao")
 
     usuario = relationship("Usuario", back_populates="configuracoes")

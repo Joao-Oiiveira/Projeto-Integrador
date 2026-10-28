@@ -4,7 +4,7 @@
 
 @layer base {
   html {
-    transition: background-color 0.3s ease, color 0.3s ease, font-size 0.3s ease;
+    transition: background-color 0.3s ease, color 0.3s ease, font-size 0.3s ease, line-height 0.3s ease, letter-spacing 0.3s ease, word-spacing 0.3s ease;
   }
 }
 
@@ -17,6 +17,55 @@
 
 .dislexia-mode, .dislexia-mode * {
   font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif !important;
+}
+
+/* ==========================================
+   ACESSIBILIDADE: FONTE PARA DISLEXIA
+   ========================================== */
+html.dislexia-mode,
+html.dislexia-mode body,
+html.dislexia-mode #root,
+html.dislexia-mode p,
+html.dislexia-mode span,
+html.dislexia-mode h1,
+html.dislexia-mode h2,
+html.dislexia-mode h3,
+html.dislexia-mode h4,
+html.dislexia-mode h5,
+html.dislexia-mode h6,
+html.dislexia-mode a,
+html.dislexia-mode li,
+html.dislexia-mode label,
+html.dislexia-mode button,
+html.dislexia-mode input,
+html.dislexia-mode textarea,
+html.dislexia-mode select {
+  font-family: 'Comic Sans MS', 'Trebuchet MS', 'OpenDyslexic', sans-serif !important;
+}
+
+/* ==========================================
+   ACESSIBILIDADE: ESPAÇAMENTO ENTRE LINHAS, LETRAS E PALAVRAS
+   ========================================== */
+html[data-custom-spacing="true"] body,
+html[data-custom-spacing="true"] #root,
+html[data-custom-spacing="true"] p,
+html[data-custom-spacing="true"] span,
+html[data-custom-spacing="true"] h1,
+html[data-custom-spacing="true"] h2,
+html[data-custom-spacing="true"] h3,
+html[data-custom-spacing="true"] h4,
+html[data-custom-spacing="true"] h5,
+html[data-custom-spacing="true"] h6,
+html[data-custom-spacing="true"] a,
+html[data-custom-spacing="true"] li,
+html[data-custom-spacing="true"] label,
+html[data-custom-spacing="true"] button,
+html[data-custom-spacing="true"] input,
+html[data-custom-spacing="true"] textarea,
+html[data-custom-spacing="true"] select {
+  line-height: var(--eduacess-line-height, inherit) !important;
+  letter-spacing: var(--eduacess-letter-spacing, inherit) !important;
+  word-spacing: var(--eduacess-word-spacing, inherit) !important;
 }
 
 /* ==========================================
