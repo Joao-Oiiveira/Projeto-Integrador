@@ -13,7 +13,7 @@ if not firebase_admin._apps:
         cred = credentials.Certificate(CREDENTIALS_PATH)
         firebase_admin.initialize_app(cred)
     else:
-        print(f"⚠️ AVISO: Arquivo {CREDENTIALS_PATH} não foi encontrado. O Firebase não foi inicializado.")
+        print(f"[AVISO] Arquivo {CREDENTIALS_PATH} não foi encontrado. O Firebase não foi inicializado.")
 
 def verificar_token_firebase(id_token: str) -> dict:
     """

@@ -2,6 +2,7 @@
 import db from '../db/db'
 import { processSyncQueue } from '../sync/syncEngine'
 import { getAdminToken } from './authService'
+import { registrarOperacao } from './metricsService'
 
 const API_BASE = 'http://127.0.0.1:8000/admin'
 
@@ -56,6 +57,7 @@ export async function fetchUsuarios(isOnline) {
  * 1. Remove imediatamente do cache local (feedback instantâneo na UI).
  * 2. Enfileira a operação DELETE na sync_queue.
  * 3. Tenta sincronizar agora (se online) ou aguarda reconexão.
+ * 4. Registra métrica de operação administrativa.
  *
  * @param {number} id — ID do usuário a excluir
  * @returns {Promise<{sincronizado: boolean}>}
@@ -81,6 +83,13 @@ export async function excluirUsuario(id) {
   // Tenta processar agora (se estiver online, executa; se offline, apenas enfileira)
   const resultado = await processSyncQueue()
 
+  // Registra a métrica de exclusão administrativa
+  await registrarOperacao('EXCLUIR_USUARIO', {
+    entidade: 'usuario',
+    modo: resultado.processados > 0 ? 'online' : 'offline',
+    detalhe: `Usuário ID ${id} excluído`
+  })
+
   // Retorna se a operação foi de fato executada agora ou ficou na fila
   return { sincronizado: resultado.processados > 0 }
 }
@@ -92,6 +101,8 @@ export async function excluirUsuario(id) {
  *                com o ID real retornado e retorna o usuário criado.
  * Modo Offline → Cria um ID temporário negativo (-Date.now()) como Optimistic UI,
  *                salva no cache local e enfileira na sync_queue (tipo: 'POST').
+ *
+ * Registra métrica de operação administrativa (sem expor credenciais).
  *
  * @param {Object} dados — { nome, email, senha, is_admin }
  * @returns {Promise<{sincronizado: boolean, usuario: Object}>}
@@ -114,6 +125,14 @@ export async function criarUsuario(dados) {
       const usuarioCriado = await response.json()
       // Salva no cache local com o ID real
       await db.usuarios_locais.put(usuarioCriado)
+
+      // Registra métrica de criação online
+      await registrarOperacao('CRIAR_USUARIO', {
+        entidade: 'usuario',
+        modo: 'online',
+        detalhe: `Usuário cadastrado: ${usuarioCriado.nome || usuarioCriado.email}`
+      })
+
       return { sincronizado: true, usuario: usuarioCriado }
     }
 
@@ -155,6 +174,14 @@ export async function criarUsuario(dados) {
 
     console.warn('[usersService] Sem rede. Usuário salvo localmente com ID temporário:', idTemporario)
     const resultado = await processSyncQueue()
+
+    // Registra métrica de criação offline
+    await registrarOperacao('CRIAR_USUARIO', {
+      entidade: 'usuario',
+      modo: 'offline',
+      detalhe: `Usuário criado offline: ${dados.nome || dados.email}`
+    })
+
     return { sincronizado: resultado.processados > 0, usuario: usuarioLocal }
   }
 }
@@ -165,6 +192,7 @@ export async function criarUsuario(dados) {
  * 1. Atualiza imediatamente o cache local (Optimistic UI).
  * 2. Enfileira a operação PUT na sync_queue (payload sem a senha).
  * 3. Tenta sincronizar agora (se online) ou aguarda reconexão.
+ * 4. Registra métrica de operação administrativa.
  *
  * @param {number} id — ID do usuário a editar
  * @param {Object} dados — { nome, email, is_admin } (sem senha)
@@ -198,6 +226,14 @@ export async function editarUsuario(id, dados) {
 
   // Tenta processar agora
   const resultado = await processSyncQueue()
+
+  // Registra métrica de edição
+  await registrarOperacao('EDITAR_USUARIO', {
+    entidade: 'usuario',
+    modo: resultado.processados > 0 ? 'online' : 'offline',
+    detalhe: `Usuário ID ${id} editado (${dados.nome || dados.email || 'dados atualizados'})`
+  })
+
   return { sincronizado: resultado.processados > 0 }
 }
 
@@ -206,6 +242,7 @@ export async function editarUsuario(id, dados) {
  *
  * Não altera o cache local (senha é campo sensível, não armazenado).
  * Enfileira a operação PUT na sync_queue e tenta sincronizar.
+ * Registra métrica da redefinição sem expor nem salvar a nova senha.
  *
  * @param {number} id — ID do usuário
  * @param {string} novaSenha — Nova senha em texto puro (a API faz o hash)
@@ -228,6 +265,13 @@ export async function alterarSenha(id, novaSenha) {
 
   // Tenta processar agora
   const resultado = await processSyncQueue()
+
+  // Registra métrica da alteração de senha (APENAS o evento, sem a senha)
+  await registrarOperacao('ALTERAR_SENHA', {
+    entidade: 'usuario',
+    modo: resultado.processados > 0 ? 'online' : 'offline',
+    detalhe: `Senha do usuário ID ${id} redefinida`
+  })
 
   return { sincronizado: resultado.processados > 0 }
 }

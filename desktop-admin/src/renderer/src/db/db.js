@@ -6,15 +6,19 @@ const db = new Dexie('EduAcessAdmin')
 // Versão 1 do schema
 db.version(1).stores({
   // Cache local dos usuários da plataforma
-  // id = chave primária (mesmo ID do MySQL remoto)
-  // email, nome = indexados para buscas e filtros rápidos
   usuarios_locais: 'id, email, nome, nivel, is_admin, data_criacao',
 
   // Fila de Sincronização (Offline Queue)
-  // ++id = auto-increment local (chave primária sequencial)
-  // status = 'pendente' | 'processando' | 'erro'
-  // timestamp = para ordenar FIFO (primeiro a entrar, primeiro a sair)
   sync_queue: '++id, tipo, entidade, entidade_id, status, timestamp'
+})
+
+// Versão 2: Adiciona tabelas para métricas de uso e funcionamento administrativo
+db.version(2).stores({
+  // Registro individual de operações administrativas realizadas (auditoria local leve)
+  metricas_operacoes: '++id, tipo, entidade, modo, timestamp',
+
+  // Contadores consolidados e estado de funcionamento da aplicação
+  metricas_resumo: 'chave'
 })
 
 export default db

@@ -1,7 +1,9 @@
 // pages/DashboardAdmin.jsx — Dashboard de Estatísticas (dados reais da API + fallback offline)
 import React, { useState, useEffect, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { fetchEstatisticas } from '../services/statsService'
 import { processSyncQueue } from '../sync/syncEngine'
+import { obterMetricasConsolidadas } from '../services/metricsService'
 import useOnlineStatus from '../hooks/useOnlineStatus'
 import db from '../db/db'
 
@@ -68,24 +70,28 @@ const CardEngajamento = ({ titulo, valor, icone, cor, corIcone, carregando, inde
 // Dashboard Principal
 // ==============================
 const DashboardAdmin = () => {
+  const navigate = useNavigate()
   const isOnline = useOnlineStatus()
   const [stats, setStats] = useState(null)
   const [totalUsuariosCache, setTotalUsuariosCache] = useState(0)
   const [pendentesSync, setPendentesSync] = useState(0)
+  const [metricasUso, setMetricasUso] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [sincronizando, setSincronizando] = useState(false)
   const [feedbackSync, setFeedbackSync] = useState(null)
 
   const carregarDados = useCallback(async () => {
     try {
-      const [estatisticas, pendentes, usuariosCache] = await Promise.all([
+      const [estatisticas, pendentes, usuariosCache, dadosMetricas] = await Promise.all([
         fetchEstatisticas(isOnline),
         db.sync_queue.where('status').equals('pendente').count(),
-        db.usuarios_locais.count()
+        db.usuarios_locais.count(),
+        obterMetricasConsolidadas()
       ])
       setStats(estatisticas)
       setPendentesSync(pendentes)
       setTotalUsuariosCache(usuariosCache)
+      setMetricasUso(dadosMetricas)
     } catch (error) {
       console.error('[Dashboard] Erro inesperado ao carregar dados:', error)
     } finally {
@@ -104,6 +110,8 @@ const DashboardAdmin = () => {
         if (resultado.processados > 0) {
           const pendentesApos = await db.sync_queue.where('status').equals('pendente').count()
           setPendentesSync(pendentesApos)
+          const dadosMetricasAtualizadas = await obterMetricasConsolidadas()
+          setMetricasUso(dadosMetricasAtualizadas)
         }
       }
     }
@@ -274,7 +282,7 @@ const DashboardAdmin = () => {
       <section>
         <div className="flex items-center gap-3 mb-4">
           <div className="w-1 h-5 rounded-full bg-slate-400" />
-          <h2 className="text-base font-bold text-slate-700 uppercase tracking-wider">Status do Sistema</h2>
+          <h2 className="text-base font-bold text-slate-700 uppercase tracking-wider">Status do Sistema e Métricas</h2>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -358,6 +366,32 @@ const DashboardAdmin = () => {
                     {totalUsuariosCache} usuário(s) armazenados no cache local para acesso offline.
                   </p>
                 </div>
+              </div>
+
+              {/* Métricas de Uso Administrativo */}
+              <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <div className="p-3 rounded-xl bg-purple-100 text-purple-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-800">Métricas Administrativas</span>
+                    <span className="bg-purple-100 text-purple-800 font-bold text-[10px] px-2 py-0.5 rounded-full">
+                      {metricasUso?.total_operacoes || 0} ações
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {metricasUso?.operacoes_por_modo?.online || 0} online / {metricasUso?.operacoes_por_modo?.offline || 0} offline ({metricasUso?.sessoes?.total_inicializacoes || 0} sessões do app)
+                  </p>
+                </div>
+                <button
+                  onClick={() => navigate('/metricas')}
+                  className="px-3 py-2 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-xs font-bold transition-all shrink-0"
+                >
+                  Ver Detalhes
+                </button>
               </div>
 
               {/* Última atualização das stats */}

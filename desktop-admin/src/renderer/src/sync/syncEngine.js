@@ -1,5 +1,6 @@
 // sync/syncEngine.js — Motor de Sincronização (Offline → API)
 import db from '../db/db'
+import { registrarSincronizacao } from '../services/metricsService'
 
 const API_BASE = 'http://127.0.0.1:8000/admin'
 
@@ -110,6 +111,8 @@ export async function processSyncQueue() {
 
   if (pendentes.length > 0) {
     console.log(`[SyncEngine] Resultado: ${processados} sincronizados, ${erros} erros, ${pendentes.length} total.`)
+    // Registra métricas de sincronização
+    await registrarSincronizacao({ processados, erros })
   }
 
   return { processados, erros }

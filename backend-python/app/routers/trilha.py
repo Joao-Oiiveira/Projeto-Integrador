@@ -13,6 +13,7 @@ from app.schemas.trilha import (
 )
 from app.api.rotas_auth import obter_usuario_logado
 from app.services.ia_service import ia_service
+from app.services.validador_ia import validar_entrada_ia
 
 router = APIRouter()
 
@@ -70,6 +71,10 @@ def admin_popular_modulo(modulo_id: int, tema: str, quantidade: int = 10, nivel:
     if not modulo:
         raise HTTPException(status_code=404, detail="Módulo não encontrado")
     
+    valido, motivo = validar_entrada_ia(tema)
+    if not valido:
+        raise HTTPException(status_code=400, detail=f"Tema não permitido: {motivo}")
+    
     questoes_geradas = ia_service.gerar_questoes(tema, quantidade, nivel)
     
     novas_questoes = []
@@ -97,5 +102,9 @@ def gerar_questoes_ia(request: IAGerarRequest, usuario=Depends(obter_usuario_log
     Gera questões em tempo real para o botão 'Vestibular & IA'.
     Elas NÃO são salvas no banco de dados.
     """
+    valido, motivo = validar_entrada_ia(request.tema)
+    if not valido:
+        raise HTTPException(status_code=400, detail=f"Tema não permitido pelo EduAcess: {motivo}")
+
     questoes_geradas = ia_service.gerar_questoes(request.tema, request.quantidade, request.nivel)
     return questoes_geradas

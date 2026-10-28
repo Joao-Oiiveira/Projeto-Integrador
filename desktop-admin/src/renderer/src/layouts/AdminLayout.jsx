@@ -27,6 +27,11 @@ const AdminLayout = () => {
       path: '/usuarios',
       label: 'Usuários',
       icon: 'M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0zM9 8.5a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z'
+    },
+    {
+      path: '/metricas',
+      label: 'Métricas de Uso',
+      icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z'
     }
   ]
 
@@ -151,28 +156,26 @@ const AdminLayout = () => {
                 {user?.nome ? user.nome.charAt(0).toUpperCase() : 'A'}
               </div>
               <div className="hidden sm:flex flex-col">
-                <span className="text-sm font-bold text-slate-900 leading-tight max-w-[120px] truncate">
-                  {user?.nome || 'Admin'}
+                <span className="text-xs font-bold text-slate-800 leading-tight">
+                  {user?.nome || 'Administrador'}
                 </span>
-                <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Administrador</span>
+                <span className="text-[10px] text-slate-400">admin</span>
               </div>
+              <button
+                onClick={handleLogout}
+                title="Sair do sistema"
+                className="ml-2 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
             </div>
-
-            {/* Botão de Logout */}
-            <button
-              onClick={handleLogout}
-              className="p-2.5 bg-white rounded-full shadow-sm border border-slate-100 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 transition-all"
-              title="Sair"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
           </div>
         </header>
 
-        {/* Área de conteúdo scrollável */}
-        <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-8 custom-scrollbar w-full">
+        {/* Área de conteúdo rolável */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-8 pb-8">
           <Outlet />
         </div>
       </main>
