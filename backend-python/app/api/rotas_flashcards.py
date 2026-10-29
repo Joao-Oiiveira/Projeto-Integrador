@@ -1,12 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 from app.core.database import get_db
 from app.api.deps import get_usuario_atual
 from app.models.usuario import Usuario
 from app.models.flashcard import Baralho, Flashcard, ProgressoFlashcard
 from app.schemas.flashcard import BaralhoCreate, BaralhoUpdate, BaralhoResponse, FlashcardCreate, FlashcardUpdate, FlashcardResponse
+from app.services.validador_ia import validar_entrada_ia
+from datetime import datetime, timedelta
 
 router = APIRouter()
 
@@ -69,66 +71,77 @@ def listar_todos_flashcards(db: Session = Depends(get_db), usuario: Usuario = De
             "acertos": progresso.acertos if progresso else 0,
             "erros": progresso.erros if progresso else 0,
             "proxima_revisao": progresso.proxima_revisao if progresso else None,
-            "data_criacao": f.data_criacao,
-            "data_atualizacao": f.data_atualizacao
+            "ultima_revisao": progresso.ultima_revisao if progresso else None
         })
         
     return resultado
 
+# 2. Rota para CRIAR (POST)
 @router.post("/flashcards", response_model=FlashcardResponse, status_code=status.HTTP_201_CREATED)
-def criar_flashcard(flashcard_in: FlashcardCreate, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
-    baralho = db.query(Baralho).filter(Baralho.id == flashcard_in.baralho_id, Baralho.usuario_id == usuario.id).first()
-    if not baralho: 
-        raise HTTPException(status_code=403, detail="Baralho inválido.")
-    
-    novo_flashcard = Flashcard(**flashcard_in.dict())
-    db.add(novo_flashcard)
+def criar_flashcard(card_in: FlashcardCreate, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
+    # Garante que o baralho pertence ao usuário logado
+    baralho = db.query(Baralho).filter(Baralho.id == card_in.baralho_id, Baralho.usuario_id == usuario.id).first()
+    if not baralho:
+        raise HTTPException(status_code=404, detail="Baralho não encontrado.")
+        
+    novo_card = Flashcard(
+        baralho_id=card_in.baralho_id,
+        pergunta=card_in.pergunta,
+        resposta=card_in.resposta
+    )
+    db.add(novo_card)
     db.commit()
-    db.refresh(novo_flashcard)
-    return novo_flashcard
+    db.refresh(novo_card)
+    
+    # Cria o progresso inicial zerado para essa carta
+    progresso_inicial = ProgressoFlashcard(
+        usuario_id=usuario.id,
+        flashcard_id=novo_card.id,
+        acertos=0,
+        erros=0
+    )
+    db.add(progresso_inicial)
+    db.commit()
+    
+    return novo_card
 
+# 3. Rota para ATUALIZAR (PUT)
 @router.put("/flashcards/{flashcard_id}", response_model=FlashcardResponse)
-def atualizar_flashcard(flashcard_id: int, flashcard_in: FlashcardUpdate, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
-    flashcard = db.query(Flashcard).join(Baralho).filter(Flashcard.id == flashcard_id, Baralho.usuario_id == usuario.id).first()
-    if not flashcard: 
+def atualizar_flashcard(flashcard_id: int, card_in: FlashcardUpdate, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
+    card = db.query(Flashcard).join(Baralho).filter(Flashcard.id == flashcard_id, Baralho.usuario_id == usuario.id).first()
+    if not card: 
         raise HTTPException(status_code=404, detail="Flashcard não encontrado.")
     
-    flashcard.pergunta = flashcard_in.pergunta
-    flashcard.resposta = flashcard_in.resposta
+    card.pergunta = card_in.pergunta
+    card.resposta = card_in.resposta
     db.commit()
-    db.refresh(flashcard)
-    return flashcard
+    db.refresh(card)
+    return card
 
+# 4. Rota para EXCLUIR (DELETE)
 @router.delete("/flashcards/{flashcard_id}", status_code=status.HTTP_204_NO_CONTENT)
 def excluir_flashcard(flashcard_id: int, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
-    flashcard = db.query(Flashcard).join(Baralho).filter(Flashcard.id == flashcard_id, Baralho.usuario_id == usuario.id).first()
-    if not flashcard: 
+    card = db.query(Flashcard).join(Baralho).filter(Flashcard.id == flashcard_id, Baralho.usuario_id == usuario.id).first()
+    if not card: 
         raise HTTPException(status_code=404, detail="Flashcard não encontrado.")
-    db.delete(flashcard)
+    
+    db.delete(card)
     db.commit()
     return None
 
 # ==========================================
 # ROTA DE ESTUDO (PROGRESSO)
 # ==========================================
-# Rota de Estudo (Com Repetição Espaçada Simples)
-# ==========================================
-# ROTA DE ESTUDO (PROGRESSO)
-# ==========================================
-from datetime import datetime, timedelta
-
 class ResultadoEstudo(BaseModel):
     acertou: bool
 
 @router.post("/flashcards/{flashcard_id}/estudo")
 def registrar_estudo(flashcard_id: int, resultado: ResultadoEstudo, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
-    
     flashcard = db.query(Flashcard).join(Baralho).filter(Flashcard.id == flashcard_id, Baralho.usuario_id == usuario.id).first()
-    if not flashcard: raise HTTPException(status_code=404)
+    if not flashcard: raise HTTPException(status_code=404, detail="Flashcard não encontrado.")
     
     progresso = db.query(ProgressoFlashcard).filter(ProgressoFlashcard.usuario_id == usuario.id, ProgressoFlashcard.flashcard_id == flashcard_id).first()
     
-    # Pega a data e hora exata de agora no fuso horário do servidor
     agora = datetime.now()
     
     if not progresso:
@@ -138,18 +151,17 @@ def registrar_estudo(flashcard_id: int, resultado: ResultadoEstudo, db: Session 
     if resultado.acertou:
         progresso.acertos += 1
         dias_pulo = progresso.acertos * 2
-        # O Python calcula a data exata do futuro
         progresso.proxima_revisao = agora + timedelta(days=dias_pulo)
     else:
         progresso.erros += 1
         progresso.acertos = 0
-        # O Python calcula a data exata de amanhã
         progresso.proxima_revisao = agora + timedelta(days=1)
         
     progresso.ultima_revisao = agora
     
     db.commit()
     return {"status": "ok", "proxima_revisao": progresso.proxima_revisao.isoformat()}
+
 # Nova Rota: Gerar Flashcards com IA
 from app.services.questoes_service import gerar_flashcards_ia
 
@@ -161,7 +173,12 @@ class GerarFlashcardsRequest(BaseModel):
 @router.post("/baralhos/{baralho_id}/gerar-ia", response_model=List[FlashcardResponse])
 def gerar_flashcards_no_baralho(baralho_id: int, request: GerarFlashcardsRequest, db: Session = Depends(get_db), usuario: Usuario = Depends(get_usuario_atual)):
     baralho = db.query(Baralho).filter(Baralho.id == baralho_id, Baralho.usuario_id == usuario.id).first()
-    if not baralho: raise HTTPException(status_code=404)
+    if not baralho: raise HTTPException(status_code=404, detail="Baralho não encontrado.")
+
+    # Validação do tema para IA (impede números puros, símbolos puros ou prompts perigosos)
+    valido, motivo = validar_entrada_ia(request.tema)
+    if not valido:
+        raise HTTPException(status_code=400, detail=motivo)
 
     cards_gerados = gerar_flashcards_ia(request.tema, request.dificuldade, request.quantidade)
     

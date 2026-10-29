@@ -6,6 +6,7 @@ import Input from '../components/Input';
 import { obterDisciplinasAPI } from '../services/disciplinas';
 import { useToast } from '../contexts/ToastContext';
 import { classifyError } from '../utils/errorHandler';
+import { validarTextoNome, validarTemaIA } from '../utils/validators';
 import { 
   obterBaralhos, criarBaralho, atualizarBaralho, excluirBaralho,
   obterTodosFlashcards, criarFlashcard, atualizarFlashcard, excluirFlashcard,
@@ -143,14 +144,17 @@ const Flashcards = () => {
   const handleGerarIA = async (e) => {
     e.preventDefault();
     if (loadingIA) return;
-    if (!formIA.tema.trim()) {
-      addToast({ type: 'warning', title: 'Campo obrigatório', message: 'Por favor, informe um tema para a IA gerar os flashcards.', action: null });
+
+    // Validação básica do tema de estudo da IA
+    const erroTema = validarTemaIA(formIA.tema);
+    if (erroTema) {
+      addToast({ type: 'warning', title: 'Tema inválido', message: erroTema, action: null });
       return;
     }
     
     setLoadingIA(true);
     try {
-      await gerarFlashcardsIA(baralhoSelecionado.id, formIA.tema, formIA.dificuldade, formIA.quantidade);
+      await gerarFlashcardsIA(baralhoSelecionado.id, formIA.tema.trim(), formIA.dificuldade, formIA.quantidade);
       await carregarDados();
       setModalIAOpen(false);
       setFormIA({ tema: '', dificuldade: 'médio', quantidade: 5 });
@@ -173,23 +177,39 @@ const Flashcards = () => {
     }
     setEditandoId(null); setFormBaralho({ nome: '', disciplina_id: '' }); setModalBaralhoOpen(true);
   };
+
   const abrirModalEditarBaralho = (e, baralho) => {
     e.stopPropagation(); setEditandoId(baralho.id); setFormBaralho({ nome: baralho.nome, disciplina_id: baralho.disciplina_id || '' }); setModalBaralhoOpen(true);
   };
+
   const salvarBaralho = async (e) => {
     e.preventDefault();
     if (salvandoBaralho) return;
-    if (!formBaralho.nome || !formBaralho.disciplina_id) {
-      addToast({ type: 'warning', title: 'Campos incompletos', message: 'Preencha o nome e a disciplina do baralho antes de continuar.', action: null });
+
+    // Validação de nome do baralho
+    const erroNome = validarTextoNome(formBaralho.nome, 'nome do baralho');
+    if (erroNome) {
+      addToast({ type: 'warning', title: 'Nome inválido', message: erroNome, action: null });
       return;
     }
+
+    if (!formBaralho.disciplina_id) {
+      addToast({ type: 'warning', title: 'Disciplina obrigatória', message: 'Selecione a disciplina do baralho antes de continuar.', action: null });
+      return;
+    }
+
     setSalvandoBaralho(true);
     try {
+      const payload = {
+        nome: formBaralho.nome.trim(),
+        disciplina_id: Number(formBaralho.disciplina_id)
+      };
+
       if (editandoId) {
-        await atualizarBaralho(editandoId, formBaralho); 
+        await atualizarBaralho(editandoId, payload); 
         addToast({ type: 'success', message: 'Baralho atualizado com sucesso.' });
       } else {
-        await criarBaralho(formBaralho);
+        await criarBaralho(payload);
         addToast({ type: 'success', message: 'Baralho criado com sucesso.' });
       }
       await carregarDados(); 
@@ -201,30 +221,50 @@ const Flashcards = () => {
       setSalvandoBaralho(false);
     }
   };
+
   const apagarBaralho = (e, id) => {
     e.stopPropagation(); 
     setConfirmModal({ isOpen: true, id: id, tipo: 'baralho' });
   };
+
   const abrirModalNovoFlashcard = () => { 
     setEditandoId(null); setFormFlashcard({ pergunta: '', resposta: '' }); setModalFlashcardOpen(true); 
   };
+
   const abrirModalEditarFlashcard = (flashcard) => { 
     setEditandoId(flashcard.id); setFormFlashcard({ pergunta: flashcard.pergunta, resposta: flashcard.resposta }); setModalFlashcardOpen(true); 
   };
+
   const salvarFlashcard = async (e) => {
     e.preventDefault();
     if (salvandoCard) return;
-    if (!formFlashcard.pergunta || !formFlashcard.resposta) {
-      addToast({ type: 'warning', title: 'Campos incompletos', message: 'Preencha a pergunta e a resposta antes de continuar.', action: null });
+
+    // Validação da pergunta (deve conter letras legíveis)
+    const erroPergunta = validarTextoNome(formFlashcard.pergunta, 'pergunta (frente)');
+    if (erroPergunta) {
+      addToast({ type: 'warning', title: 'Pergunta inválida', message: erroPergunta, action: null });
       return;
     }
+
+    // Validação da resposta
+    const erroResposta = validarTextoNome(formFlashcard.resposta, 'resposta (verso)', { minLetras: 1 });
+    if (erroResposta) {
+      addToast({ type: 'warning', title: 'Resposta inválida', message: erroResposta, action: null });
+      return;
+    }
+
     setSalvandoCard(true);
     try {
+      const payload = {
+        pergunta: formFlashcard.pergunta.trim(),
+        resposta: formFlashcard.resposta.trim()
+      };
+
       if (editandoId) {
-        await atualizarFlashcard(editandoId, formFlashcard); 
+        await atualizarFlashcard(editandoId, payload); 
         addToast({ type: 'success', message: 'Flashcard atualizado com sucesso.' });
       } else {
-        await criarFlashcard({ ...formFlashcard, baralho_id: baralhoSelecionado.id });
+        await criarFlashcard({ ...payload, baralho_id: baralhoSelecionado.id });
         addToast({ type: 'success', message: 'Flashcard criado com sucesso.' });
       }
       await carregarDados(); 
@@ -236,6 +276,7 @@ const Flashcards = () => {
       setSalvandoCard(false);
     }
   };
+
   const apagarFlashcard = (id) => { 
     setConfirmModal({ isOpen: true, id: id, tipo: 'flashcard' });
   };
@@ -387,7 +428,6 @@ const Flashcards = () => {
                 ✨ Gerar com IA
               </button>
               
-              {/* BOTÃO CORRIGIDO: Retornou para o roxo padrão */}
               <Button 
                 text="+ Nova Carta" 
                 onClick={abrirModalNovoFlashcard} 
@@ -437,7 +477,15 @@ const Flashcards = () => {
         </div>
 
         {/* MODAIS INSERIDOS AQUI PARA FUNCIONAREM NA TELA 2 */}
-        <Modal isOpen={modalIAOpen} onClose={() => setModalIAOpen(false)} title="Gerar Flashcards com IA">
+        <Modal 
+          isOpen={modalIAOpen} 
+          onClose={() => setModalIAOpen(false)} 
+          title="Gerar Flashcards com IA"
+          isLoading={loadingIA}
+          isAI={true}
+          loadingMessage="Gerando flashcards com Inteligência Artificial..."
+          loadingSubmessage="A IA está analisando o tema para criar perguntas e respostas pedagógicas. A tela está bloqueada, por favor aguarde."
+        >
           <form onSubmit={handleGerarIA} className="flex flex-col gap-4">
             <Input id="tema_ia" label="Tema Específico *" placeholder="Ex: Revolução Francesa" value={formIA.tema} onChange={e => setFormIA({...formIA, tema: e.target.value})} />
             <div className="flex flex-col gap-1.5 w-full">
@@ -468,7 +516,14 @@ const Flashcards = () => {
           </form>
         </Modal>
 
-        <Modal isOpen={modalFlashcardOpen} onClose={() => setModalFlashcardOpen(false)} title={editandoId ? "Editar Carta" : "Nova Carta"}>
+        <Modal 
+          isOpen={modalFlashcardOpen} 
+          onClose={() => setModalFlashcardOpen(false)} 
+          title={editandoId ? "Editar Carta" : "Nova Carta"}
+          isLoading={salvandoCard}
+          loadingMessage={editandoId ? "Salvando alterações da carta..." : "Criando nova carta..."}
+          loadingSubmessage="A tela permanecerá bloqueada durante o salvamento para evitar inconsistências."
+        >
           <form onSubmit={salvarFlashcard} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5 w-full">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Frente (Pergunta) *</label>
@@ -579,7 +634,14 @@ const Flashcards = () => {
         )}
       </div>
 
-      <Modal isOpen={modalBaralhoOpen} onClose={() => setModalBaralhoOpen(false)} title={editandoId ? "Editar Baralho" : "Novo Baralho"}>
+      <Modal 
+        isOpen={modalBaralhoOpen} 
+        onClose={() => setModalBaralhoOpen(false)} 
+        title={editandoId ? "Editar Baralho" : "Novo Baralho"}
+        isLoading={salvandoBaralho}
+        loadingMessage={editandoId ? "Salvando alterações do baralho..." : "Criando novo baralho..."}
+        loadingSubmessage="A tela permanecerá bloqueada durante o salvamento para garantir a integridade dos dados."
+      >
         <form onSubmit={salvarBaralho} className="flex flex-col gap-4">
           <Input id="nome" label="Nome do Baralho *" placeholder="Ex: Fórmulas de Física" value={formBaralho.nome} onChange={e => setFormBaralho({...formBaralho, nome: e.target.value})} />
           <div className="flex flex-col gap-1.5 w-full">

@@ -154,10 +154,20 @@ export function formatUserMessage(classified) {
 // ============================================================
 function buildResult(type, technical) {
   const template = USER_MESSAGES[type] || USER_MESSAGES.UNEXPECTED;
+
+  // Se for erro de validação com mensagem legível (ex: vinda do backend ou formulário),
+  // exibe a mensagem específica em vez do texto genérico
+  const ehMensagemLegivel = technical && 
+    typeof technical === 'string' && 
+    !technical.includes('{') && 
+    !technical.includes('TypeError:') && 
+    !technical.includes('Failed to fetch') &&
+    technical.length < 300;
+
   return {
     type,
     title: template.title,
-    message: template.message,
+    message: (type === 'VALIDATION' && ehMensagemLegivel) ? technical : template.message,
     action: template.action,
     technical: technical || '',
   };
@@ -169,7 +179,7 @@ function buildResult(type, technical) {
 
 /**
  * Lança um erro enriquecido quando a resposta HTTP não é ok.
- * Tenta extrair `data.detail` do corpo JSON.
+ * Tenta extrair `data.detail` do corpo JSON, formatando erros do FastAPI/Pydantic.
  *
  * @param {Response} response - Resposta do fetch
  * @param {string} [fallbackMessage] - Mensagem padrão se não houver detail
@@ -180,7 +190,19 @@ export async function throwIfNotOk(response, fallbackMessage = 'Erro na operaç�
   let detail = fallbackMessage;
   try {
     const data = await response.json();
-    detail = data.detail || fallbackMessage;
+    if (typeof data.detail === 'string') {
+      detail = data.detail;
+    } else if (Array.isArray(data.detail)) {
+      // Trata erros de validação do Pydantic / FastAPI
+      const mensagens = data.detail
+        .map(item => item?.msg ? item.msg.replace(/^Value error,\s*/i, '') : null)
+        .filter(Boolean);
+      if (mensagens.length > 0) {
+        detail = mensagens.join(' ');
+      }
+    } else if (data.message && typeof data.message === 'string') {
+      detail = data.message;
+    }
   } catch {
     // Corpo não é JSON — usa o fallback
   }

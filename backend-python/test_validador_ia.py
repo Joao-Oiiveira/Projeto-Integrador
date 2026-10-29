@@ -17,6 +17,8 @@ testes_validos = [
     "Fotossíntese e Respiração Celular",
     "Geometria Espacial: Prismas e Cilindros",
     "História da Grécia Antiga",
+    "Física 1",
+    "Cálculo 2",
 ]
 
 testes_invalidos = [
@@ -38,8 +40,12 @@ testes_invalidos = [
     ("Vai se foder seu merda", "ofensivas"),
     # Spam / Gibberish / Repetições
     ("aaaaaaaaaaaaaaaaaaaaa", "repetições excessivas"),
-    ("?????????", "palavras ou números válidos"),
+    ("?????????", "símbolos"),
     ("sdfghjklmnbvc", "não parece ser uma palavra"),
+    # Apenas números ou apenas símbolos
+    ("12345678", "apenas números"),
+    ("999999", "apenas números"),
+    ("--- @@@ ***", "símbolos"),
     # Muito curto
     ("a", "muito curto"),
 ]

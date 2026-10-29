@@ -2,14 +2,15 @@ import React, { useState, useEffect } from 'react';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import Modal from '../components/Modal';
-import ConfirmModal from '../components/ConfirmModal'; // NOVO: Importando o modal de confirmação
+import ConfirmModal from '../components/ConfirmModal';
 import { getDaysInMonth, formatToDateString, isSameDay } from '../utils/calendarUtils';
 import { useToast } from '../contexts/ToastContext';
-import { classifyError } from '../utils/errorHandler';
+import { classifyError, formatUserMessage } from '../utils/errorHandler';
+import { validarTextoNome, validarTextoDescricao } from '../utils/validators';
 
 // Services
 import { obterTarefas } from '../services/tarefas'; 
-import { obterEventos, criarEvento, excluirEvento, atualizarEvento } from '../services/eventosService'; // NOVO: atualizarEvento adicionado
+import { obterEventos, criarEvento, excluirEvento, atualizarEvento } from '../services/eventosService';
 import { obterDisciplinasAPI } from '../services/disciplinas'; 
 
 const Agenda = () => {
@@ -25,10 +26,10 @@ const Agenda = () => {
   // Estados do Modal de Evento
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [error, setError] = useState('');
-  const [editandoId, setEditandoId] = useState(null); // NOVO: Controle de edição
+  const [editandoId, setEditandoId] = useState(null);
   const [novoEvento, setNovoEvento] = useState({ titulo: '', descricao: '', data_inicio: '', data_fim: '', disciplina_id: '' });
 
-  // NOVO: Estados do Modal de Confirmação
+  // Estados do Modal de Confirmação
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
   const [salvando, setSalvando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
@@ -72,7 +73,6 @@ const Agenda = () => {
     setSelectedDate(new Date());
   };
 
-  // NOVO: Funções de abrir modais
   const abrirModalNovo = () => {
     setError('');
     setEditandoId(null);
@@ -93,14 +93,20 @@ const Agenda = () => {
     setIsModalOpen(true);
   };
 
-  // ATUALIZADO: Lida com Criação e Edição
   const handleSalvarEvento = async (e) => {
     e.preventDefault();
     if (salvando) return;
     setError('');
 
-    if (!novoEvento.titulo.trim() || !novoEvento.data_inicio) {
-      setError("Preencha os campos obrigatórios (Título e Data de Início).");
+    // Validação de título do evento (não aceitar apenas números ou símbolos)
+    const erroTitulo = validarTextoNome(novoEvento.titulo, 'título do evento');
+    if (erroTitulo) {
+      setError(erroTitulo);
+      return;
+    }
+
+    if (!novoEvento.data_inicio) {
+      setError("Informe a data e horário de início do evento.");
       return;
     }
 
@@ -108,14 +114,30 @@ const Agenda = () => {
       setError("A data de término não pode ser anterior à data de início.");
       return;
     }
+
+    if (novoEvento.descricao) {
+      const erroDesc = validarTextoDescricao(novoEvento.descricao, 'descrição');
+      if (erroDesc) {
+        setError(erroDesc);
+        return;
+      }
+    }
     
     setSalvando(true);
     try {
+      const payload = {
+        titulo: novoEvento.titulo.trim(),
+        descricao: novoEvento.descricao?.trim() || null,
+        data_inicio: novoEvento.data_inicio,
+        data_fim: novoEvento.data_fim || null,
+        disciplina_id: novoEvento.disciplina_id ? Number(novoEvento.disciplina_id) : null
+      };
+
       if (editandoId) {
-        await atualizarEvento(editandoId, novoEvento);
+        await atualizarEvento(editandoId, payload);
         addToast({ type: 'success', message: 'Evento atualizado com sucesso.' });
       } else {
-        await criarEvento(novoEvento);
+        await criarEvento(payload);
         addToast({ type: 'success', message: 'Evento agendado com sucesso.' });
       }
       await carregarDados();
@@ -128,7 +150,6 @@ const Agenda = () => {
     }
   };
 
-  // NOVO: Fluxo de Exclusão usando o ConfirmModal
   const handleExcluirClick = (id) => {
     setConfirmModal({ isOpen: true, id });
   };
@@ -150,7 +171,6 @@ const Agenda = () => {
     }
   };
 
-  // NOVO: Função auxiliar para verificar se uma data está entre o início e fim de um evento
   const isDateInEventRange = (dateStr, dataInicio, dataFim) => {
     if (!dataInicio) return false;
     const start = dataInicio.split('T')[0];
@@ -160,7 +180,6 @@ const Agenda = () => {
 
   const selectedDateStr = formatToDateString(selectedDate);
   
-  // ATUALIZADO: Filtra tarefas pelo dia exato, mas eventos pelo range (múltiplos dias)
   const tarefasDoDia = tarefas.filter(t => t.data_entrega && t.data_entrega.split('T')[0] === selectedDateStr);
   const eventosDoDia = eventos.filter(e => isDateInEventRange(selectedDateStr, e.data_inicio, e.data_fim));
 
@@ -227,7 +246,6 @@ const Agenda = () => {
               const isToday = isSameDay(dateStr, formatToDateString(new Date()));
               
               const dayTasks = tarefas.filter(t => t.data_entrega && t.data_entrega.split('T')[0] === dateStr);
-              // ATUALIZADO: Bolinha azul aparece em todos os dias do range do evento
               const dayEvents = eventos.filter(e => isDateInEventRange(dateStr, e.data_inicio, e.data_fim));
 
               return (
@@ -269,7 +287,6 @@ const Agenda = () => {
             {eventosDoDia.map(evento => {
               const disc = disciplinas.find(d => String(d.id) === String(evento.disciplina_id));
               
-              // ATUALIZADO: Lógica de exibição de Duração
               const startStr = evento.data_inicio.split('T')[0];
               const endStr = evento.data_fim ? evento.data_fim.split('T')[0] : startStr;
               const horaInicio = new Date(evento.data_inicio).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
@@ -283,8 +300,6 @@ const Agenda = () => {
 
               return (
                 <div key={`ev-${evento.id}`} className="bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-sm border-l-4 border-l-blue-500 relative group transition-colors">
-                  
-                  {/* ATUALIZADO: Botões de Editar e Excluir */}
                   <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 flex gap-1 transition-opacity">
                     <button onClick={() => abrirModalEdicao(evento)} className="p-1.5 text-gray-400 hover:text-blue-600 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
@@ -320,7 +335,14 @@ const Agenda = () => {
       </div>
 
       {/* MODAL DE CRIAÇÃO / EDIÇÃO */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editandoId ? "Editar Evento" : "Agendar Novo Evento"}>
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title={editandoId ? "Editar Evento" : "Agendar Novo Evento"}
+        isLoading={salvando}
+        loadingMessage={editandoId ? "Salvando alterações do evento..." : "Agendando novo evento..."}
+        loadingSubmessage="A tela permanecerá bloqueada durante o salvamento para garantir a integridade dos dados."
+      >
         <form onSubmit={handleSalvarEvento} className="flex flex-col gap-4">
           {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
           <Input id="titulo" label="Título do Evento *" placeholder="Ex: Feira de Ciências" value={novoEvento.titulo} onChange={e => setNovoEvento({...novoEvento, titulo: e.target.value})} />
@@ -354,7 +376,7 @@ const Agenda = () => {
         </form>
       </Modal>
 
-      {/* NOVO: MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
+      {/* MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
       <ConfirmModal 
         isOpen={confirmModal.isOpen}
         title="Excluir Evento"

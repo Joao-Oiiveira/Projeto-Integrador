@@ -4,6 +4,7 @@ Serviço de Validação de Entradas para a Inteligência Artificial do EduAcess.
 Objetivo:
 - Garantir que as solicitações enviadas à IA estejam em conformidade com a finalidade educacional.
 - Proteger contra prompt injections, conteúdos prejudiciais, termos ofensivos e abusos.
+- Evitar entradas inválidas compostas exclusivamente por números ou símbolos.
 - Preservar termos legítimos de biologia, história, química, saúde e outras disciplinas curriculares.
 """
 
@@ -137,7 +138,7 @@ def validar_entrada_ia(tema: str) -> Tuple[bool, Optional[str]]:
         return False, "O tema para a IA não pode ser nulo. Por favor, informe um assunto de estudo."
 
     texto_bruto = tema.strip()
-    
+
     # 1. Validação de tamanho mínimo
     if len(texto_bruto) < 2:
         return False, "O tema informado é muito curto. Por favor, digite um assunto de estudo com pelo menos 2 caracteres."
@@ -150,13 +151,14 @@ def validar_entrada_ia(tema: str) -> Tuple[bool, Optional[str]]:
     texto_norm = normalizar_texto(texto_bruto)
 
     # 3. Verificação de Repetição / Spam / Texto sem sentido (Gibberish)
-    # Ex: aaaaaaaa, ????????, .....
     if re.search(r'(.)\1{5,}', texto_norm):
         return False, "A solicitação contém repetições excessivas ou caracteres sem sentido. Por favor, informe um tema educacional válido."
 
-    # Verifica se não há pelo menos um caractere alfanumérico
-    if not re.search(r'[a-z0-9]', texto_norm):
-        return False, "O tema precisa conter palavras ou números válidos para estudo."
+    # Verifica se não há letras (rejeita entradas com apenas números ou símbolos)
+    if not re.search(r'[a-z]', texto_norm):
+        if re.search(r'[0-9]', texto_norm):
+            return False, "O tema para a IA não pode ser composto apenas por números. Por favor, informe um assunto acadêmico com letras."
+        return False, "O tema para a IA não pode ser composto apenas por símbolos. Por favor, informe um assunto acadêmico válido."
 
     # Verifica se o texto é apenas uma sequência de consoantes sem sentido (ex: "sdfghjkl")
     palavras = texto_norm.split()
@@ -172,7 +174,6 @@ def validar_entrada_ia(tema: str) -> Tuple[bool, Optional[str]]:
         return False, "O tema fornecido não parece ser uma palavra ou disciplina compreensível. Por favor, verifique o que digitou."
 
     # 4. Checagem de Salvaguardas Educacionais (Whitelist rápida)
-    # Se bater exatamente ou contiver um tema curricular sabidamente sensível, aprovamos antecipadamente
     for salvaguarda in SALVAGUARDAS_EDUCACIONAIS:
         if salvaguarda in texto_norm:
             # Mesmo em salvaguardas, verificamos se não há injeção de prompt associada

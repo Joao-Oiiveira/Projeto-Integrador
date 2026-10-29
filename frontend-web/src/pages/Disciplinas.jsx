@@ -5,7 +5,8 @@ import Input from '../components/Input';
 import ConfirmModal from '../components/ConfirmModal';
 import { obterDisciplinasAPI, criarDisciplinaAPI, atualizarDisciplinaAPI, excluirDisciplinaAPI } from '../services/disciplinas';
 import { useToast } from '../contexts/ToastContext';
-import { classifyError } from '../utils/errorHandler';
+import { classifyError, formatUserMessage } from '../utils/errorHandler';
+import { validarTextoNome, validarTextoDescricao } from '../utils/validators';
 
 const CORES_DISPONIVEIS = [
   'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400', 
@@ -64,18 +65,35 @@ const Disciplinas = () => {
     if (salvando) return;
     setError('');
 
-    if (!formData.nome.trim()) {
-      setError("O nome da disciplina é obrigatório.");
+    // Validação de nome (não aceitar apenas números ou símbolos)
+    const erroNome = validarTextoNome(formData.nome, 'nome da disciplina');
+    if (erroNome) {
+      setError(erroNome);
       return;
+    }
+
+    // Validação de descrição (se informada)
+    if (formData.descricao) {
+      const erroDesc = validarTextoDescricao(formData.descricao, 'descrição');
+      if (erroDesc) {
+        setError(erroDesc);
+        return;
+      }
     }
 
     setSalvando(true);
     try {
       if (editandoId) {
-        await atualizarDisciplinaAPI(editandoId, formData);
+        await atualizarDisciplinaAPI(editandoId, {
+          nome: formData.nome.trim(),
+          descricao: formData.descricao?.trim() || null
+        });
         addToast({ type: 'success', message: 'Disciplina atualizada com sucesso.' });
       } else {
-        await criarDisciplinaAPI(formData);
+        await criarDisciplinaAPI({
+          nome: formData.nome.trim(),
+          descricao: formData.descricao?.trim() || null
+        });
         addToast({ type: 'success', message: 'Disciplina criada com sucesso.' });
       }
       await carregarDados();
@@ -137,17 +155,21 @@ const Disciplinas = () => {
 
         let importadas = 0;
         for (const item of dadosParsed) {
-          if (item.nome) { 
+          if (item.nome && !validarTextoNome(item.nome, 'nome')) { 
             await criarDisciplinaAPI({
-              nome: item.nome,
-              descricao: item.descricao || ''
+              nome: item.nome.trim(),
+              descricao: item.descricao ? item.descricao.trim() : ''
             });
             importadas++;
           }
         }
 
-        addToast({ type: 'success', message: `${importadas} disciplina(s) importada(s) com sucesso!` });
-        await carregarDados();
+        if (importadas === 0) {
+          addToast({ type: 'warning', title: 'Nenhuma disciplina importada', message: 'Nenhuma disciplina com nome válido (contendo letras) foi encontrada no arquivo.', action: null });
+        } else {
+          addToast({ type: 'success', message: `${importadas} disciplina(s) importada(s) com sucesso!` });
+          await carregarDados();
+        }
       } catch (error) {
         const classified = classifyError(error, 'importarDisciplinas');
         addToast({ type: 'error', title: classified.title, message: classified.message || 'Formato de arquivo inválido.', action: classified.action });
@@ -237,7 +259,6 @@ const Disciplinas = () => {
                     <button onClick={() => abrirModalEdicao(disciplina)} className="p-1.5 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                     </button>
-                    {/* CORREÇÃO: Usando handleExcluirClick */}
                     <button onClick={() => handleExcluirClick(disciplina.id)} className="p-1.5 text-gray-400 hover:text-red-600 dark:hover:text-red-400 bg-gray-50 dark:bg-gray-700 rounded-lg transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                     </button>
@@ -259,7 +280,14 @@ const Disciplinas = () => {
         </div>
       )}
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editandoId ? "Editar Disciplina" : "Nova Disciplina"}>
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title={editandoId ? "Editar Disciplina" : "Nova Disciplina"}
+        isLoading={salvando}
+        loadingMessage={editandoId ? "Salvando alterações da disciplina..." : "Cadastrando nova disciplina..."}
+        loadingSubmessage="A tela está bloqueada para garantir o registro seguro dos dados."
+      >
         <form onSubmit={handleSalvar} className="flex flex-col gap-4">
           {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
           <Input id="nome" label="Nome da Disciplina *" placeholder="Ex: Matemática, História..." value={formData.nome} onChange={(e) => setFormData({ ...formData, nome: e.target.value })} />

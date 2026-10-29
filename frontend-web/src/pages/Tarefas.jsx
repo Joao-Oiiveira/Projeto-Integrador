@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Modal from '../components/Modal';
 import Button from '../components/Button';
 import Input from '../components/Input';
-import ConfirmModal from '../components/ConfirmModal'; // NOVO: Importação do Modal de Confirmação
+import ConfirmModal from '../components/ConfirmModal';
 import { obterTarefas, criarTarefa, atualizarStatusTarefa, atualizarTarefa, excluirTarefa } from '../services/tarefas';
 import { obterDisciplinasAPI } from '../services/disciplinas';
 import { useToast } from '../contexts/ToastContext';
-import { classifyError } from '../utils/errorHandler';
+import { classifyError, formatUserMessage } from '../utils/errorHandler';
+import { validarTextoNome, validarTextoDescricao } from '../utils/validators';
 
 const Tarefas = () => {
   const { addToast } = useToast();
@@ -17,7 +18,6 @@ const Tarefas = () => {
   const [editandoId, setEditandoId] = useState(null);
   const [filtroAtivo, setFiltroAtivo] = useState('todas');
 
-  // NOVO: Estado para o Modal de Confirmação
   const [confirmModal, setConfirmModal] = useState({ isOpen: false, id: null });
   const [salvando, setSalvando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
@@ -75,8 +75,20 @@ const Tarefas = () => {
     if (salvando) return;
     setError('');
 
-    if (!novaTarefa.titulo.trim() || !novaTarefa.disciplina_id || !novaTarefa.data_entrega) {
-      setError("Preencha todos os campos obrigatórios (Título, Disciplina e Data)");
+    // Validação do título (não aceitar apenas números ou símbolos)
+    const erroTitulo = validarTextoNome(novaTarefa.titulo, 'título da tarefa');
+    if (erroTitulo) {
+      setError(erroTitulo);
+      return;
+    }
+
+    if (!novaTarefa.disciplina_id) {
+      setError("Selecione uma disciplina para vincular à tarefa.");
+      return;
+    }
+
+    if (!novaTarefa.data_entrega) {
+      setError("Informe a data de entrega da tarefa.");
       return;
     }
 
@@ -85,13 +97,28 @@ const Tarefas = () => {
       return;
     }
 
+    if (novaTarefa.descricao) {
+      const erroDesc = validarTextoDescricao(novaTarefa.descricao, 'descrição');
+      if (erroDesc) {
+        setError(erroDesc);
+        return;
+      }
+    }
+
     setSalvando(true);
     try {
+      const payload = {
+        titulo: novaTarefa.titulo.trim(),
+        descricao: novaTarefa.descricao?.trim() || null,
+        data_entrega: novaTarefa.data_entrega,
+        disciplina_id: Number(novaTarefa.disciplina_id)
+      };
+
       if (editandoId) {
-        await atualizarTarefa(editandoId, novaTarefa);
+        await atualizarTarefa(editandoId, payload);
         addToast({ type: 'success', message: 'Tarefa atualizada com sucesso.' });
       } else {
-        await criarTarefa(novaTarefa);
+        await criarTarefa(payload);
         addToast({ type: 'success', message: 'Tarefa criada com sucesso.' });
       }
       await carregarDados(); 
@@ -207,7 +234,6 @@ const Tarefas = () => {
                   <button onClick={() => abrirModalEdicao(tarefa)} className="p-1 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 bg-gray-50 dark:bg-gray-700 rounded-md">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
                   </button>
-                  {/* ATUALIZADO: Chama a função que abre o ConfirmModal */}
                   <button onClick={() => handleExcluirClick(tarefa.id)} className="p-1 text-gray-400 hover:text-red-600 dark:hover:text-red-400 bg-gray-50 dark:bg-gray-700 rounded-md">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
@@ -276,7 +302,14 @@ const Tarefas = () => {
         <ColunaTarefas titulo="Concluídas" tarefasColuna={concluidas} statusColor="bg-green-400" />
       </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} title={editandoId ? "Editar Tarefa" : "Criar Nova Tarefa"}>
+      <Modal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title={editandoId ? "Editar Tarefa" : "Criar Nova Tarefa"}
+        isLoading={salvando}
+        loadingMessage={editandoId ? "Salvando alterações da tarefa..." : "Criando nova tarefa..."}
+        loadingSubmessage="A tela permanecerá bloqueada durante o salvamento para garantir a integridade dos dados."
+      >
         <form onSubmit={handleSalvarTarefa} className="flex flex-col gap-4">
           {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
           <Input id="titulo" label="Título da Tarefa *" placeholder="Ex: Resolver lista de exercícios" value={novaTarefa.titulo} onChange={e => setNovaTarefa({...novaTarefa, titulo: e.target.value})} />
@@ -311,7 +344,6 @@ const Tarefas = () => {
         </form>
       </Modal>
 
-      {/* NOVO: MODAL DE CONFIRMAÇÃO DE EXCLUSÃO */}
       <ConfirmModal 
         isOpen={confirmModal.isOpen}
         title="Excluir Tarefa"
